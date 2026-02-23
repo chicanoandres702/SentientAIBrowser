@@ -5,36 +5,36 @@ const BACKGROUND_FETCH_TASK = 'background-fetch-swagbucks';
 
 // Simulated raw API check to avoid spinning up the WebView in the background
 const checkSwagbucksForSurveys = async (): Promise<boolean> => {
-    try {
-        console.log("Simulating lightweight headless poll to Swagbucks API...");
-        // A real implementation would fetch the endpoint using persistent cookies.
-        // e.g. await fetch('https://www.swagbucks.com/surveys/api/list', { headers: { Cookie: '...' }});
+  try {
+    console.log("Simulating lightweight headless poll to Swagbucks API...");
+    // A real implementation would fetch the endpoint using persistent cookies.
+    // e.g. await fetch('https://www.swagbucks.com/surveys/api/list', { headers: { Cookie: '...' }});
 
-        // Simulating finding a goldmine survey 10% of the time
-        const foundHighYieldSurvey = Math.random() > 0.9;
+    // Simulating finding a goldmine survey 10% of the time
+    const foundHighYieldSurvey = Math.random() > 0.9;
 
-        if (foundHighYieldSurvey) {
-            console.log("High yield survey detected via daemon!");
-            // Here we would configure local Push Notifications (e.g. expo-notifications)
-            // to alert the user: "New 150 SB Survey Found! Tap to execute AI Workflow."
-            return true;
-        }
-
-        return false;
-    } catch (e) {
-        console.error("Headless poll failed", e);
-        return false;
+    if (foundHighYieldSurvey) {
+      console.log("High yield survey detected via daemon!");
+      // Here we would configure local Push Notifications (e.g. expo-notifications)
+      // to alert the user: "New 150 SB Survey Found! Tap to execute AI Workflow."
+      return true;
     }
+
+    return false;
+  } catch (e) {
+    console.error("Headless poll failed", e);
+    return false;
+  }
 };
 
 // Define the core background task
 TaskManager.defineTask(BACKGROUND_FETCH_TASK, async () => {
-    const now = Date.now();
-    console.log(\`Background fetch triggered at: \${new Date(now).toISOString()}\`);
+  const now = Date.now();
+  console.log(`Background fetch triggered at: ${new Date(now).toISOString()}`);
 
   try {
     const hasNewData = await checkSwagbucksForSurveys();
-    
+
     if (hasNewData) {
       // Data found and notification sent.
       return BackgroundFetch.BackgroundFetchResult.NewData;

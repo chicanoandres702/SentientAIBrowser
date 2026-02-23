@@ -6,20 +6,32 @@
     "start": "expo start",
     "android": "expo start --android",
     "ios": "expo start --ios",
-    "web": "expo start --web"
+    "web": "expo start --web",
+    "proxy": "node proxy-server.js",
+    "prepare": "husky"
   },
   "dependencies": {
+    "@expo/metro-runtime": "~6.1.2",
+    "axios": "^1.13.5",
+    "cors": "^2.8.6",
     "expo": "~54.0.33",
+    "expo-av": "^16.0.8",
     "expo-background-fetch": "~14.0.9",
+    "expo-haptics": "^15.0.8",
     "expo-sqlite": "~16.0.10",
     "expo-status-bar": "~3.0.9",
     "expo-task-manager": "~14.0.9",
+    "express": "^5.2.1",
     "react": "19.1.0",
+    "react-dom": "19.1.0",
     "react-native": "0.81.5",
+    "react-native-animatable": "^1.4.0",
+    "react-native-web": "^0.21.0",
     "react-native-webview": "13.15.0"
   },
   "devDependencies": {
     "@types/react": "~19.1.0",
+    "husky": "^9.1.7",
     "typescript": "~5.9.2"
   },
   "private": true

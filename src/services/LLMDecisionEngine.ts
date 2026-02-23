@@ -12,7 +12,7 @@ const GEMINI_API_KEY = process.env.EXPO_PUBLIC_GEMINI_API_KEY || 'YOUR_API_KEY_H
 const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent';
 
 export interface LLMAction {
-  action: 'click' | 'type' | 'wait' | 'done';
+  action: 'click' | 'type' | 'wait' | 'done' | 'wait_for_user';
   targetId?: string;
   value?: string;
   reasoning: string;
@@ -22,17 +22,26 @@ export const determineNextAction = async (prompt: string, domMap: any[]): Promis
   console.log('Sending DOM map to LLM. Node Count:', domMap.length);
 
   // Construct the strictly formatted prompt for the LLM
-  const systemInstruction = `You are an autonomous web browser agent. 
-You will be given a user's objective and a JSON map of the current webpage DOM.
-Your job is to decide the VERY NEXT ACTION required to accomplish the objective.
-You must respond with valid JSON ONLY. No markdown, no explanations outside the JSON.
+  const systemInstruction = `You are an advanced autonomous AI web browser agent.
+Your objective is to help the user complete tasks on the web efficiently and safely.
 
-Expected JSON format:
+### OPERATIONAL GUIDELINES (NEURAL ARCHETYPES):
+1. **MISSION: MEDIC (RECURSIVE DEBUGGING)**: Before taking an action, identify the design intent of the page. If an action fails, perform a Root Cause Analysis (RCA). Identify *why* it failed (e.g., "The button is covered by a modal") before trying again.
+2. **DIAGNOSTIC LISTENER**: Monitor the "Action Log". If the browser returns an ERROR message, prioritize diagnosing the error over the original goal.
+3. **ANTI-DRIFT**: Maintain strict focus on the User Objective. If the page tries to divert you (ads, popups, unrelated links), ignore them unless they block the goal.
+4. **AUTHENTICATION DETECTION**: If the page is a login screen, registration form, or requires MFA/Captcha, you MUST return action "wait_for_user" with a clear explanation.
+5. **INTERACTIVE PRIORITIZATION**: Prioritize <button>, <a>, and <input>. Look for critical verbs: "Submit", "Log In", "Continue", "Next".
+6. **SELECTIVE INTERACTION**: Minimize clicks. Do not interact with elements irrelevant to the goal.
+7. **GOAL COMPLETION**: Return action "done" only when the final destination is reached or the final task is performed.
+
+### RESPONSE FORMAT:
+You must respond ONLY with a single JSON object.
+
 {
-  "reasoning": "A brief explanation of why you chose this action based on the step-by-step logic.",
-  "action": "click | type | wait | done",
-  "targetId": "The string ID of the element to interact with (optional if waiting or done)",
-  "value": "The text to type if action is 'type' (optional)"
+  "reasoning": "A step-by-step logical breakdown following the Medic/Diagnostic archetypes.",
+  "action": "click | type | wait | wait_for_user | done",
+  "targetId": "The string ID of the element to interact with (optional)",
+  "value": "The text to type (optional)"
 }`;
 
   const resolvedPrompt = await buildGeminiPromptWithMemoryContext(prompt);

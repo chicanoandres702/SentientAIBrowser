@@ -1,0 +1,11 @@
+node_modules/
+.venv/
+dist/
+build/
+bin/
+obj/
+package-lock.json
+poetry.lock
+*.log
+*.sql
+coverage/

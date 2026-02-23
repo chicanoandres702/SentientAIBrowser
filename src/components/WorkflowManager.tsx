@@ -1,11 +1,14 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 
+import { AppTheme } from '../../App';
+
 interface Props {
     onSelectWorkflow: (workflowName: string) => void;
+    theme: AppTheme;
 }
 
-export const WorkflowManager: React.FC<Props> = ({ onSelectWorkflow }) => {
+export const WorkflowManager: React.FC<Props> = ({ onSelectWorkflow, theme }) => {
     // Hardcoded for now, will eventually read from SQLite
     const savedWorkflows = [
         { id: '1', name: 'Swagbucks: Survey Sweeper', description: 'Background 24/7 survey hunter.' },
@@ -18,10 +21,16 @@ export const WorkflowManager: React.FC<Props> = ({ onSelectWorkflow }) => {
             {savedWorkflows.map(wf => (
                 <TouchableOpacity
                     key={wf.id}
-                    style={styles.card}
+                    style={[
+                        styles.card,
+                        {
+                            borderColor: theme === 'red' ? 'rgba(255, 0, 60, 0.4)' : 'rgba(0, 210, 255, 0.4)',
+                            shadowColor: theme === 'red' ? '#ff003c' : '#00d2ff',
+                        }
+                    ]}
                     onPress={() => onSelectWorkflow(wf.name)}
                 >
-                    <Text style={styles.title}>{wf.name}</Text>
+                    <Text style={[styles.title, { color: theme === 'red' ? '#ff406c' : '#40e0ff' }]}>{wf.name}</Text>
                     <Text style={styles.description}>{wf.description}</Text>
                 </TouchableOpacity>
             ))}
@@ -32,34 +41,33 @@ export const WorkflowManager: React.FC<Props> = ({ onSelectWorkflow }) => {
 const styles = StyleSheet.create({
     container: {
         padding: 15,
-        backgroundColor: '#f8f9fa',
+        backgroundColor: '#0a0a0a',
         borderBottomWidth: 1,
-        borderBottomColor: '#ddd',
+        borderBottomColor: '#222',
     },
     header: {
         fontSize: 16,
         fontWeight: 'bold',
         marginBottom: 10,
-        color: '#333'
+        color: '#eee'
     },
     card: {
-        backgroundColor: '#fff',
+        backgroundColor: '#1a1a1a',
         padding: 15,
         borderRadius: 8,
         marginBottom: 10,
-        shadowColor: '#000',
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-        elevation: 2,
+        borderWidth: 1,
+        shadowOpacity: 0.8,
+        shadowRadius: 5,
+        elevation: 6,
     },
     title: {
         fontSize: 15,
         fontWeight: 'bold',
-        color: '#0066cc',
     },
     description: {
         fontSize: 13,
-        color: '#666',
+        color: '#aaa',
         marginTop: 4,
     }
 });

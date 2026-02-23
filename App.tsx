@@ -1,140 +1,125 @@
-import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, Text, View, Switch, SafeAreaView, Alert } from 'react-native';
-import { useState, useRef } from 'react';
-import { HeadlessWebView, HeadlessWebViewRef } from './src/components/HeadlessWebView';
+import React, { useState } from 'react';
+import { View, SafeAreaView, TouchableOpacity, Text } from 'react-native';
+import { StatusBar as ExpoStatusBar } from 'expo-status-bar';
+import { HeadlessWebView } from './src/components/HeadlessWebView';
 import { PromptInterface } from './src/components/PromptInterface';
-import { WorkflowManager } from './src/components/WorkflowManager';
-import { registerBackgroundFetchAsync, unregisterBackgroundFetchAsync } from './src/services/BackgroundScannerService';
-import { determineNextAction } from './src/services/LLMDecisionEngine';
+import { TaskQueueUI } from './src/components/TaskQueueUI';
+import { BrowserTabs } from './src/components/BrowserTabs';
+import { BrowserChrome } from './src/components/BrowserChrome';
+import { SettingsMenu } from './src/components/SettingsMenu';
+import { SentientHeader } from './src/components/SentientHeader';
+import { SentientStatusBar } from './src/components/SentientStatusBar';
+import { BlockedUserModal } from './src/components/BlockedUserModal';
+import { SentientControlPanel } from './src/components/SentientControlPanel';
+import { useSentientBrowser } from './src/hooks/useSentientBrowser';
+import { styles } from './App.styles';
+import * as Animatable from 'react-native-animatable';
+
+export type AppTheme = 'red' | 'blue';
 
 export default function App() {
-  const [showWebView, setShowWebView] = useState(false);
-  const [isDaemonRunning, setIsDaemonRunning] = useState(false);
-  const [activeUrl, setActiveUrl] = useState('https://www.google.com');
-  const [activePrompt, setActivePrompt] = useState<string>('');
-  const webViewRef = useRef<HeadlessWebViewRef>(null);
-
-  const handleExecutePrompt = (prompt: string) => {
-    console.log(`Executing AI Logic for Prompt: "${prompt}"`);
-    setActivePrompt(prompt); // Save prompt for the LLM step
-
-    // Trigger the invisible DOM Scanner
-    webViewRef.current?.scanDOM();
-
-    if (prompt.toLowerCase().includes('swagbucks')) {
-      setActiveUrl('https://www.swagbucks.com/p/login');
-      setShowWebView(true);
-    }
-  };
-
-  const handleSelectWorkflow = (workflowName: string) => {
-    console.log(`Loading Saved Workflow: "${workflowName}"`);
-    if (workflowName.includes('Swagbucks')) {
-      setActiveUrl('https://www.swagbucks.com/p/login');
-      setShowWebView(true);
-    }
-  };
-
-  const handleDomMapReceived = async (map: any) => {
-    console.log("Received AI DOM Map. Node count:", map.length);
-
-    if (!activePrompt) {
-      console.log("No active prompt to process.");
-      return;
-    }
-
-    try {
-      const decision = await determineNextAction(activePrompt, map);
-      console.log("LLM Decision:", decision);
-
-      if (decision && decision.action !== 'done' && decision.action !== 'wait') {
-        if (decision.targetId) {
-          webViewRef.current?.executeAction(
-            decision.action,
-            decision.targetId,
-            decision.value
-          );
-        }
-      } else if (decision?.action === 'done') {
-        Alert.alert("Workflow Complete", decision.reasoning);
-        setActivePrompt(''); // Clear current task
-      }
-    } catch (e) {
-      console.error("Failed to execute LLM decision", e);
-      Alert.alert("Error", "Failed to communicate with LLM engine.");
-    }
-  };
-
-  const toggleDaemon = async () => {
-    if (isDaemonRunning) {
-      await unregisterBackgroundFetchAsync();
-    } else {
-      await registerBackgroundFetchAsync();
-    }
-    setIsDaemonRunning(!isDaemonRunning);
-  };
+  const [theme, setTheme] = useState<AppTheme>('red');
+  const s = useSentientBrowser(theme);
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>Sentient AI Browser</Text>
-        <View style={styles.toggleRow}>
-          <Text style={styles.toggleLabel}>Background Daemon</Text>
-          <Switch value={isDaemonRunning} onValueChange={toggleDaemon} />
+      <SentientHeader
+        isAIMode={s.isAIMode}
+        isSidebarVisible={s.isSidebarVisible}
+        setIsSidebarVisible={s.setIsSidebarVisible}
+        setIsSettingsVisible={s.setIsSettingsVisible}
+        theme={theme}
+      />
+
+      <BrowserTabs tabs={s.tabs} onSelectTab={(id) => {
+        s.setActiveTabId(id);
+        const tab = s.tabs.find(t => t.id === id);
+        if (tab) s.setActiveUrl(tab.url);
+        s.setTabs(s.tabs.map(t => ({ ...t, isActive: t.id === id })));
+      }} theme={theme} />
+
+      <BrowserChrome url={s.activeUrl} onNavigate={s.setActiveUrl} onReload={() => {
+        const url = s.activeUrl; s.setActiveUrl(''); setTimeout(() => s.setActiveUrl(url), 10);
+      }} theme={theme} />
+
+      <View style={styles.mainLayout}>
+        <View style={styles.contentArea}>
+          <View
+            style={[
+              styles.webViewWrapper,
+              s.isAIMode && !s.isPaused && {
+                borderWidth: 2,
+                borderColor: theme === 'red' ? '#ff003c' : '#00d2ff',
+              }
+            ]}
+            onStartShouldSetResponder={() => { s.trackManualInteraction(); return false; }}
+          >
+            {s.isAIMode && !s.isPaused ? (
+              <Animatable.View
+                animation="pulse"
+                iterationCount="infinite"
+                duration={2000}
+                style={{ flex: 1 }}
+              >
+                <HeadlessWebView ref={s.webViewRef} isVisible={s.showWebView} url={s.activeUrl} useProxy={s.useProxy} onDomMapReceived={s.handleDomMapReceived} />
+              </Animatable.View>
+            ) : (
+              <HeadlessWebView ref={s.webViewRef} isVisible={s.showWebView} url={s.activeUrl} useProxy={s.useProxy} onDomMapReceived={s.handleDomMapReceived} />
+            )}
+          </View>
+
+          {s.isAIMode && (
+            <SentientControlPanel
+              isPaused={s.isPaused}
+              onTogglePause={() => s.setIsPaused(!s.isPaused)}
+              onStop={() => { s.setIsPaused(true); s.handleExecutePrompt(''); }}
+              onNext={() => { }}
+              onPrev={() => { }}
+              theme={theme}
+            />
+          )}
+
+          {!s.isDesktop && s.isAIMode && s.isSidebarVisible && (
+            <View style={styles.mobileSidebarOverlay}>
+              <TaskQueueUI tasks={s.tasks} theme={theme} />
+              <PromptInterface onExecutePrompt={s.handleExecutePrompt} theme={theme} />
+              <TouchableOpacity style={styles.closeSidebarButton} onPress={() => s.setIsSidebarVisible(false)}>
+                <Text style={{ color: '#fff' }}>Close Assistant</Text>
+              </TouchableOpacity>
+            </View>
+          )}
         </View>
-        <View style={styles.toggleRow}>
-          <Text style={styles.toggleLabel}>Show Browser UI</Text>
-          <Switch value={showWebView} onValueChange={(val) => setShowWebView(val)} />
-        </View>
+        {s.isDesktop && s.isAIMode && s.isSidebarVisible && (
+          <View style={styles.sidebar}>
+            <View style={styles.sidebarContent}><TaskQueueUI tasks={s.tasks} theme={theme} /></View>
+            <PromptInterface onExecutePrompt={s.handleExecutePrompt} theme={theme} />
+          </View>
+        )}
       </View>
 
-      <WorkflowManager onSelectWorkflow={handleSelectWorkflow} />
+      <SentientStatusBar isAIMode={s.isAIMode} statusMessage={s.statusMessage} useProxy={s.useProxy} theme={theme} />
 
-      <View style={styles.webViewWrapper}>
-        <HeadlessWebView
-          ref={webViewRef}
-          isVisible={showWebView}
-          url={activeUrl}
-          onDomMapReceived={handleDomMapReceived}
-        />
-      </View>
+      <SettingsMenu
+        visible={s.isSettingsVisible}
+        onClose={() => s.setIsSettingsVisible(false)}
+        theme={theme}
+        setTheme={setTheme}
+        isAIMode={s.isAIMode}
+        setIsAIMode={s.setIsAIMode}
+        useProxy={s.useProxy}
+        setUseProxy={s.setUseProxy}
+        isDaemonRunning={s.isDaemonRunning}
+        onToggleDaemon={s.toggleDaemon}
+      />
 
-      <PromptInterface onExecutePrompt={handleExecutePrompt} />
+      <BlockedUserModal
+        visible={s.isBlockedModalVisible}
+        reason={s.blockedReason}
+        theme={theme}
+        onClose={() => s.setIsBlockedModalVisible(false)}
+      />
 
-      <StatusBar style="auto" />
+      <ExpoStatusBar style="light" />
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-  },
-  header: {
-    padding: 20,
-    backgroundColor: '#fff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
-    paddingTop: 40,
-  },
-  title: {
-    fontSize: 22,
-    fontWeight: '900',
-    marginBottom: 15,
-  },
-  toggleRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  toggleLabel: {
-    fontSize: 16,
-    color: '#333',
-  },
-  webViewWrapper: {
-    flex: 1,
-    backgroundColor: '#f0f0f0',
-  }
-});

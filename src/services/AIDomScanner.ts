@@ -60,8 +60,24 @@ export const getAIDomScannerScript = () => `
     // Run the initial scan
     scanDOM();
     
-    // In a full implementation, you'd use a MutationObserver here to detect changes
-    // But for this initial version, we will just call this manually when needed.
+    // Watcher: Use MutationObserver to detect real-time DOM changes
+    // This allows the AI to react instantly to loading bars finishing, 
+    // new popups appearing, or dynamic content changes without polling.
+    const observer = new MutationObserver((mutations) => {
+      // Debounce the scan to avoid spamming during heavy page loads
+      if (window._scanTimeout) clearTimeout(window._scanTimeout);
+      window._scanTimeout = setTimeout(() => {
+        console.log('DOM Watcher: Change detected, re-scanning...');
+        scanDOM();
+      }, 1000); 
+    });
+
+    observer.observe(document.body, { 
+      childList: true, 
+      subtree: true, 
+      attributes: false 
+    });
+
     window._runAIScan = scanDOM;
 
     return true;
