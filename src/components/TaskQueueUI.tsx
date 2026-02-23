@@ -1,5 +1,4 @@
-import React from 'react';
-import { View, Text, StyleSheet, FlatList } from 'react-native';
+import { View, Text, StyleSheet, FlatList, Platform } from 'react-native';
 import { TaskItem, TaskStatus } from '../features/tasks/types';
 import { AppTheme } from '../../App';
 
