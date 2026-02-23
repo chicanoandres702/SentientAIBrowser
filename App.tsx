@@ -5,15 +5,19 @@ import { HeadlessWebView, HeadlessWebViewRef } from './src/components/HeadlessWe
 import { PromptInterface } from './src/components/PromptInterface';
 import { WorkflowManager } from './src/components/WorkflowManager';
 import { registerBackgroundFetchAsync, unregisterBackgroundFetchAsync } from './src/services/BackgroundScannerService';
+import { determineNextAction } from './src/services/LLMDecisionEngine';
 
 export default function App() {
   const [showWebView, setShowWebView] = useState(false);
   const [isDaemonRunning, setIsDaemonRunning] = useState(false);
   const [activeUrl, setActiveUrl] = useState('https://www.google.com');
+  const [activePrompt, setActivePrompt] = useState<string>('');
   const webViewRef = useRef<HeadlessWebViewRef>(null);
 
   const handleExecutePrompt = (prompt: string) => {
     console.log(`Executing AI Logic for Prompt: "${prompt}"`);
+    setActivePrompt(prompt); // Save prompt for the LLM step
+
     // Trigger the invisible DOM Scanner
     webViewRef.current?.scanDOM();
 
@@ -31,10 +35,34 @@ export default function App() {
     }
   };
 
-  const handleDomMapReceived = (map: any) => {
+  const handleDomMapReceived = async (map: any) => {
     console.log("Received AI DOM Map. Node count:", map.length);
-    // In a future issue, this map + the user prompt will be sent to the LLM API to decide the next action.
-    Alert.alert("AI DOM Map Received", \`Found \${map.length} interactable nodes ready for LLM processing.\`);
+
+    if (!activePrompt) {
+      console.log("No active prompt to process.");
+      return;
+    }
+
+    try {
+      const decision = await determineNextAction(activePrompt, map);
+      console.log("LLM Decision:", decision);
+
+      if (decision && decision.action !== 'done' && decision.action !== 'wait') {
+        if (decision.targetId) {
+          webViewRef.current?.executeAction(
+            decision.action,
+            decision.targetId,
+            decision.value
+          );
+        }
+      } else if (decision?.action === 'done') {
+        Alert.alert("Workflow Complete", decision.reasoning);
+        setActivePrompt(''); // Clear current task
+      }
+    } catch (e) {
+      console.error("Failed to execute LLM decision", e);
+      Alert.alert("Error", "Failed to communicate with LLM engine.");
+    }
   };
 
   const toggleDaemon = async () => {
@@ -49,7 +77,7 @@ export default function App() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>AI Mobile Browser</Text>
+        <Text style={styles.title}>Sentient AI Browser</Text>
         <View style={styles.toggleRow}>
           <Text style={styles.toggleLabel}>Background Daemon</Text>
           <Switch value={isDaemonRunning} onValueChange={toggleDaemon} />
@@ -63,16 +91,16 @@ export default function App() {
       <WorkflowManager onSelectWorkflow={handleSelectWorkflow} />
 
       <View style={styles.webViewWrapper}>
-        <HeadlessWebView 
+        <HeadlessWebView
           ref={webViewRef}
-          isVisible={showWebView} 
+          isVisible={showWebView}
           url={activeUrl}
           onDomMapReceived={handleDomMapReceived}
         />
       </View>
-      
+
       <PromptInterface onExecutePrompt={handleExecutePrompt} />
-      
+
       <StatusBar style="auto" />
     </SafeAreaView>
   );

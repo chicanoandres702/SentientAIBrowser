@@ -1,5 +1,5 @@
 {
-  "name": "mobileapp",
+  "name": "sentient-ai-browser",
   "version": "1.0.0",
   "main": "index.ts",
   "scripts": {
@@ -11,6 +11,7 @@
   "dependencies": {
     "expo": "~54.0.33",
     "expo-background-fetch": "~14.0.9",
+    "expo-sqlite": "~16.0.10",
     "expo-status-bar": "~3.0.9",
     "expo-task-manager": "~14.0.9",
     "react": "19.1.0",
