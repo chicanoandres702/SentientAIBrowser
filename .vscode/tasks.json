@@ -2,39 +2,55 @@
     "version": "2.0.0",
     "tasks": [
         {
-            "label": "Run Web",
+            "label": "🌐 Run Web",
             "type": "shell",
-            "command": "powershell ./run-web.ps1",
+            "command": "powershell -ExecutionPolicy Bypass -File ./run-web.ps1",
             "group": {
                 "kind": "build",
                 "isDefault": true
             },
             "presentation": {
                 "reveal": "always",
-                "panel": "new"
-            }
+                "panel": "new",
+                "clear": true
+            },
+            "problemMatcher": []
         },
         {
-            "label": "Run Proxy",
+            "label": "🤖 Run Android",
             "type": "shell",
-            "command": "node proxy-server.js",
+            "command": "powershell -ExecutionPolicy Bypass -File ./run-android.ps1",
+            "group": "build",
             "presentation": {
                 "reveal": "always",
-                "panel": "shared"
-            }
+                "panel": "new",
+                "clear": true
+            },
+            "problemMatcher": []
         },
         {
-            "type": "go",
-            "label": "go: test workspace",
-            "command": "test",
-            "args": [
-                "./..."
-            ],
-            "problemMatcher": [
-                "$go"
-            ],
-            "group": "test",
-            "detail": "cd c:\\Users\\Andrew\\OneDrive\\Documents\\Coding\\AntiGravity\\Swagbucks\\SentientAIBrowser; go test ./..."
+            "label": "🔁 Run Proxy",
+            "type": "shell",
+            "command": "powershell -ExecutionPolicy Bypass -File ./run-proxy.ps1",
+            "group": "build",
+            "presentation": {
+                "reveal": "always",
+                "panel": "shared",
+                "clear": true
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "📦 Build Web",
+            "type": "shell",
+            "command": "powershell -ExecutionPolicy Bypass -File ./build-web.ps1",
+            "group": "build",
+            "presentation": {
+                "reveal": "always",
+                "panel": "new",
+                "clear": true
+            },
+            "problemMatcher": []
         }
     ]
 }
