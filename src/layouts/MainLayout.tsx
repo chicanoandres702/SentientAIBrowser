@@ -1,3 +1,4 @@
+// Feature: UI | Trace: README.md
 import React, { Suspense, lazy, useCallback } from 'react';
 import { View, SafeAreaView, TouchableOpacity, Text, ActivityIndicator } from 'react-native';
 import { HeadlessWebView } from '../components/HeadlessWebView';

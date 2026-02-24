@@ -1,3 +1,4 @@
+// Feature: Settings | Trace: README.md
 import React from 'react';
 import { View, Text, Switch, StyleSheet } from 'react-native';
 

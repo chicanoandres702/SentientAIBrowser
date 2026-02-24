@@ -1,3 +1,4 @@
+// Feature: Core | Trace: README.md
 import { useState, useCallback } from 'react';
 
 export interface TabItem {

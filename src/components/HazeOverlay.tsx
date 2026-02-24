@@ -1,3 +1,4 @@
+// Feature: UI | Trace: README.md
 import React, { useEffect, useRef } from 'react';
 import { View, StyleSheet, Platform, Animated } from 'react-native';
 import { AppTheme } from '../../App';

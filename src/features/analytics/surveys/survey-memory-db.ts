@@ -1,4 +1,4 @@
-// survey-memory-db.ts
+// Feature: Surveys | Trace: src/features/surveys/trace.md
 // Fetches high-yield survey answers from Firestore for persona memory hydration.
 import { getFirestore, collection, getDocs, query, orderBy, limit } from 'firebase/firestore';
 

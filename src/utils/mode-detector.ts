@@ -1,3 +1,4 @@
+// Feature: Core | Trace: README.md
 /**
  * Logic to detect the appropriate "Mode" (Scholar vs Survey) based on the URL.
  */

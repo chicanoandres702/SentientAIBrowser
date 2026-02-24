@@ -1,3 +1,4 @@
+// Feature: Core | Trace: README.md
 import { HeadlessWebViewRef } from '../components/HeadlessWebView';
 import { registerBackgroundFetchAsync, unregisterBackgroundFetchAsync } from '../features/background-tasks/background-scanner.service';
 

@@ -1,3 +1,4 @@
+// Feature: Settings | Trace: README.md
 import React from 'react';
 import { StyleSheet, Text, View, Modal, TouchableOpacity, ScrollView } from 'react-native';
 import { AppTheme } from '../../App';

@@ -1,17 +1,19 @@
+// Feature: Auth | Trace: src/features/auth/trace.md
 import { initializeApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 import { getAI, GoogleAIBackend } from "firebase/ai";
 
 // Your web app's Firebase configuration
+// These values are public in all web apps and identified the project.
 const firebaseConfig = {
-    apiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY,
-    authDomain: process.env.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN,
-    projectId: process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID,
-    storageBucket: process.env.EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET,
-    messagingSenderId: process.env.EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-    appId: process.env.EXPO_PUBLIC_FIREBASE_APP_ID,
-    measurementId: process.env.EXPO_PUBLIC_FIREBASE_MEASUREMENT_ID
+    apiKey: "AIzaSyBOLfwvlZfE3tVFqX3AbVwP1ef-vR1M4jA",
+    authDomain: "sentient-ai-browser.firebaseapp.com",
+    projectId: "sentient-ai-browser",
+    storageBucket: "sentient-ai-browser.firebasestorage.app",
+    messagingSenderId: "184717935920",
+    appId: "1:184717935920:web:f3810db4ba6755f08a34f5",
+    measurementId: "G-12D6HTCRD6"
 };
 
 // Initialize Firebase

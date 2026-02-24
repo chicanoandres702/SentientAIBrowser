@@ -1,3 +1,4 @@
+// Feature: Auth | Trace: src/features/auth/trace.md
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { useAuth } from '../hooks/use-auth.hook';

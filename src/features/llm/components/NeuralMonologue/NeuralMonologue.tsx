@@ -1,3 +1,4 @@
+// Feature: LLM | Trace: README.md
 import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView } from 'react-native';
 import { collection, query, where, orderBy, limit, onSnapshot } from 'firebase/firestore';

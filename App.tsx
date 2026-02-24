@@ -1,3 +1,4 @@
+// Feature: Core | Trace: README.md
 import React, { useState } from 'react';
 import { View } from 'react-native';
 import { StatusBar as ExpoStatusBar } from 'expo-status-bar';

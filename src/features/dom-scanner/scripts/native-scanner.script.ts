@@ -1,3 +1,4 @@
+// Feature: DOM Scanner | Trace: README.md
 /**
  * This script is injected directly into the React Native WebView.
  * It traverses the DOM, finds interactable elements, tags them with numeric IDs,

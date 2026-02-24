@@ -30,10 +30,10 @@
             "cwd": "${workspaceFolder}"
         },
         {
-            "name": "Deploy Firebase",
+            "name": "Sync Credentials",
             "type": "node",
             "request": "launch",
-            "preLaunchTask": "Deploy Firebase",
+            "preLaunchTask": "Sync Credentials",
             "cwd": "${workspaceFolder}"
         }
     ]

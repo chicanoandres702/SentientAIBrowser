@@ -1,3 +1,4 @@
+// Feature: LLM | Trace: README.md
 /**
  * This service manages the connection to the LLM (Large Language Model) API.
  * It sends the condensed DOM map and the user's instructions to determine

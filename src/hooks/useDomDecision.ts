@@ -1,3 +1,4 @@
+// Feature: Core | Trace: README.md
 import { useState, useRef, useCallback } from 'react';
 import { HeadlessWebViewRef } from '../components/HeadlessWebView';
 import { determineNextAction } from '../features/llm/llm-decision.engine';

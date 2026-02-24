@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+// Feature: Auth | Trace: src/features/auth/trace.md
+import { useState, useEffect, createContext, useContext } from 'react';
 import { User, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
 import { auth } from '../firebase-config';
 

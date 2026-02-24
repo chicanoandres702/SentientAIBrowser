@@ -15,6 +15,7 @@
     "genkit-dev": "npx tsx src/index.ts",
     "git-watch": "node git-watch.js",
     "firebase": "powershell -ExecutionPolicy Bypass -File ./build-web.ps1 && firebase deploy --only hosting --project sentient-ai-browser",
+    "sync-credentials": "powershell -ExecutionPolicy Bypass -File ./scripts/sync-secrets.ps1",
     "lint": "tsc --noEmit"
   },
   "dependencies": {

@@ -1,3 +1,4 @@
+// Feature: UI | Trace: README.md
 import React, { useEffect, useRef } from 'react';
 import { Animated, StyleSheet, View, Dimensions } from 'react-native';
 

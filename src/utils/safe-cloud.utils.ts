@@ -1,3 +1,4 @@
+// Feature: Core | Trace: README.md
 /**
  * Sanitizes data before it is sent to a cloud database (e.g., Firestore).
  * Ensures that sensitive information like passwords, credit card numbers, 

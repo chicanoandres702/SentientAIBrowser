@@ -1,3 +1,4 @@
+// Feature: LLM | Trace: README.md
 import React, { useState, useEffect } from 'react';
 import { Text } from 'react-native';
 import { styles } from './NeuralMonologue.styles';

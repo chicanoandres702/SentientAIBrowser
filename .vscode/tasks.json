@@ -63,6 +63,18 @@
                 "clear": true
             },
             "problemMatcher": []
+        },
+        {
+            "label": "Sync Credentials",
+            "type": "shell",
+            "command": "npm run sync-credentials",
+            "group": "build",
+            "presentation": {
+                "reveal": "always",
+                "panel": "new",
+                "clear": true
+            },
+            "problemMatcher": []
         }
     ]
 }

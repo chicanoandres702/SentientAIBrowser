@@ -1,3 +1,4 @@
+// Feature: DOM Scanner | Trace: README.md
 /**
  * Generates the JavaScript required to execute an action on a tagged element.
  */

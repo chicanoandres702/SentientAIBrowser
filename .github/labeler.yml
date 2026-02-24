@@ -1,0 +1,22 @@
+# PR Labeler configuration
+# Categorizes PRs based on changed files
+
+"feature":
+  - src/features/**/*
+"core":
+  - App.tsx
+  - index.ts
+"config":
+  - .env
+  - firebase.json
+  - app.json
+  - package.json
+"documentation":
+  - README.md
+  - docs/**/*
+  - .agents/workflows/**/*
+"github":
+  - .github/**/*
+"scripts":
+  - scripts/**/*
+  - "*.ps1"

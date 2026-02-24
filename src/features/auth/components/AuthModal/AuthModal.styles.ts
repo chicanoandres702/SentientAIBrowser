@@ -1,3 +1,4 @@
+// Feature: Auth | Trace: src/features/auth/ai-manifest.md
 import { StyleSheet, Platform } from 'react-native';
 
 export const styles = StyleSheet.create({

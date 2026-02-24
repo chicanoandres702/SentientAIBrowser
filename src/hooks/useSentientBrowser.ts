@@ -1,3 +1,4 @@
+// Feature: Core | Trace: README.md
 import { useRef, useEffect } from 'react';
 import { HeadlessWebViewRef } from '../components/HeadlessWebView';
 import { useUrlTracker } from './useUrlTracker';

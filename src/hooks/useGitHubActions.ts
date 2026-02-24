@@ -1,3 +1,4 @@
+// Feature: Core | Trace: README.md
 import { useState } from 'react';
 import { GitHubService } from '../features/github/github.service';
 import { Alert } from 'react-native';

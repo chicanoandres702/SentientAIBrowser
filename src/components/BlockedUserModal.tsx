@@ -1,3 +1,4 @@
+// Feature: UI | Trace: README.md
 import React from 'react';
 import { View, Text, Modal, TouchableOpacity, StyleSheet } from 'react-native';
 

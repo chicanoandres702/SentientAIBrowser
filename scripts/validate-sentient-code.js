@@ -1,8 +1,9 @@
+// Feature: Core | Trace: AI_CONSTITUTION.md (Section 11)
 const fs = require('fs');
 const path = require('path');
 
 const MAX_LINES = 100;
-const EXCLUDED_DIRS = ['.git', 'node_modules', '.expo', 'assets', '.gemini', '.vscode', 'dist', 'build', 'out', '.next'];
+const EXCLUDED_DIRS = ['.git', 'node_modules', '.expo', 'assets', '.gemini', '.vscode', 'dist', 'build', 'out', '.next', '.antigravity'];
 const TARGET_EXTENSIONS = ['.ts', '.tsx', '.js', '.jsx'];
 
 console.log('--- SENTIENT CODE VALIDATION ---');
@@ -20,9 +21,17 @@ function stripCommentsAndWhitespace(content) {
 
 function checkFile(filePath) {
     const content = fs.readFileSync(filePath, 'utf8');
+    const fileName = path.basename(filePath);
+    
+    // Traceability Header Mandate (Section 9.1)
+    if (!content.startsWith('// Feature:') && !content.startsWith('/* Feature:')) {
+        console.error('\x1b[31m%s\x1b[0m', `[VIOLATION] ${filePath} lacks a mandatory Traceability Header.`);
+        console.log('\x1b[33m%s\x1b[0m', `   -> Hint: Add a header comment at the top: // Feature: <Name> | Trace: <Path>`);
+        return false;
+    }
+
     const validLines = stripCommentsAndWhitespace(content);
     const linesCount = validLines.length;
-    const fileName = path.basename(filePath);
 
     if (linesCount > MAX_LINES) {
         const overBy = linesCount - MAX_LINES;

@@ -1,3 +1,4 @@
+// Feature: Settings | Trace: README.md
 import React, { useState } from 'react';
 import { View, Text, Modal, TouchableOpacity, TextInput, Platform, StyleSheet } from 'react-native';
 import { BlurView } from 'expo-blur';

@@ -1,3 +1,4 @@
+// Feature: Settings | Trace: README.md
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { AppTheme } from '../../App';

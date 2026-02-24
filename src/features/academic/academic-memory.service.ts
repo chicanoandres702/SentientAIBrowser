@@ -1,3 +1,4 @@
+// Feature: Academic | Trace: README.md
 import { db, auth } from '../auth/firebase-config';
 import {
     collection,

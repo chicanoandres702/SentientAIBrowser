@@ -1,3 +1,4 @@
+// Feature: Core | Trace: AI_CONSTITUTION.md (Section 11)
 import { startFlowServer } from '@genkit-ai/express';
 import { googleAI } from '@genkit-ai/google-genai';
 import { genkit, z } from 'genkit';

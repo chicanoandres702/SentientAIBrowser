@@ -1,3 +1,4 @@
+// Feature: UI | Trace: README.md
 import React, { useState } from 'react';
 import { View, TextInput, TouchableOpacity, Text, StyleSheet, Animated } from 'react-native';
 import { AppTheme } from '../../App';

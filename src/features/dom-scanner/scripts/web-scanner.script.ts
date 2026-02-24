@@ -1,3 +1,4 @@
+// Feature: DOM Scanner | Trace: README.md
 /**
  * Web-compatible scanner for iframe injection via proxy.
  * Uses window.parent.postMessage instead of ReactNativeWebView.

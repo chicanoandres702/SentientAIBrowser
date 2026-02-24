@@ -1,3 +1,4 @@
+// Feature: Core | Trace: README.md
 import { useState } from 'react';
 import { Platform, useWindowDimensions } from 'react-native';
 
