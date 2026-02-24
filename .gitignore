@@ -36,6 +36,7 @@ ui-debug.log
 *.cert
 *.rsa
 secrets.json
+firebase-config.json
 
 # --- Testing & Coverage ---
 coverage/
