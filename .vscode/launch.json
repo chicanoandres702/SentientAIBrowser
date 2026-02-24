@@ -1,0 +1,19 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "🚀 RUN Sentient WEB",
+            "type": "node",
+            "request": "launch",
+            "preLaunchTask": "run sentient web",
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "name": "📱 RUN Sentient ANDROID",
+            "type": "node",
+            "request": "launch",
+            "preLaunchTask": "run sentient android",
+            "cwd": "${workspaceFolder}"
+        }
+    ]
+}

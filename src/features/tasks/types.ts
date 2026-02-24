@@ -6,4 +6,5 @@ export interface TaskItem {
     status: TaskStatus;
     timestamp: number;
     details?: string;
+    category?: string;
 }

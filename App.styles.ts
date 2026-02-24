@@ -7,12 +7,15 @@ export const styles = StyleSheet.create({
         backgroundColor: '#0a0a0a',
     },
     header: {
-        paddingHorizontal: 15,
-        paddingVertical: 10,
-        backgroundColor: '#0a0a0a',
+        paddingHorizontal: 20,
+        paddingVertical: 15,
+        backgroundColor: 'rgba(5, 5, 5, 0.95)',
         borderBottomWidth: 1,
-        borderBottomColor: '#222',
-        paddingTop: 40,
+        borderBottomColor: 'rgba(255, 255, 255, 0.05)',
+        paddingTop: Platform.OS === 'web' ? 20 : 50,
+        ...Platform.select({
+            web: { backdropFilter: 'blur(20px)', zIndex: 100 } as any,
+        })
     },
     headerTop: {
         flexDirection: 'row',
@@ -45,12 +48,15 @@ export const styles = StyleSheet.create({
         flexDirection: 'column',
     },
     sidebar: {
-        width: 350,
+        width: 380,
         borderLeftWidth: 1,
-        borderLeftColor: '#333',
-        backgroundColor: '#0a0a0a',
+        borderLeftColor: 'rgba(255, 255, 255, 0.05)',
+        backgroundColor: 'rgba(8, 8, 8, 0.98)',
         display: 'flex',
         flexDirection: 'column',
+        ...Platform.select({
+            web: { boxShadow: '-5px 0 20px rgba(0,0,0,0.5)', zIndex: 50 } as any,
+        })
     },
     sidebarContent: {
         flex: 1,
@@ -61,9 +67,9 @@ export const styles = StyleSheet.create({
         left: 0,
         right: 0,
         top: 0,
-        backgroundColor: 'rgba(10,10,10,0.95)',
+        backgroundColor: '#080808', // Solid for mobile to match standalone look
         zIndex: 100,
-        padding: 10,
+        padding: 5,
     },
     closeSidebarButton: {
         padding: 15,
@@ -72,13 +78,17 @@ export const styles = StyleSheet.create({
         borderTopColor: '#333',
     },
     statusBar: {
-        height: 30,
-        backgroundColor: '#050505',
+        height: 34,
+        backgroundColor: 'rgba(5, 5, 5, 0.95)',
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        paddingHorizontal: 15,
+        paddingHorizontal: 20,
         borderTopWidth: 1,
+        borderTopColor: 'rgba(255, 255, 255, 0.05)',
+        ...Platform.select({
+            web: { backdropFilter: 'blur(10px)', zIndex: 100 } as any,
+        })
     },
     statusLeft: {
         flexDirection: 'row',
@@ -108,7 +118,30 @@ export const styles = StyleSheet.create({
     },
     webViewWrapper: {
         flex: 1,
-        backgroundColor: '#111',
+        backgroundColor: '#000',
+        position: 'relative',
+        overflow: 'hidden',
+    },
+    hazeLayer: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        zIndex: 99,
+        pointerEvents: 'none',
+    },
+    glassBackground: {
+        backgroundColor: 'rgba(15, 15, 15, 0.7)',
+        ...Platform.select({
+            web: { backdropFilter: 'blur(10px)' } as any,
+            default: {}
+        })
+    },
+    glowingShadow: {
+        shadowOffset: { width: 0, height: 0 },
+        shadowOpacity: 0.8,
+        shadowRadius: 15,
     },
     modalOverlay: {
         flex: 1,
@@ -150,3 +183,16 @@ export const styles = StyleSheet.create({
         fontSize: 16,
     }
 });
+
+// Cinematic Web Styles (Scrollbars)
+if (Platform.OS === 'web' && typeof document !== 'undefined') {
+    const style = document.createElement('style');
+    style.textContent = `
+    ::-webkit-scrollbar { width: 4px; height: 4px; }
+    ::-webkit-scrollbar-track { background: #000; }
+    ::-webkit-scrollbar-thumb { background: #333; border-radius: 2px; }
+    ::-webkit-scrollbar-thumb:hover { background: #ff003c; }
+    * { scrollbar-width: thin; scrollbar-color: #333 #000; }
+  `;
+    document.head.appendChild(style);
+}

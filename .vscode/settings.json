@@ -1,0 +1,5 @@
+{
+    "avdmanager.sdkPath": "C:/android/sdk",
+    "avdmanager.cmdVersion": "latest",
+    "android.enableJavaLanguageSupport": true
+}

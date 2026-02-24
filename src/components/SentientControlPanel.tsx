@@ -1,5 +1,7 @@
-import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import React, { useRef } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, Platform, Animated } from 'react-native';
+import * as Animatable from 'react-native-animatable';
+import { AppTheme } from '../../App';
 
 interface Props {
     isPaused: boolean;
@@ -7,94 +9,158 @@ interface Props {
     onStop: () => void;
     onNext: () => void;
     onPrev: () => void;
-    theme: 'red' | 'blue';
+    theme: AppTheme;
 }
 
-export const SentientControlPanel: React.FC<Props> = ({ isPaused, onTogglePause, onStop, onNext, onPrev, theme }) => {
-    const accentColor = theme === 'red' ? '#ff003c' : '#00d2ff';
+export const SentientControlPanel: React.FC<Props> = React.memo(({ isPaused, onTogglePause, onStop, onNext, onPrev, theme }) => {
+    const accent = theme === 'red' ? '#ff003c' : '#00d2ff';
+    const shockwaveAnim = useRef(new Animated.Value(0)).current;
+
+    const triggerShockwave = () => {
+        shockwaveAnim.setValue(0);
+        Animated.timing(shockwaveAnim, {
+            toValue: 1,
+            duration: 500,
+            useNativeDriver: true,
+        }).start(() => shockwaveAnim.setValue(0));
+    };
+
+    const handlePress = (callback: () => void) => {
+        triggerShockwave();
+        callback();
+    };
+
+    const shockOpacity = shockwaveAnim.interpolate({
+        inputRange: [0, 0.5, 1],
+        outputRange: [0, 0.4, 0]
+    });
+
+    const shockScale = shockwaveAnim.interpolate({
+        inputRange: [0, 1],
+        outputRange: [0.8, 2.5]
+    });
 
     return (
         <View style={styles.container}>
-            <View style={styles.bar}>
-                <TouchableOpacity style={styles.btn} onPress={onPrev}>
-                    <Text style={styles.btnText}>⏮</Text>
+            <View style={styles.pill}>
+                <TouchableOpacity style={styles.sideBtn} onPress={() => handlePress(onPrev)}>
+                    <Text style={styles.sideIcon}>⏮</Text>
                 </TouchableOpacity>
 
-                <TouchableOpacity
-                    style={[styles.playBtn, { backgroundColor: isPaused ? '#111' : accentColor }]}
-                    onPress={onTogglePause}
+                <Animatable.View
+                    animation={!isPaused ? 'pulse' : undefined}
+                    iterationCount="infinite"
+                    duration={1500}
                 >
-                    <Text style={[styles.playText, { color: isPaused ? accentColor : '#000' }]}>
-                        {isPaused ? '▶ PLAY' : '⏸ PAUSE'}
-                    </Text>
+                    <TouchableOpacity
+                        style={[styles.mainBtn, { borderColor: accent, shadowColor: accent }]}
+                        onPress={() => handlePress(onTogglePause)}
+                    >
+                        <Animated.View style={[
+                            styles.shockwave, 
+                            { 
+                                backgroundColor: accent, 
+                                opacity: shockOpacity, 
+                                transform: [{ scale: shockScale }] 
+                            }
+                        ]} />
+                        <View style={[styles.mainBtnInner, { backgroundColor: isPaused ? 'transparent' : accent }]}>
+                            <Text style={[styles.mainBtnText, { color: isPaused ? accent : '#000' }]}>
+                                {isPaused ? '▶' : '⏸'}
+                            </Text>
+                        </View>
+                    </TouchableOpacity>
+                </Animatable.View>
+
+                <TouchableOpacity style={styles.sideBtn} onPress={() => handlePress(onNext)}>
+                    <Text style={styles.sideIcon}>⏭</Text>
                 </TouchableOpacity>
 
-                <TouchableOpacity style={styles.btn} onPress={onNext}>
-                    <Text style={styles.btnText}>⏭</Text>
+                <View style={styles.sep} />
+
+                <TouchableOpacity style={styles.stopBtn} onPress={() => handlePress(onStop)}>
+                    <Text style={styles.stopIcon}>⏹</Text>
                 </TouchableOpacity>
 
-                <View style={styles.divider} />
-
-                <TouchableOpacity style={styles.stopBtn} onPress={onStop}>
-                    <Text style={styles.stopText}>⏹ STOP</Text>
-                </TouchableOpacity>
+                <View style={[styles.statusDot, { backgroundColor: isPaused ? '#555' : accent, shadowColor: accent }]} />
+                <Text style={[styles.statusLabel, { color: isPaused ? '#555' : accent }]}>
+                    {isPaused ? 'PAUSED' : 'LIVE'}
+                </Text>
             </View>
         </View>
     );
-};
+});
 
 const styles = StyleSheet.create({
     container: {
-        padding: 10,
-        backgroundColor: '#0a0a0a',
-        borderBottomWidth: 1,
-        borderBottomColor: '#1a1a1a',
+        paddingVertical: 12,
+        paddingHorizontal: 20,
+        backgroundColor: 'rgba(5, 5, 5, 0.85)',
+        borderTopWidth: 1,
+        borderTopColor: 'rgba(255, 255, 255, 0.05)',
+        alignItems: 'center',
+        ...Platform.select({
+            web: { backdropFilter: 'blur(20px)' } as any,
+            default: {}
+        }),
     },
-    bar: {
+    pill: {
         flexDirection: 'row',
         alignItems: 'center',
-        justifyContent: 'center',
-        backgroundColor: '#000',
-        borderRadius: 8,
-        padding: 5,
-        borderWidth: 1,
-        borderColor: '#333',
-    },
-    btn: {
-        padding: 10,
-        marginHorizontal: 5,
-    },
-    btnText: {
-        color: '#666',
-        fontSize: 18,
-    },
-    playBtn: {
-        paddingHorizontal: 15,
+        backgroundColor: 'rgba(15, 15, 15, 0.9)',
+        borderRadius: 36,
+        paddingHorizontal: 20,
         paddingVertical: 8,
-        borderRadius: 4,
-        minWidth: 90,
-        alignItems: 'center',
-        marginHorizontal: 10,
         borderWidth: 1,
-        borderColor: 'transparent',
+        borderColor: 'rgba(255, 255, 255, 0.1)',
+        gap: 8,
+        ...Platform.select({
+            web: { boxShadow: '0 8px 32px rgba(0,0,0,0.6)' } as any,
+            default: { elevation: 8 }
+        }),
     },
-    playText: {
-        fontWeight: '900',
-        fontSize: 11,
-        letterSpacing: 1,
+    sideBtn: { padding: 8 },
+    sideIcon: { color: '#333', fontSize: 14 },
+    mainBtn: {
+        width: 52,
+        height: 52,
+        borderRadius: 26,
+        borderWidth: 1.5,
+        justifyContent: 'center',
+        alignItems: 'center',
+        shadowOffset: { width: 0, height: 0 },
+        shadowOpacity: 0.5,
+        shadowRadius: 12,
+        marginHorizontal: 8,
+        overflow: 'hidden',
     },
-    divider: {
-        width: 1,
-        height: 20,
-        backgroundColor: '#222',
-        marginHorizontal: 10,
+    shockwave: {
+        position: 'absolute',
+        width: 52,
+        height: 52,
+        borderRadius: 26,
     },
-    stopBtn: {
-        padding: 10,
+    mainBtnInner: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        justifyContent: 'center',
+        alignItems: 'center',
+        zIndex: 1,
     },
-    stopText: {
-        color: '#ff4444',
-        fontSize: 10,
-        fontWeight: 'bold',
-    }
+    mainBtnText: { fontSize: 16, fontWeight: '900' },
+    sep: { width: 1, height: 20, backgroundColor: '#1a1a1a', marginHorizontal: 8 },
+    stopBtn: { padding: 8 },
+    stopIcon: { color: '#444', fontSize: 14 },
+    statusDot: {
+        width: 8,
+        height: 8,
+        borderRadius: 4,
+        marginLeft: 12,
+        shadowOffset: { width: 0, height: 0 },
+        shadowOpacity: 1,
+        shadowRadius: 8,
+        elevation: 4,
+    },
+    statusLabel: { fontSize: 10, fontWeight: '900', letterSpacing: 2.5 },
 });

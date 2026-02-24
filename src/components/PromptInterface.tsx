@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
-import { View, TextInput, TouchableOpacity, Text, StyleSheet } from 'react-native';
-
+import { View, TextInput, TouchableOpacity, Text, StyleSheet, Animated } from 'react-native';
 import { AppTheme } from '../../App';
 
 interface Props {
@@ -8,8 +7,10 @@ interface Props {
     theme: AppTheme;
 }
 
-export const PromptInterface: React.FC<Props> = ({ onExecutePrompt, theme }) => {
+export const PromptInterface: React.FC<Props> = React.memo(({ onExecutePrompt, theme }) => {
     const [prompt, setPrompt] = useState('');
+    const [isFocused, setIsFocused] = useState(false);
+    const accent = theme === 'red' ? '#ff003c' : '#00d2ff';
 
     const handleSend = () => {
         if (prompt.trim()) {
@@ -19,66 +20,63 @@ export const PromptInterface: React.FC<Props> = ({ onExecutePrompt, theme }) => 
     };
 
     return (
-        <View style={styles.container}>
-            <TextInput
-                style={[
-                    styles.input,
-                    {
-                        borderColor: theme === 'red' ? 'rgba(255, 0, 60, 0.4)' : 'rgba(0, 210, 255, 0.4)',
-                        backgroundColor: '#1a1a1a',
-                        color: '#fff',
-                    }
-                ]}
-                placeholderTextColor="#666"
-                placeholder="e.g. 'Go to Google and search for cute cats'"
-                value={prompt}
-                onChangeText={setPrompt}
-                multiline
-            />
+        <View style={[styles.container, { borderTopColor: accent + '18' }]}>
+            <View style={[styles.inputWrap, isFocused && { borderColor: accent, shadowColor: accent, shadowOpacity: 0.2, shadowRadius: 12 }]}>
+                <Text style={[styles.promptGlyph, { color: accent }]}>›_</Text>
+                <TextInput
+                    style={styles.input}
+                    placeholder="Direct the AI..."
+                    placeholderTextColor="#2a2a2a"
+                    value={prompt}
+                    onChangeText={setPrompt}
+                    onFocus={() => setIsFocused(true)}
+                    onBlur={() => setIsFocused(false)}
+                    onSubmitEditing={handleSend}
+                    multiline
+                />
+            </View>
             <TouchableOpacity
-                style={[
-                    styles.button,
-                    {
-                        backgroundColor: theme === 'red' ? '#ff003c' : '#00d2ff',
-                        shadowColor: theme === 'red' ? '#ff003c' : '#00d2ff',
-                    }
-                ]}
-                onPress={handleSend}>
-                <Text style={styles.buttonText}>Execute</Text>
+                style={[styles.sendBtn, { backgroundColor: accent, shadowColor: accent }]}
+                onPress={handleSend}
+            >
+                <Text style={styles.sendIcon}>⏎</Text>
             </TouchableOpacity>
         </View>
     );
-};
+});
 
 const styles = StyleSheet.create({
     container: {
-        padding: 15,
+        padding: 12,
+        flexDirection: 'row',
+        alignItems: 'flex-end',
+        backgroundColor: '#000',
+        borderTopWidth: 1,
+        gap: 10,
+    },
+    inputWrap: {
+        flex: 1,
         flexDirection: 'row',
         alignItems: 'center',
-        borderTopWidth: 1,
-        borderTopColor: '#222',
-        backgroundColor: '#0a0a0a',
-    },
-    input: {
-        flex: 1,
+        backgroundColor: '#080808',
+        borderRadius: 16,
         borderWidth: 1,
-        borderColor: '#ccc',
-        borderRadius: 20,
-        paddingHorizontal: 15,
+        borderColor: '#111',
+        paddingHorizontal: 14,
         paddingVertical: 10,
-        marginRight: 10,
-        maxHeight: 100,
+        shadowOffset: { width: 0, height: 0 },
     },
-    button: {
-        borderRadius: 20,
-        paddingHorizontal: 20,
-        paddingVertical: 12,
-        shadowOpacity: 0.6,
-        shadowRadius: 6,
-        elevation: 6,
+    promptGlyph: { fontSize: 14, fontWeight: '900', marginRight: 10, opacity: 0.7 },
+    input: { flex: 1, color: '#ccc', fontSize: 13, maxHeight: 80 },
+    sendBtn: {
+        width: 44,
+        height: 44,
+        borderRadius: 22,
+        justifyContent: 'center',
+        alignItems: 'center',
+        shadowOffset: { width: 0, height: 0 },
+        shadowOpacity: 0.5,
+        shadowRadius: 10,
     },
-    buttonText: {
-        color: '#000',
-        fontWeight: 'bold',
-    }
+    sendIcon: { color: '#000', fontSize: 18, fontWeight: 'bold' },
 });

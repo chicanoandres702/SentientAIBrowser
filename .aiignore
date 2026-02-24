@@ -1,11 +1,46 @@
+# AI Context Poisoning Prevention
+# Block paths to keep AI Token Density high
+
+# Heavy Dependencies
 node_modules/
+.expo/
 .venv/
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Build Artifacts
 dist/
+bundle/
 build/
 bin/
 obj/
-package-lock.json
-poetry.lock
+
+# Media & Binary (AI shouldn't read these as text)
+assets/
+*.png
+*.jpg
+*.jpeg
+*.webp
+*.gif
+*.mp4
+*.pdf
+*.zip
+*.tar.gz
+*.exe
+*.dll
+
+# Logs & Temp
 *.log
-*.sql
+tmp/
 coverage/
+*.sql
+
+# System generated artifacts (Brain)
+.gemini/
+.antigravity/
+brain/
+
+# Hardcoded Ignore
+.git/
+.husky/

@@ -1,41 +1,94 @@
-# Learn more https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files
-
-# dependencies
+# --- Node / Dependencies ---
 node_modules/
+.pnp
+.pnp.js
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
 
-# Expo
+# --- Production & Build Outputs ---
 .expo/
 dist/
-web-build/
-expo-env.d.ts
+build/
+bin/
+obj/
+out/
+.next/
+.serverless/
+.vercel/
 
-# Native
-.kotlin/
-*.orig.*
-*.jks
-*.p8
+# --- Firebase ---
+.firebase/
+firestore-debug.log
+firebase-debug.log
+ui-debug.log
+*.firebase
+
+# --- Environment & Secrets ---
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
 *.p12
 *.key
-*.mobileprovision
-
-# Metro
-.metro-health-check*
-
-# debug
-npm-debug.*
-yarn-debug.*
-yarn-error.*
-
-# macOS
-.DS_Store
 *.pem
+*.cert
+*.rsa
+secrets.json
 
-# local env files
-.env*.local
+# --- Testing & Coverage ---
+coverage/
+.nyc_output/
+cypress/videos/
+cypress/screenshots/
+playwright-report/
 
-# typescript
+# --- Temp & Logs ---
+*.log
+tmp/
+temp/
+.temp/
 *.tsbuildinfo
 
-# generated native folders
-/ios
-/android
+# --- Media & Design Outputs ---
+screenshots/
+recordings/
+*.png
+*.jpg
+*.jpeg
+*.webp
+*.mp4
+*.gif
+*.svg
+*.ico
+
+# --- IDEs & Editors ---
+.idea/
+.vscode/*
+!.vscode/settings.json
+*.swp
+*.swo
+*.sublime-workspace
+.vim/
+
+# --- OS Files ---
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+Desktop.ini
+
+# --- AI Workspaces & Caches ---
+# (Ignore AI memory context & brains while keeping the rule files)
+.cursor/
+.windsurf/
+.claude/
+.gemini/antigravity/brain/
+.gemini/antigravity/logs/
+.gemini/antigravity/mcp_config.json
+.gemini/oauth_creds.json
+.agent/cache/

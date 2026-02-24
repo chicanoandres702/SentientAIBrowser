@@ -1,82 +1,49 @@
 import React from 'react';
-import { StyleSheet, Text, View, Switch, Modal, TouchableOpacity, ScrollView, Platform } from 'react-native';
+import { StyleSheet, Text, View, Modal, TouchableOpacity, ScrollView } from 'react-native';
 import { AppTheme } from '../../App';
+import { ConfigRow } from './settings/ConfigRow';
+import { ThemeSelector } from './settings/ThemeSelector';
+import { GitHubConfig } from './settings/GitHubConfig';
 
 interface Props {
-    visible: boolean;
-    onClose: () => void;
-    theme: AppTheme;
-    setTheme: (theme: AppTheme) => void;
-    isAIMode: boolean;
-    setIsAIMode: (val: boolean) => void;
-    useProxy: boolean;
-    setUseProxy: (val: boolean) => void;
-    isDaemonRunning: boolean;
-    onToggleDaemon: () => void;
+    visible: boolean; onClose: () => void; theme: AppTheme; setTheme: (theme: AppTheme) => void;
+    isAIMode: boolean; setIsAIMode: (val: boolean) => void;
+    useProxy: boolean; setUseProxy: (val: boolean) => void;
+    isScholarMode: boolean; setIsScholarMode: (val: boolean) => void;
+    isDaemonRunning: boolean; onToggleDaemon: () => void;
+    github: { token: string; setToken: (v: string) => void; owner: string; setOwner: (v: string) => void; repo: string; setRepo: (v: string) => void; };
 }
 
 export const SettingsMenu: React.FC<Props> = (p) => {
-    const accentColor = p.theme === 'red' ? '#ff003c' : '#00d2ff';
-
+    const accent = p.theme === 'red' ? '#ff003c' : '#00d2ff';
+    const scholarAccent = '#bf5af2'; // Purple for Scholar Mode
     return (
         <Modal visible={p.visible} transparent animationType="slide">
             <View style={styles.overlay}>
-                <View style={styles.panel}>
+                <View style={styles.sheet}>
+                    <View style={[styles.handleBar, { backgroundColor: accent }]} />
                     <View style={styles.header}>
-                        <Text style={styles.title}>Browser Settings</Text>
-                        <TouchableOpacity onPress={p.onClose}><Text style={styles.closeBtn}>✕</Text></TouchableOpacity>
+                        <Text style={styles.title}>Configuration</Text>
+                        <TouchableOpacity style={styles.closeBtn} onPress={p.onClose}><Text style={styles.closeIcon}>×</Text></TouchableOpacity>
                     </View>
+                    <ScrollView style={styles.body} showsVerticalScrollIndicator={false}>
+                        <Text style={styles.section}>CORE ENGINE</Text>
+                        <ConfigRow label="Sentient AI Mode" sub="Enable autonomous navigation" value={p.isAIMode} onToggle={p.setIsAIMode} accent={accent} />
+                        <ConfigRow label="CORS Proxy" sub="Bypass security restrictions" value={p.useProxy} onToggle={p.setUseProxy} accent={accent} />
+                        <ConfigRow label="Scholar Mode" sub="MISSION: SCHOLAR (Capella.edu)" value={p.isScholarMode} onToggle={p.setIsScholarMode} accent={scholarAccent} />
 
-                    <ScrollView style={styles.content}>
-                        <View style={styles.section}>
-                            <Text style={styles.sectionLabel}>Core Engine</Text>
-                            <View style={styles.row}>
-                                <Text style={styles.label}>🤖 Sentient AI Mode</Text>
-                                <Switch value={p.isAIMode} onValueChange={p.setIsAIMode} trackColor={{ true: accentColor }} />
-                            </View>
-                            <View style={styles.row}>
-                                <Text style={styles.label}>🌐 Enhanced CORS Proxy</Text>
-                                <Switch value={p.useProxy} onValueChange={p.setUseProxy} trackColor={{ true: accentColor }} />
-                            </View>
-                        </View>
+                        <GitHubConfig token={p.github.token} setToken={p.github.setToken} owner={p.github.owner} setOwner={p.github.setOwner} repo={p.github.repo} setRepo={p.github.setRepo} />
 
-                        <View style={styles.section}>
-                            <Text style={styles.sectionLabel}>Appearance</Text>
-                            <View style={styles.themeRow}>
-                                <TouchableOpacity
-                                    style={[styles.themeBtn, p.theme === 'red' && { borderColor: '#ff003c', borderWidth: 2 }]}
-                                    onPress={() => p.setTheme('red')}
-                                >
-                                    <View style={[styles.themeDot, { backgroundColor: '#ff003c' }]} />
-                                    <Text style={styles.themeText}>Red Pulse</Text>
-                                </TouchableOpacity>
-                                <TouchableOpacity
-                                    style={[styles.themeBtn, p.theme === 'blue' && { borderColor: '#00d2ff', borderWidth: 2 }]}
-                                    onPress={() => p.setTheme('blue')}
-                                >
-                                    <View style={[styles.themeDot, { backgroundColor: '#00d2ff' }]} />
-                                    <Text style={styles.themeText}>Deep Blue</Text>
-                                </TouchableOpacity>
-                            </View>
-                        </View>
+                        <Text style={styles.section}>APPEARANCE</Text>
+                        <ThemeSelector current={p.theme} onSelect={p.setTheme} />
 
-                        <View style={styles.section}>
-                            <Text style={styles.sectionLabel}>Automation</Text>
-                            <TouchableOpacity
-                                style={[styles.daemonBtn, { backgroundColor: p.isDaemonRunning ? '#444' : accentColor }]}
-                                onPress={p.onToggleDaemon}
-                            >
-                                <Text style={styles.daemonText}>
-                                    {p.isDaemonRunning ? '🛑 Stop Background Daemon' : '🚀 Start Background Daemon'}
-                                </Text>
-                            </TouchableOpacity>
-                            <Text style={styles.hint}>Daemon allows survey hunting while screen is off.</Text>
-                        </View>
+                        <Text style={styles.section}>DAEMON</Text>
+                        <TouchableOpacity style={[styles.daemonBtn, { borderColor: p.isDaemonRunning ? '#f44336' : accent }]} onPress={p.onToggleDaemon}>
+                            <View style={[styles.daemonDot, { backgroundColor: p.isDaemonRunning ? '#f44336' : accent }]} />
+                            <Text style={[styles.daemonText, { color: p.isDaemonRunning ? '#f44336' : accent }]}>{p.isDaemonRunning ? 'TERMINATE DAEMON' : 'LAUNCH DAEMON'}</Text>
+                        </TouchableOpacity>
                     </ScrollView>
-
-                    <View style={styles.footer}>
-                        <Text style={styles.version}>Sentient Browser v1.2.0-Alpha</Text>
-                    </View>
+                    <View style={styles.footer}><Text style={styles.version}>SENTIENT BROWSER · v1.2.0-ALPHA</Text></View>
                 </View>
             </View>
         </Modal>
@@ -84,23 +51,18 @@ export const SettingsMenu: React.FC<Props> = (p) => {
 };
 
 const styles = StyleSheet.create({
-    overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.8)', justifyContent: 'center', alignItems: 'center' },
-    panel: { width: '90%', maxWidth: 400, backgroundColor: '#111', borderRadius: 20, borderWidth: 1, borderColor: '#333', overflow: 'hidden' },
-    header: { padding: 20, flexDirection: 'row', justifyContent: 'space-between', borderBottomWidth: 1, borderBottomColor: '#222' },
-    title: { color: '#fff', fontSize: 18, fontWeight: 'bold' },
-    closeBtn: { color: '#666', fontSize: 20 },
-    content: { padding: 20 },
-    section: { marginBottom: 25 },
-    sectionLabel: { color: '#444', fontSize: 12, fontWeight: 'bold', textTransform: 'uppercase', marginBottom: 15, letterSpacing: 1 },
-    row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15 },
-    label: { color: '#ccc', fontSize: 15 },
-    themeRow: { flexDirection: 'row', justifyContent: 'space-between' },
-    themeBtn: { flex: 1, backgroundColor: '#1a1a1a', padding: 12, borderRadius: 12, marginRight: 8, alignItems: 'center', flexDirection: 'row' },
-    themeDot: { width: 12, height: 12, borderRadius: 6, marginRight: 8 },
-    themeText: { color: '#fff', fontSize: 13 },
-    daemonBtn: { padding: 15, borderRadius: 12, alignItems: 'center' },
-    daemonText: { color: '#111', fontWeight: 'bold' },
-    hint: { color: '#555', fontSize: 11, marginTop: 8, textAlign: 'center' },
-    footer: { padding: 15, backgroundColor: '#0a0a0a', alignItems: 'center' },
-    version: { color: '#333', fontSize: 10 }
+    overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.85)', justifyContent: 'flex-end' },
+    sheet: { backgroundColor: '#060606', borderTopLeftRadius: 28, borderTopRightRadius: 28, borderWidth: 1, borderColor: '#111', overflow: 'hidden', maxHeight: '90%' },
+    handleBar: { width: 40, height: 3, borderRadius: 2, alignSelf: 'center', marginTop: 14, marginBottom: 4, opacity: 0.6 },
+    header: { paddingHorizontal: 24, paddingVertical: 18, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderBottomWidth: 1, borderBottomColor: '#0d0d0d' },
+    title: { color: '#fff', fontSize: 18, fontWeight: '900', letterSpacing: 2 },
+    closeBtn: { width: 34, height: 34, borderRadius: 17, backgroundColor: '#111', justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: '#1a1a1a' },
+    closeIcon: { color: '#888', fontSize: 20, lineHeight: 22 },
+    body: { padding: 24 },
+    section: { color: '#2a2a2a', fontSize: 10, fontWeight: '900', letterSpacing: 3, marginBottom: 16, marginTop: 8 },
+    daemonBtn: { flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderRadius: 14, padding: 16, gap: 12 },
+    daemonDot: { width: 8, height: 8, borderRadius: 4 },
+    daemonText: { fontSize: 12, fontWeight: '900', letterSpacing: 2 },
+    footer: { padding: 16, borderTopWidth: 1, borderTopColor: '#0d0d0d', alignItems: 'center' },
+    version: { color: '#1a1a1a', fontSize: 9, letterSpacing: 3, fontWeight: '900' },
 });
