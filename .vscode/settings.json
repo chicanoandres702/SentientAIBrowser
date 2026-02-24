@@ -1,5 +1,11 @@
 {
     "avdmanager.sdkPath": "C:/android/sdk",
     "avdmanager.cmdVersion": "latest",
-    "android.enableJavaLanguageSupport": true
+    "android.enableJavaLanguageSupport": true,
+    "files.exclude": {
+        ".antigravity/**": true
+    },
+    "search.exclude": {
+        ".antigravity/**": true
+    }
 }
