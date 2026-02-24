@@ -2,27 +2,30 @@
 # Sets up Java/Android SDK paths, boots the emulator if needed, then launches Expo for Android.
 
 $ErrorActionPreference = "Stop"
-$ProjectDir   = $PSScriptRoot
-$JavaDir      = "C:\java"
-$SdkDir       = "C:\android\sdk"
-$ExpoPort     = 8081
-$AvdName      = "SentientUI"
+$ProjectDir = $PSScriptRoot
+$JavaDir = "C:\java"
+$SdkDir = "C:\android\sdk"
+$ExpoPort = 8081
+$AvdName = "SentientUI"
 
 # --- Environment ---
-$env:JAVA_HOME         = "$JavaDir\jdk-17.0.10+7"
-$env:ANDROID_HOME      = $SdkDir
-$env:ANDROID_SDK_ROOT  = $SdkDir
-$MachinePath           = [Environment]::GetEnvironmentVariable("Path", "Machine")
-$env:Path              = "$MachinePath;$env:JAVA_HOME\bin;$SdkDir\cmdline-tools\latest\bin;$SdkDir\platform-tools;$SdkDir\emulator"
+$env:JAVA_HOME = "$JavaDir\jdk-17.0.10+7"
+$env:ANDROID_HOME = $SdkDir
+$env:ANDROID_SDK_ROOT = $SdkDir
+$MachinePath = [Environment]::GetEnvironmentVariable("Path", "Machine")
+$env:Path = "$MachinePath;$env:JAVA_HOME\bin;$SdkDir\cmdline-tools\latest\bin;$SdkDir\platform-tools;$SdkDir\emulator"
+
+# Load .env so EXPO_PUBLIC_ vars are available to the Android bundler
+. "$ProjectDir\load-env.ps1"
 
 Write-Host "--- Sentient UI: Android Launcher ---" -ForegroundColor Cyan
 
 # Kill any process holding the Expo port
 $portProcess = netstat -ano | Select-String ":$ExpoPort " | Select-String "LISTENING"
 if ($portProcess) {
-    $pid = ($portProcess -split '\s+')[-1]
-    Write-Host "Freeing port $ExpoPort (PID $pid)..." -ForegroundColor Yellow
-    Stop-Process -Id $pid -Force -ErrorAction SilentlyContinue
+    $portPid = ($portProcess -split '\s+')[-1]
+    Write-Host "Freeing port $ExpoPort (PID $portPid)..." -ForegroundColor Yellow
+    Stop-Process -Id $portPid -Force -ErrorAction SilentlyContinue
 }
 
 # Start ADB server
@@ -32,7 +35,8 @@ if ($portProcess) {
 $devices = & "$SdkDir\platform-tools\adb.exe" devices
 if ($devices -match "emulator-\d+\s+device") {
     Write-Host "Emulator already running." -ForegroundColor Green
-} else {
+}
+else {
     Write-Host "Starting Android Emulator ($AvdName)..." -ForegroundColor Yellow
     Start-Process -FilePath "$SdkDir\emulator\emulator.exe" `
         -ArgumentList "-avd $AvdName -no-snapshot-save -no-boot-anim -gpu swiftshader_indirect"

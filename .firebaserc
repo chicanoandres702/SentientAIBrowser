@@ -1,5 +1,7 @@
 {
-  "projects": {},
+  "projects": {
+    "default": "sentient-ai-browser"
+  },
   "targets": {},
   "etags": {}
 }
