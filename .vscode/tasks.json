@@ -2,7 +2,7 @@
     "version": "2.0.0",
     "tasks": [
         {
-            "label": "🌐 Run Web",
+            "label": "Run Web",
             "type": "shell",
             "command": "powershell -ExecutionPolicy Bypass -File ./run-web.ps1",
             "group": {
@@ -17,7 +17,7 @@
             "problemMatcher": []
         },
         {
-            "label": "🤖 Run Android",
+            "label": "Run Android",
             "type": "shell",
             "command": "powershell -ExecutionPolicy Bypass -File ./run-android.ps1",
             "group": "build",
@@ -29,7 +29,7 @@
             "problemMatcher": []
         },
         {
-            "label": "🔁 Run Proxy",
+            "label": "Run Proxy",
             "type": "shell",
             "command": "powershell -ExecutionPolicy Bypass -File ./run-proxy.ps1",
             "group": "build",
@@ -41,9 +41,21 @@
             "problemMatcher": []
         },
         {
-            "label": "📦 Build Web",
+            "label": "Build Web",
             "type": "shell",
             "command": "powershell -ExecutionPolicy Bypass -File ./build-web.ps1",
+            "group": "build",
+            "presentation": {
+                "reveal": "always",
+                "panel": "new",
+                "clear": true
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Deploy Firebase",
+            "type": "shell",
+            "command": "npm run firebase",
             "group": "build",
             "presentation": {
                 "reveal": "always",

@@ -1,5 +1,5 @@
-import { useState, useWindowDimensions } from 'react';
-import { Platform } from 'react-native';
+import { useState } from 'react';
+import { Platform, useWindowDimensions } from 'react-native';
 
 export const useBrowserState = () => {
     const { width } = useWindowDimensions();

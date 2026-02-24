@@ -11,9 +11,9 @@ Write-Host "--- Sentient UI: Web Launcher ---" -ForegroundColor Cyan
 # Kill any process holding the Expo port to avoid "port in use" prompts
 $portProcess = netstat -ano | Select-String ":$Port " | Select-String "LISTENING"
 if ($portProcess) {
-    $pid = ($portProcess -split '\s+')[-1]
-    Write-Host "Freeing port $Port (PID $pid)..." -ForegroundColor Yellow
-    Stop-Process -Id $pid -Force -ErrorAction SilentlyContinue
+    $portPid = ($portProcess -split '\s+')[-1]
+    Write-Host "Freeing port $Port (PID $portPid)..." -ForegroundColor Yellow
+    Stop-Process -Id $portPid -Force -ErrorAction SilentlyContinue
 }
 
 # Start Proxy Server in a separate window so it keeps running

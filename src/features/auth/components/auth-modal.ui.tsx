@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { useAuth } from '../hooks/use-auth.hook';
 import { AppTheme } from '../../../../App';
-import { styles } from './AuthModal.styles';
+import { styles } from './AuthModal/AuthModal.styles';
 
 export const AuthModal: React.FC<{ theme: AppTheme }> = ({ theme }) => {
     const { login, signup, loginWithGoogle, isLoading } = useAuth();
@@ -14,7 +14,7 @@ export const AuthModal: React.FC<{ theme: AppTheme }> = ({ theme }) => {
 
     const handleSubmit = async () => {
         setErrorMsg('');
-        try { isLogin ? await login(email, password) : await signup(email, password); } 
+        try { isLogin ? await login(email, password) : await signup(email, password); }
         catch (err: any) { setErrorMsg(err.message || 'Authentication failed.'); }
     };
 

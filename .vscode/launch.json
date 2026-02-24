@@ -2,17 +2,38 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "🚀 RUN Sentient WEB",
+            "name": "Run Web",
             "type": "node",
             "request": "launch",
-            "preLaunchTask": "run sentient web",
+            "preLaunchTask": "Run Web",
             "cwd": "${workspaceFolder}"
         },
         {
-            "name": "📱 RUN Sentient ANDROID",
+            "name": "Run Android",
             "type": "node",
             "request": "launch",
-            "preLaunchTask": "run sentient android",
+            "preLaunchTask": "Run Android",
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "name": "Run Proxy",
+            "type": "node",
+            "request": "launch",
+            "preLaunchTask": "Run Proxy",
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "name": "Build Web",
+            "type": "node",
+            "request": "launch",
+            "preLaunchTask": "Build Web",
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "name": "Deploy Firebase",
+            "type": "node",
+            "request": "launch",
+            "preLaunchTask": "Deploy Firebase",
             "cwd": "${workspaceFolder}"
         }
     ]
