@@ -1,6 +1,6 @@
 // Feature: Auth | Trace: src/features/auth/trace.md
-import { useState, useEffect, createContext, useContext } from 'react';
-import { User, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
+import { useState, useEffect } from 'react';
+import { User, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, signInWithRedirect, getRedirectResult, GoogleAuthProvider } from 'firebase/auth';
 import { auth } from '../firebase-config';
 
 export const useAuth = () => {
@@ -8,6 +8,17 @@ export const useAuth = () => {
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
+        // Handle successful redirect from Google OAuth
+        getRedirectResult(auth)
+            .then((result) => {
+                if (result) {
+                    console.log("Successfully authenticated via redirect");
+                }
+            })
+            .catch((error) => {
+                console.error("Redirect Auth Error:", error);
+            });
+
         const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
             setUser(currentUser);
             setIsLoading(false);
@@ -43,8 +54,9 @@ export const useAuth = () => {
         setIsLoading(true);
         const provider = new GoogleAuthProvider();
         try {
-            await signInWithPopup(auth, provider);
-        } finally {
+            await signInWithRedirect(auth, provider);
+        } catch (e) {
+            console.error(e);
             setIsLoading(false);
         }
     };
