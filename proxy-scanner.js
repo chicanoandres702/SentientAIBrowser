@@ -19,24 +19,23 @@ const SCANNER_SCRIPT = `
 
   function scanDOM() {
     elementMap = [];
-    currentId = 1;
     var els = document.querySelectorAll(
       'button, a, input, select, textarea, [role="button"]'
     );
     els.forEach(function(el) {
       if (isVisible(el)) {
-        el.setAttribute('data-ai-id', currentId.toString());
-        var text = el.innerText || el.placeholder || el.value
-          || el.getAttribute('aria-label') || el.name || '';
-        text = text.trim();
-        if (text || el.tagName === 'INPUT') {
-          elementMap.push({
-            id: currentId,
-            tag: el.tagName.toLowerCase(),
-            type: el.type || undefined,
-            text: text.substring(0, 50)
-          });
-          currentId++;
+        var existingId = el.getAttribute('data-ai-id');
+        if (existingId) {
+          var text = el.innerText || el.placeholder || el.value || el.getAttribute('aria-label') || el.name || '';
+          text = text.trim();
+          if (text || el.tagName === 'INPUT') {
+            elementMap.push({
+              id: existingId.toString(),
+              tag: el.tagName.toLowerCase(),
+              type: el.type || undefined,
+              text: text.substring(0, 50)
+            });
+          }
         }
       }
     });
@@ -49,22 +48,24 @@ const SCANNER_SCRIPT = `
   }
 
   function executeAction(action, targetId, value) {
-    var el = document.querySelector('[data-ai-id="' + targetId + '"]');
-    if (!el) {
-      window.parent.postMessage({ source: 'sentient-scanner', type: 'ERROR', payload: 'Element not found' }, '*');
-      return;
-    }
-    if (action === 'click') {
-      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      el.click();
-      window.parent.postMessage({ source: 'sentient-scanner', type: 'SUCCESS', payload: 'Clicked ' + targetId }, '*');
-    } else if (action === 'type') {
-      el.value = value || '';
-      el.dispatchEvent(new Event('input', { bubbles: true }));
-      el.dispatchEvent(new Event('change', { bubbles: true }));
-      window.parent.postMessage({ source: 'sentient-scanner', type: 'SUCCESS', payload: 'Typed ' + targetId }, '*');
-    }
-    setTimeout(scanDOM, 500);
+    // The action is now forwarded to the backend proxy
+    var params = new URLSearchParams(window.location.search);
+    var tabId = params.get('tabId') || 'default';
+    
+    fetch('/proxy/action', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tabId: tabId, action: action, id: targetId, value: value })
+    }).then(r => r.json()).then(res => {
+      if (res.success) {
+        window.parent.postMessage({ source: 'sentient-scanner', type: 'SUCCESS', payload: 'Executed on backend: ' + targetId }, '*');
+        setTimeout(() => location.reload(), 1500); // Reload iframe to fetch new backend state
+      } else {
+        window.parent.postMessage({ source: 'sentient-scanner', type: 'ERROR', payload: 'Backend execution failed: ' + res.error }, '*');
+      }
+    }).catch(err => {
+      window.parent.postMessage({ source: 'sentient-scanner', type: 'ERROR', payload: err.message }, '*');
+    });
   }
 
   window.addEventListener('message', function(event) {
@@ -106,6 +107,64 @@ const SCANNER_SCRIPT = `
         }
     }
   }, true);
+
+  // --- FETCH / XHR OVERRIDE ---
+  var originalFetch = window.fetch;
+  window.fetch = async function() {
+    var args = Array.prototype.slice.call(arguments);
+    var url = args[0];
+    if (typeof url === 'string' && url.indexOf('http://localhost') !== 0 && url.indexOf('/') !== 0) {
+      try {
+        var absUrl = new URL(url, window.location.origin).href;
+        if (absUrl.indexOf('http') === 0 && absUrl.indexOf('http://localhost') !== 0) {
+           args[0] = 'http://localhost:3000/proxy/forward?url=' + encodeURIComponent(absUrl);
+        }
+      } catch (e) {}
+    } else if (typeof url === 'string' && url.indexOf('/') === 0 && url.indexOf('//') !== 0) {
+       // Root-relative URL: need to construct against originally injected <base> or URL
+       try {
+           var base = document.querySelector('base') ? document.querySelector('base').href : window.location.origin;
+           var absUrl = new URL(url, base).href;
+           args[0] = 'http://localhost:3000/proxy/forward?url=' + encodeURIComponent(absUrl);
+       } catch (e) {}
+    } else if (url instanceof Request && url.url.indexOf('http://localhost') !== 0) {
+      try {
+        var base = document.querySelector('base') ? document.querySelector('base').href : window.location.origin;
+        var absUrl = new URL(url.url, base).href;
+        if (absUrl.indexOf('http') === 0 && absUrl.indexOf('http://localhost') !== 0) {
+           args[0] = new Request('http://localhost:3000/proxy/forward?url=' + encodeURIComponent(absUrl), url);
+        }
+      } catch (e) {}
+    }
+    return originalFetch.apply(this, args);
+  };
+
+  var originalXHR = window.XMLHttpRequest.prototype.open;
+  window.XMLHttpRequest.prototype.open = function(method, url) {
+    var rest = Array.prototype.slice.call(arguments, 2);
+    if (typeof url === 'string' && url.indexOf('http://localhost') !== 0 && url.indexOf('/') !== 0) {
+      try {
+        var absUrl = new URL(url, window.location.origin).href;
+        if (absUrl.indexOf('http') === 0 && absUrl.indexOf('http://localhost') !== 0) {
+           url = 'http://localhost:3000/proxy/forward?url=' + encodeURIComponent(absUrl);
+        }
+      } catch (e) {}
+    } else if (typeof url === 'string' && url.indexOf('/') === 0 && url.indexOf('//') !== 0) {
+      try {
+        var base = document.querySelector('base') ? document.querySelector('base').href : window.location.origin;
+        var absUrl = new URL(url, base).href;
+        url = 'http://localhost:3000/proxy/forward?url=' + encodeURIComponent(absUrl);
+      } catch (e) {}
+    } else if (typeof url === 'string' && url.indexOf('//') === 0) { // Protocol-relative URLs
+      try {
+         var absUrl = 'https:' + url;
+         url = 'http://localhost:3000/proxy/forward?url=' + encodeURIComponent(absUrl);
+      } catch (e) {}
+    }
+
+    return originalXHR.apply(this, [method, url].concat(rest));
+  };
+
 })();
 </script>`;
 
