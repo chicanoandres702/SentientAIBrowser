@@ -81,6 +81,24 @@ export const getAIDomScannerScript = () => `
 
     window._runAIScan = scanDOM;
 
-    return true;
+  // --- POPUP INTERCEPTION ---
+  window.open = function(url) {
+    if (url) {
+        window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'NEW_TAB', url: window.location.href, payload: url }));
+    }
+    return null;
+  };
+
+  document.addEventListener('click', function(e) {
+    var a = e.target.closest('a');
+    if (a && a.href) {
+        if (a.target === '_blank' || e.ctrlKey || e.metaKey) {
+            e.preventDefault();
+            window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'NEW_TAB', url: window.location.href, payload: a.href }));
+        }
+    }
+  }, true);
+
+  return true;
   })();
 `;

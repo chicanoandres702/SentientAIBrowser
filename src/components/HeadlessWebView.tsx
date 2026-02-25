@@ -10,6 +10,7 @@ interface Props {
     url: string;
     useProxy?: boolean;
     onDomMapReceived: (map: any) => void;
+    onNewTabRequested: (url: string) => void;
 }
 
 export interface HeadlessWebViewRef {
@@ -17,7 +18,7 @@ export interface HeadlessWebViewRef {
     executeAction: (action: 'click' | 'type', id: string, value?: string) => void;
 }
 
-export const HeadlessWebView = React.memo(forwardRef<HeadlessWebViewRef, Props>(({ isVisible, url, useProxy, onDomMapReceived }, ref) => {
+export const HeadlessWebView = React.memo(forwardRef<HeadlessWebViewRef, Props>(({ isVisible, url, useProxy, onDomMapReceived, onNewTabRequested }, ref) => {
     const webViewRef = useRef<WebView>(null);
     const iframeRef = useRef<HTMLIFrameElement>(null);
 
@@ -31,12 +32,20 @@ export const HeadlessWebView = React.memo(forwardRef<HeadlessWebViewRef, Props>(
         if (event.data.type === 'DOM_MAP') {
             console.log('[HeadlessWebView] DOM_MAP received:', event.data.payload?.length, 'nodes');
             onDomMapReceived(event.data.payload);
+        } else if (event.data.type === 'NEW_TAB') {
+            console.log('[HeadlessWebView] Native popup intercepted => routing to tab system:', event.data.payload);
+            const targetUrl = event.data.payload;
+            // Unpack proxied URLs if necessary so the tab bar shows the real destination
+            const cleanUrl = targetUrl.startsWith('http://localhost:3000/proxy?url=') 
+                ? decodeURIComponent(targetUrl.split('url=')[1]) 
+                : targetUrl;
+            onNewTabRequested(cleanUrl);
         } else if (event.data.type === 'ERROR') {
             console.warn('[HeadlessWebView] Scanner error:', event.data.payload);
         } else if (event.data.type === 'SUCCESS') {
             console.log('[HeadlessWebView] Action success:', event.data.payload);
         }
-    }, [onDomMapReceived]);
+    }, [onDomMapReceived, onNewTabRequested]);
 
     useEffect(() => {
         if (Platform.OS !== 'web') return;

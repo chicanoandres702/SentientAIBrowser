@@ -88,6 +88,24 @@ const SCANNER_SCRIPT = `
 
   window._runAIScan = scanDOM;
   setTimeout(scanDOM, 2000);
+
+  // --- POPUP INTERCEPTION ---
+  window.open = function(url) {
+    if (url) {
+        window.parent.postMessage({ source: 'sentient-scanner', type: 'NEW_TAB', payload: url }, '*');
+    }
+    return null;
+  };
+
+  document.addEventListener('click', function(e) {
+    var a = e.target.closest('a');
+    if (a && a.href) {
+        if (a.target === '_blank' || e.ctrlKey || e.metaKey) {
+            e.preventDefault();
+            window.parent.postMessage({ source: 'sentient-scanner', type: 'NEW_TAB', payload: a.href }, '*');
+        }
+    }
+  }, true);
 })();
 </script>`;
 
