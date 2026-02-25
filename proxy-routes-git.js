@@ -8,7 +8,7 @@ function setupGitRoutes(app) {
     
     console.log(`[Sentient Git] Committing with message: ${commitMsg}`);
     
-    const command = \`git add . && git commit -m "\${commitMsg.replace(/"/g, '\\\\"')}" && git push\`;
+    const command = `git add . && git commit -m "${commitMsg.replace(/"/g, '\\\\"')}" && git push`;
     
     exec(command, { cwd: __dirname }, (error, stdout, stderr) => {
       if (error) {
