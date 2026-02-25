@@ -7,7 +7,16 @@ $ProjectDir = $PSScriptRoot
 
 Write-Host "--- Sentient UI: Web Launcher ---" -ForegroundColor Cyan
 
+# Sanitize .env file to prevent Expo from injecting literal double quotes (auth/invalid-api-key)
+if (Test-Path "$ProjectDir\.env") {
+    Write-Host "[load-env] Sanitizing variables in .env..." -ForegroundColor DarkYellow
+    $content = Get-Content "$ProjectDir\.env"
+    $content = $content | ForEach-Object { $_ -replace '"', '' }
+    $content | Set-Content "$ProjectDir\.env"
+}
+
 # Load .env so EXPO_PUBLIC_ vars are available to Expo at runtime
+Write-Host "[load-env] Loading variables from .env..." -ForegroundColor Yellow
 . "$ProjectDir\load-env.ps1"
 
 # Kill any process holding the Expo port to avoid "port in use" prompts
@@ -18,16 +27,13 @@ if ($portProcess) {
     Stop-Process -Id $portPid -Force -ErrorAction SilentlyContinue
 }
 
-# Start Proxy Server in a separate window so it keeps running
-Write-Host "Starting Proxy Server (CORS Bypass)..." -ForegroundColor Yellow
-Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd '$ProjectDir'; node proxy-server.js"
-
-# Brief wait for proxy to be ready
-Start-Sleep -Seconds 2
+# Start Proxy Server using PM2 (Silent background management)
+Write-Host "[orchestration] Starting Proxy Core via PM2..." -ForegroundColor Cyan
+npx pm2 delete "sentient-proxy" -s # Ensure clean slate
+npx pm2 start proxy-server.js --name "sentient-proxy" -s
 
 # Launch Expo Web in Chromium
 Write-Host "Launching Expo Web on port $Port in Chromium..." -ForegroundColor Cyan
 Set-Location $ProjectDir
-# BROWSER=chrome tells Expo to auto-open Chrome/Chromium when Metro is ready
 $env:BROWSER = "chrome"
-npx expo start --web --port $Port
+npx expo start -c --web --port $Port

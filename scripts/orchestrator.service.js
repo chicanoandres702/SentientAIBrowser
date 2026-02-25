@@ -25,6 +25,11 @@ function ghQuery(cmd) {
   }
 }
 
+function getBranchName(task) {
+  const milestone = (task.milestone || 'feature').toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+  return `${milestone}/${task.id}`;
+}
+
 async function orchestrate() {
   if (syncLock) return;
   syncLock = true;
@@ -32,14 +37,14 @@ async function orchestrate() {
   try {
     const tasks = JSON.parse(fs.readFileSync(CONFIG.tasksFile, 'utf8') || '[]');
     
-    // 1. Proactive Branching: Ensure every task has a branch
+    // 1. Proactive Branching: Ensure every task has a hierarchical branch
     tasks.forEach(task => {
       if (task.status !== 'completed') {
-        const branch = `task/${task.id}`;
+        const branch = getBranchName(task);
         try {
           execSync(`git show-ref --verify --quiet refs/heads/${branch}`, { stdio: 'ignore' });
         } catch (e) {
-          console.log(`[Orchestrator] Provisioning new task branch: ${branch}`);
+          console.log(`[Orchestrator] Provisioning path: ${branch}`);
           execSync(`git branch ${branch}`, { stdio: 'ignore' });
         }
       }
@@ -52,14 +57,14 @@ async function orchestrate() {
     const hasChanges = execSync('git status --porcelain').toString().length > 0;
     if (currentBranch === 'main' && hasChanges) {
       if (active) {
-        const targetBranch = `task/${active.id}`;
-        console.log(`[Orchestrator] Directing work from main to active task branch: ${targetBranch}`);
+        const targetBranch = getBranchName(active);
+        console.log(`[Orchestrator] Directing work from main to active path: ${targetBranch}`);
         execSync(`git stash push -m "Orchestrator: Auto-migrating from main" -u`, { stdio: 'ignore' });
         execSync(`git checkout ${targetBranch}`, { stdio: 'ignore' });
         try {
           execSync('git stash pop', { stdio: 'ignore' });
         } catch (e) {
-          console.warn('[Orchestrator] Stash pop conflict during migration. Manual resolution recommended.');
+          console.warn('[Orchestrator] Stash pop conflict during migration.');
         }
       } else {
         console.warn('[Orchestrator] Detected changes on main with no active task. Stashing for safety.');
@@ -69,7 +74,7 @@ async function orchestrate() {
 
     // 3. High-Fidelity Sync for Active Task
     if (active) {
-      const targetBranch = `task/${active.id}`;
+      const targetBranch = getBranchName(active);
       if (currentBranch === targetBranch) {
         const hasWork = execSync('git status --porcelain').toString().length > 0;
         if (hasWork) {
@@ -86,7 +91,7 @@ async function orchestrate() {
         }
       } else if (currentBranch !== 'main') {
         // Handle migration if on wrong task branch
-        console.log(`[Orchestrator] Task Mismatch: Switching from ${currentBranch} to ${targetBranch}`);
+        console.log(`[Orchestrator] Context Mismatch: Switching to ${targetBranch}`);
         if (hasChanges) execSync(`git stash push -m "Orchestrator: Migrating task context" -u`, { stdio: 'ignore' });
         execSync(`git checkout ${targetBranch}`, { stdio: 'ignore' });
         if (hasChanges) {
