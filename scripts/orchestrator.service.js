@@ -9,29 +9,11 @@ const { execSync } = require('child_process');
  */
 const CONFIG = {
   tasksFile: path.join(__dirname, '..', '.antigravity-tasks.json'),
-  debounceMs: 5000,
-  ignored: ['.git', 'node_modules', '.expo', 'dist', '.antigravity-tasks.json'],
+  debounceMs: 2000,
+  ignored: ['.git', 'node_modules', 'dist'],
   artifactsDir: path.join(__dirname, '..', '.gemini', 'antigravity', 'brain', '3be3a35e-5767-4ff5-8c01-5573ac1c9750'),
-  taskMd: 'C:\\Users\\Andrew\\.gemini\\antigravity\\brain\\3be3a35e-5767-4ff5-8c01-5573ac1c9750\\task.md',
-  proxyScript: path.join(__dirname, '..', 'proxy-server.js')
+  taskMd: 'C:\\Users\\Andrew\\.gemini\\antigravity\\brain\\3be3a35e-5767-4ff5-8c01-5573ac1c9750\\task.md'
 };
-
-let proxyProcess = null;
-
-function ensureProxy() {
-  if (proxyProcess) return;
-  console.log('[Orchestrator] Powering up Proxy Core...');
-  const { spawn } = require('child_process');
-  proxyProcess = spawn('node', [CONFIG.proxyScript], {
-    stdio: 'inherit',
-    detached: false
-  });
-  proxyProcess.on('exit', () => {
-    console.log('[Orchestrator] Proxy Core exited. Restarting in 5s...');
-    proxyProcess = null;
-    setTimeout(ensureProxy, 5000);
-  });
-}
 
 let syncLock = false;
 let syncTimer = null;
@@ -52,13 +34,9 @@ function syncMarkdownTasks() {
 
     lines.forEach(line => {
         // Capture H2 as Milestone (Phase)
-        const phaseMatch = line.match(/^## (Phase \d+):? (.+)$/i);
-        const genericPhaseMatch = line.match(/^## (.+)$/);
+        const phaseMatch = line.match(/^## (.+)$/i);
         if (phaseMatch) {
-            currentMilestone = phaseMatch[1].trim(); // Just "Phase N"
-            return;
-        } else if (genericPhaseMatch) {
-            currentMilestone = genericPhaseMatch[1].trim();
+            currentMilestone = phaseMatch[1].trim(); 
             return;
         }
 
@@ -163,32 +141,16 @@ async function orchestrate() {
   if (syncLock) return;
   syncLock = true;
   
+  console.log('--- Orchestrator: Syncing ---');
   try {
-    // 0. Antigravity Bridge: Sync artifacts to tasks.json first
     syncMarkdownTasks();
 
-    const tasks = JSON.parse(fs.readFileSync(CONFIG.tasksFile, 'utf8') || '[]');
-    
-async function orchestrate() {
-  if (syncLock) return;
-  syncLock = true;
-  
-  try {
-    // 0. Antigravity Bridge: Sync artifacts to tasks.json first
-    syncMarkdownTasks();
-
-    // 1. GitHub Tree Sync: Always keep remote planning updated
     try {
       require('./sync-gh-tree').sync();
     } catch (e) {
       console.warn(`[Orchestrator] GH Tree Sync failed: ${e.message}`);
     }
-  } catch (e) {
-    console.error(`[Orchestrator] Workflow failed: ${e.message}`);
-  } finally {
-    syncLock = false;
-  }
-}
+    console.log('--- Orchestrator: Ready ---');
   } catch (e) {
     console.error(`[Orchestrator] Workflow failed: ${e.message}`);
   } finally {
@@ -218,6 +180,5 @@ if (fs.existsSync(CONFIG.artifactsDir)) {
   });
 }
 
-console.log('--- Sentient GH Orchestrator Active ---');
-ensureProxy();
+console.log('--- Orchestrator: Starting ---');
 orchestrate();

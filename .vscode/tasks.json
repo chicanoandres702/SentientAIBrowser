@@ -89,16 +89,13 @@
             },
             "problemMatcher": [
                 {
-                    "pattern": [
-                        {
-                            "regexp": "^\\[Orchestrator\\] (.*)$",
-                            "message": 1
-                        }
-                    ],
+                    "pattern": {
+                        "regexp": "^.*$"
+                    },
                     "background": {
                         "activeOnStart": true,
-                        "beginsPattern": "Sentient GH Orchestrator Active",
-                        "endsPattern": "Synchronized \\d+ tasks"
+                        "beginsPattern": "Orchestrator: Syncing",
+                        "endsPattern": "Orchestrator: Ready"
                     }
                 }
             ]

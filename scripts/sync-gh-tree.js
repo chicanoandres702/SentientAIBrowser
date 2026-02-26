@@ -32,7 +32,7 @@ function sync() {
     });
 
     // 2. Sync Issues
-    const existingIssues = JSON.parse(gh(`issue list --label ai-autonomy --json title,number,body,labels --limit 100`) || '[]');
+    const existingIssues = JSON.parse(gh(`issue list --label ai-autonomy --json title,number,body,labels,milestone --limit 100`) || '[]');
     const idToGhNumber = {};
     
     // Map existing issues to task IDs if possible (using title match for now)
@@ -55,22 +55,31 @@ function sync() {
             body += `\n\n**Parent**: #${idToGhNumber[task.parentId]}`;
         }
 
+        const milestoneTitle = task.milestone;
+        const labels = `ai-autonomy,${task.type}`;
+
         if (!existing) {
             if (task.status !== 'completed') {
-                console.log(`[GH-Sync] Creating ${task.type}: ${task.title}`);
-                const milestoneArg = task.milestone ? `--milestone "${task.milestone}"` : '';
-                const labels = `ai-autonomy,${task.type}`;
+                console.log(`[GH-Sync] Creating ${task.type}: ${task.title} [${milestoneTitle || 'No Milestone'}]`);
+                const milestoneArg = milestoneTitle ? `--milestone "${milestoneTitle}"` : '';
                 const res = gh(`issue create --title "${task.title}" --body "${body}" --label "${labels}" ${milestoneArg}`);
                 if (res) {
-                    const number = res.match(/issuses\/(\d+)/)?.[1] || res.match(/(\d+)$/)?.[1];
+                    const number = res.match(/issues\/(\d+)/)?.[1] || res.match(/(\d+)$/)?.[1];
                     if (number) idToGhNumber[task.id] = number;
                 }
             }
         } else {
-            // Update logic: if body differs significantly (ignoring Parent link if it was just added)
-            if (existing.body !== body) {
-                console.log(`[GH-Sync] Updating ${task.type} Body: ${task.title}`);
-                gh(`issue edit ${existing.number} --body "${body}"`);
+            // Update logic: Check body and milestone
+            const existingMilestone = existing.milestone?.title;
+            const needsBodyUpdate = existing.body !== body;
+            const needsMilestoneUpdate = milestoneTitle && existingMilestone !== milestoneTitle;
+
+            if (needsBodyUpdate || needsMilestoneUpdate) {
+                console.log(`[GH-Sync] Syncing ${task.type}: ${task.title}`);
+                let updateCmd = `issue edit ${existing.number}`;
+                if (needsBodyUpdate) updateCmd += ` --body "${body}"`;
+                if (needsMilestoneUpdate) updateCmd += ` --milestone "${milestoneTitle}"`;
+                gh(updateCmd);
             }
         }
     });
