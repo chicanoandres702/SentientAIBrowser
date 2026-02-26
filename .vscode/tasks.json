@@ -97,8 +97,8 @@
                     ],
                     "background": {
                         "activeOnStart": true,
-                        "beginsPattern": "^--- Sentient GH Orchestrator Active ---$",
-                        "endsPattern": "^\\[Orchestrator\\] Synchronized .*$"
+                        "beginsPattern": "Sentient GH Orchestrator Active",
+                        "endsPattern": "Synchronized \\d+ tasks"
                     }
                 }
             ]

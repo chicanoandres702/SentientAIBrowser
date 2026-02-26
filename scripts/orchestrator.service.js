@@ -10,7 +10,7 @@ const { execSync } = require('child_process');
 const CONFIG = {
   tasksFile: path.join(__dirname, '..', '.antigravity-tasks.json'),
   debounceMs: 5000,
-  ignored: ['.git', 'node_modules', '.expo', 'dist', 'tasks.json', '.antigravity-tasks.json'],
+  ignored: ['.git', 'node_modules', '.expo', 'dist', '.antigravity-tasks.json'],
   artifactsDir: path.join(__dirname, '..', '.gemini', 'antigravity', 'brain', '3be3a35e-5767-4ff5-8c01-5573ac1c9750'),
   taskMd: 'C:\\Users\\Andrew\\.gemini\\antigravity\\brain\\3be3a35e-5767-4ff5-8c01-5573ac1c9750\\task.md',
   proxyScript: path.join(__dirname, '..', 'proxy-server.js')
@@ -52,9 +52,13 @@ function syncMarkdownTasks() {
 
     lines.forEach(line => {
         // Capture H2 as Milestone (Phase)
-        const phaseMatch = line.match(/^## (.+)$/);
+        const phaseMatch = line.match(/^## (Phase \d+):? (.+)$/i);
+        const genericPhaseMatch = line.match(/^## (.+)$/);
         if (phaseMatch) {
-            currentMilestone = phaseMatch[1].trim();
+            currentMilestone = phaseMatch[1].trim(); // Just "Phase N"
+            return;
+        } else if (genericPhaseMatch) {
+            currentMilestone = genericPhaseMatch[1].trim();
             return;
         }
 
@@ -181,30 +185,17 @@ async function orchestrate() {
     const active = tasks.find(t => t.status === 'in-progress');
     const currentBranch = execSync('git rev-parse --abbrev-ref HEAD', { encoding: 'utf8' }).trim();
 
-    // 2. No-Main Enforcement
+    // 2. Safe-Guard: Only move work from main if an active task branch exists
     const hasChanges = execSync('git status --porcelain').toString().length > 0;
-    if (currentBranch === 'main' && hasChanges) {
-      if (active) {
-        const targetBranch = getBranchName(active);
-        console.log(`[Orchestrator] Directing work from main to active path: ${targetBranch}`);
-        try {
-          execSync(`git stash push -m "Orchestrator: Auto-migrating from main" -u`, { stdio: 'ignore' });
-        } catch (e) {
-          console.warn('[Orchestrator] Stash failed (possibly locked files). Proceeding with checkout...');
-        }
+    if (currentBranch === 'main' && hasChanges && active) {
+      const targetBranch = getBranchName(active);
+      console.log(`[Orchestrator] Detected work on main. Anchoring to ${targetBranch}...`);
+      try {
+        execSync(`git stash push -m "Orchestrator: Auto-migrating from main" -u`, { stdio: 'ignore' });
         execSync(`git checkout ${targetBranch}`, { stdio: 'ignore' });
-        try {
-          execSync('git stash pop', { stdio: 'ignore' });
-        } catch (e) {
-          console.warn('[Orchestrator] Stash pop skipped or conflict occurred.');
-        }
-      } else {
-        console.warn('[Orchestrator] Detected changes on main with no active task. Stashing for safety.');
-        try {
-          execSync(`git stash push -m "Orchestrator: Safety stash on main" -u`, { stdio: 'ignore' });
-        } catch (e) {
-          console.warn('[Orchestrator] Safety stash failed.');
-        }
+        execSync('git stash pop', { stdio: 'ignore' });
+      } catch (e) {
+        console.warn(`[Orchestrator] Migration to ${targetBranch} failed: ${e.message}`);
       }
     }
 
