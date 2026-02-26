@@ -169,82 +169,26 @@ async function orchestrate() {
 
     const tasks = JSON.parse(fs.readFileSync(CONFIG.tasksFile, 'utf8') || '[]');
     
-    // 1. Proactive Branching: Ensure every task has a hierarchical branch
-    tasks.forEach(task => {
-      if (task.status !== 'completed') {
-        const branch = getBranchName(task);
-        try {
-          execSync(`git show-ref --verify --quiet refs/heads/${branch}`, { stdio: 'ignore' });
-        } catch (e) {
-          console.log(`[Orchestrator] Provisioning path: ${branch}`);
-          execSync(`git branch ${branch}`, { stdio: 'ignore' });
-        }
-      }
-    });
+async function orchestrate() {
+  if (syncLock) return;
+  syncLock = true;
+  
+  try {
+    // 0. Antigravity Bridge: Sync artifacts to tasks.json first
+    syncMarkdownTasks();
 
-    const active = tasks.find(t => t.status === 'in-progress');
-    const currentBranch = execSync('git rev-parse --abbrev-ref HEAD', { encoding: 'utf8' }).trim();
-
-    // 2. Safe-Guard: Only move work from main if an active task branch exists
-    const hasChanges = execSync('git status --porcelain').toString().length > 0;
-    if (currentBranch === 'main' && hasChanges && active) {
-      const targetBranch = getBranchName(active);
-      console.log(`[Orchestrator] Detected work on main. Anchoring to ${targetBranch}...`);
-      try {
-        execSync(`git stash push -m "Orchestrator: Auto-migrating from main" -u`, { stdio: 'ignore' });
-        execSync(`git checkout ${targetBranch}`, { stdio: 'ignore' });
-        execSync('git stash pop', { stdio: 'ignore' });
-      } catch (e) {
-        console.warn(`[Orchestrator] Migration to ${targetBranch} failed: ${e.message}`);
-      }
-    }
-
-    // 3. High-Fidelity Sync for Active Task
-    if (active) {
-      const targetBranch = getBranchName(active);
-      if (currentBranch === targetBranch) {
-        const hasWork = execSync('git status --porcelain').toString().length > 0;
-        if (hasWork) {
-          console.log(`[Orchestrator] Anchoring progress to ${targetBranch}...`);
-          execSync('git add .', { stdio: 'ignore' });
-          execSync(`git commit -m "feat: ${active.title}" --allow-empty`, { stdio: 'ignore' });
-          execSync(`git push origin ${targetBranch}`, { stdio: 'ignore' });
-
-          const prs = ghQuery(`pr list --head ${targetBranch} --json number --jq '.[0].number'`);
-          if (!prs) {
-            console.log('[Orchestrator] Opening traceable PR...');
-            let prBody = `Automated sync for ${active.type} ${active.id}`;
-            const planPath = path.join(CONFIG.artifactsDir, 'implementation_plan.md');
-            const walkPath = path.join(CONFIG.artifactsDir, 'walkthrough.md');
-            
-            if (active.type === 'epic' && fs.existsSync(planPath)) {
-              prBody = fs.readFileSync(planPath, 'utf8');
-            } else if (fs.existsSync(walkPath)) {
-              prBody = fs.readFileSync(walkPath, 'utf8');
-            }
-
-            ghQuery(`pr create --title "feat: ${active.title}" --body "${prBody.replace(/"/g, '\\"')}" --head ${targetBranch}`);
-          }
-        }
-      } else if (currentBranch !== 'main') {
-        // Handle migration if on wrong task branch
-        console.log(`[Orchestrator] Context Mismatch: Switching to ${targetBranch}`);
-        if (hasChanges) execSync(`git stash push -m "Orchestrator: Migrating task context" -u`, { stdio: 'ignore' });
-        execSync(`git checkout ${targetBranch}`, { stdio: 'ignore' });
-        if (hasChanges) {
-          try {
-            execSync('git stash pop', { stdio: 'ignore' });
-          } catch (e) {}
-        }
-      }
-    }
-
-    // 4. GitHub Tree Sync: Always keep remote planning updated
+    // 1. GitHub Tree Sync: Always keep remote planning updated
     try {
       require('./sync-gh-tree').sync();
     } catch (e) {
       console.warn(`[Orchestrator] GH Tree Sync failed: ${e.message}`);
     }
+  } catch (e) {
+    console.error(`[Orchestrator] Workflow failed: ${e.message}`);
+  } finally {
+    syncLock = false;
+  }
+}
   } catch (e) {
     console.error(`[Orchestrator] Workflow failed: ${e.message}`);
   } finally {
