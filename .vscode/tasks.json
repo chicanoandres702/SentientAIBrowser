@@ -79,7 +79,7 @@
         {
             "label": "Antigravity Watch",
             "type": "shell",
-            "command": "node scripts/orchestrator.service.js",
+            "command": "node .antigravity/scripts/orchestrator.service.js",
             "isBackground": true,
             "group": "build",
             "presentation": {
