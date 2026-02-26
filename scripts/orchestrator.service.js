@@ -147,8 +147,10 @@ async function orchestrate() {
 
     try {
       require('./sync-gh-tree').sync();
+      console.log('[Orchestrator] Pushing state to origin...');
+      execSync('git add . && git commit -m "chore: autonomous state synchronization" && git push origin HEAD', { stdio: 'ignore' });
     } catch (e) {
-      console.warn(`[Orchestrator] GH Tree Sync failed: ${e.message}`);
+      console.warn(`[Orchestrator] Sync/Push failed: ${e.message}`);
     }
     console.log('--- Orchestrator: Ready ---');
   } catch (e) {

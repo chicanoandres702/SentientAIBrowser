@@ -94,8 +94,8 @@
                     },
                     "background": {
                         "activeOnStart": true,
-                        "beginsPattern": "Orchestrator: Syncing",
-                        "endsPattern": "Orchestrator: Ready"
+                        "beginsPattern": "--- Orchestrator: Syncing ---",
+                        "endsPattern": "--- Orchestrator: Ready ---"
                     }
                 }
             ]

@@ -83,6 +83,7 @@ function sync() {
             }
         }
     });
+    console.log('[GH-Sync] All tasks synchronized and mapped.');
 }
 
 if (require.main === module) sync();
