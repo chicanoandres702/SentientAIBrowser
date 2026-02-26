@@ -8,13 +8,107 @@ const { execSync } = require('child_process');
  * Consolidates background sync using GH CLI mandates.
  */
 const CONFIG = {
-  tasksFile: path.join(__dirname, '..', 'tasks.json'),
+  tasksFile: path.join(__dirname, '..', '.antigravity-tasks.json'),
   debounceMs: 5000,
-  ignored: ['.git', 'node_modules', '.expo', 'dist', 'tasks.json']
+  ignored: ['.git', 'node_modules', '.expo', 'dist', 'tasks.json', '.antigravity-tasks.json'],
+  artifactsDir: path.join(__dirname, '..', '.gemini', 'antigravity', 'brain', '3be3a35e-5767-4ff5-8c01-5573ac1c9750'),
+  taskMd: 'C:\\Users\\Andrew\\.gemini\\antigravity\\brain\\3be3a35e-5767-4ff5-8c01-5573ac1c9750\\task.md',
+  proxyScript: path.join(__dirname, '..', 'proxy-server.js')
 };
+
+let proxyProcess = null;
+
+function ensureProxy() {
+  if (proxyProcess) return;
+  console.log('[Orchestrator] Powering up Proxy Core...');
+  const { spawn } = require('child_process');
+  proxyProcess = spawn('node', [CONFIG.proxyScript], {
+    stdio: 'inherit',
+    detached: false
+  });
+  proxyProcess.on('exit', () => {
+    console.log('[Orchestrator] Proxy Core exited. Restarting in 5s...');
+    proxyProcess = null;
+    setTimeout(ensureProxy, 5000);
+  });
+}
 
 let syncLock = false;
 let syncTimer = null;
+
+function syncMarkdownTasks() {
+    if (!fs.existsSync(CONFIG.taskMd)) {
+        console.warn(`[Orchestrator] task.md not found at ${CONFIG.taskMd}`);
+        return;
+    }
+    const content = fs.readFileSync(CONFIG.taskMd, 'utf8');
+    const lines = content.split(/\r?\n/).map(l => l.trimEnd());
+    const tasks = [];
+    let currentEpic = null;
+    let currentTask = null;
+    let currentMilestone = 'v1.0.0-foundation'; // Default milestone
+
+    const getStatus = (char) => (char === 'x' ? 'completed' : char === '/' ? 'in-progress' : 'todo');
+
+    lines.forEach(line => {
+        // Capture H2 as Milestone (Phase)
+        const phaseMatch = line.match(/^## (.+)$/);
+        if (phaseMatch) {
+            currentMilestone = phaseMatch[1].trim();
+            return;
+        }
+
+        const epicMatch = line.match(/^[\-\*] \[(x| |\/)\] (.+)$/);
+        const taskMatch = line.match(/^ {2}[\-\*] \[(x| |\/)\] (.+)$/);
+        const subTaskMatch = line.match(/^ {4}[\-\*] \[(x| |\/)\] (.+)$/);
+
+        if (epicMatch) {
+            currentEpic = { 
+                id: `epic-${tasks.length + 1}`, 
+                title: epicMatch[2].trim(), 
+                status: getStatus(epicMatch[1]), 
+                type: 'epic', 
+                milestone: currentMilestone,
+                tasks: [] 
+            };
+            currentTask = null;
+            tasks.push(currentEpic);
+        } else if (taskMatch && currentEpic) {
+            currentTask = { 
+                id: `task-${currentEpic.tasks.length + 1}`, 
+                title: taskMatch[2].trim(), 
+                status: getStatus(taskMatch[1]), 
+                parentId: currentEpic.id,
+                milestone: currentMilestone,
+                subTasks: [] 
+            };
+            currentEpic.tasks.push(currentTask);
+        } else if (subTaskMatch && currentTask) {
+            currentTask.subTasks.push({ 
+                id: `sub-${currentTask.subTasks.length + 1}`, 
+                title: subTaskMatch[2].trim(), 
+                status: getStatus(subTaskMatch[1]), 
+                milestone: currentMilestone,
+                parentId: `${currentEpic.id}-${currentTask.id}` 
+            });
+        }
+    });
+
+    const flatTasks = [];
+    tasks.forEach(epic => {
+        flatTasks.push({ id: epic.id, title: epic.title, status: epic.status, milestone: epic.milestone, type: 'epic' });
+        epic.tasks.forEach(task => {
+            const taskId = `${epic.id}-${task.id}`;
+            flatTasks.push({ id: taskId, title: task.title, status: task.status, milestone: task.milestone, parentId: epic.id, type: 'task' });
+            task.subTasks.forEach(sub => {
+                flatTasks.push({ id: `${taskId}-${sub.id}`, title: sub.title, status: sub.status, milestone: sub.milestone, parentId: taskId, type: 'sub-task' });
+            });
+        });
+    });
+
+    fs.writeFileSync(CONFIG.tasksFile, JSON.stringify(flatTasks, null, 2));
+    console.log(`[Orchestrator] Synchronized ${flatTasks.length} tasks to ${path.basename(CONFIG.tasksFile)}`);
+}
 
 function ghQuery(cmd) {
   try {
@@ -25,8 +119,39 @@ function ghQuery(cmd) {
   }
 }
 
+function createGitHubIssue(title, body, labels = 'ai-autonomy,bug') {
+  console.log(`[Orchestrator] Logging autonomous issue: ${title}`);
+  return ghQuery(`issue create --title "${title.replace(/"/g, '\\"')}" --body "${body.replace(/"/g, '\\"')}" --label "${labels}"`);
+}
+
+function recordKnowledge(filePath, knowledge) {
+  console.log(`[Orchestrator] recording knowledge to ${filePath}`);
+  const absolutePath = path.isAbsolute(filePath) ? filePath : path.join(__dirname, '..', filePath);
+  const dir = path.dirname(absolutePath);
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+
+  const timestamp = new Date().toISOString();
+  const entry = `\n\n### Entry: ${timestamp}\n${knowledge}\n`;
+  
+  if (fs.existsSync(absolutePath)) {
+    fs.appendFileSync(absolutePath, entry);
+  } else {
+    fs.writeFileSync(absolutePath, `# AI Knowledge Base: ${path.basename(filePath)}\n${entry}`);
+  }
+}
+
+function slugify(text) {
+  return text.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '').substring(0, 30);
+}
+
 function getBranchName(task) {
-  const milestone = (task.milestone || 'feature').toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+  const milestone = slugify(task.milestone || 'feature');
+  if (task.type === 'epic') return `epic/${milestone}`;
+  
+  const parentId = task.parentId || '';
+  if (task.type === 'task') return `feat/${milestone}/${task.id}`;
+  if (task.type === 'sub-task') return `sub/${milestone}/${task.id}`;
+  
   return `${milestone}/${task.id}`;
 }
 
@@ -35,6 +160,9 @@ async function orchestrate() {
   syncLock = true;
   
   try {
+    // 0. Antigravity Bridge: Sync artifacts to tasks.json first
+    syncMarkdownTasks();
+
     const tasks = JSON.parse(fs.readFileSync(CONFIG.tasksFile, 'utf8') || '[]');
     
     // 1. Proactive Branching: Ensure every task has a hierarchical branch
@@ -59,16 +187,24 @@ async function orchestrate() {
       if (active) {
         const targetBranch = getBranchName(active);
         console.log(`[Orchestrator] Directing work from main to active path: ${targetBranch}`);
-        execSync(`git stash push -m "Orchestrator: Auto-migrating from main" -u`, { stdio: 'ignore' });
+        try {
+          execSync(`git stash push -m "Orchestrator: Auto-migrating from main" -u`, { stdio: 'ignore' });
+        } catch (e) {
+          console.warn('[Orchestrator] Stash failed (possibly locked files). Proceeding with checkout...');
+        }
         execSync(`git checkout ${targetBranch}`, { stdio: 'ignore' });
         try {
           execSync('git stash pop', { stdio: 'ignore' });
         } catch (e) {
-          console.warn('[Orchestrator] Stash pop conflict during migration.');
+          console.warn('[Orchestrator] Stash pop skipped or conflict occurred.');
         }
       } else {
         console.warn('[Orchestrator] Detected changes on main with no active task. Stashing for safety.');
-        execSync(`git stash push -m "Orchestrator: Safety stash on main" -u`, { stdio: 'ignore' });
+        try {
+          execSync(`git stash push -m "Orchestrator: Safety stash on main" -u`, { stdio: 'ignore' });
+        } catch (e) {
+          console.warn('[Orchestrator] Safety stash failed.');
+        }
       }
     }
 
@@ -86,7 +222,17 @@ async function orchestrate() {
           const prs = ghQuery(`pr list --head ${targetBranch} --json number --jq '.[0].number'`);
           if (!prs) {
             console.log('[Orchestrator] Opening traceable PR...');
-            ghQuery(`pr create --title "feat: ${active.title}" --body "Automated sync for task ${active.id}" --head ${targetBranch}`);
+            let prBody = `Automated sync for ${active.type} ${active.id}`;
+            const planPath = path.join(CONFIG.artifactsDir, 'implementation_plan.md');
+            const walkPath = path.join(CONFIG.artifactsDir, 'walkthrough.md');
+            
+            if (active.type === 'epic' && fs.existsSync(planPath)) {
+              prBody = fs.readFileSync(planPath, 'utf8');
+            } else if (fs.existsSync(walkPath)) {
+              prBody = fs.readFileSync(walkPath, 'utf8');
+            }
+
+            ghQuery(`pr create --title "feat: ${active.title}" --body "${prBody.replace(/"/g, '\\"')}" --head ${targetBranch}`);
           }
         }
       } else if (currentBranch !== 'main') {
@@ -115,11 +261,28 @@ async function orchestrate() {
   }
 }
 
-fs.watch(path.join(__dirname, '..'), { recursive: true }, (event, file) => {
+// 5. Consolidated Watcher
+function triggerOrchestration(file) {
   if (!file || CONFIG.ignored.some(i => file.includes(i))) return;
   if (syncTimer) clearTimeout(syncTimer);
   syncTimer = setTimeout(orchestrate, CONFIG.debounceMs);
+}
+
+// Watch Project Root
+fs.watch(path.join(__dirname, '..'), { recursive: true }, (event, file) => {
+  if (file && file.includes('.gemini')) return; // Artifacts handled separately or ignored by root watch
+  triggerOrchestration(file);
 });
 
+// Watch Artifacts
+if (fs.existsSync(CONFIG.artifactsDir)) {
+  fs.watch(CONFIG.artifactsDir, { recursive: true }, (event, file) => {
+    if (!file || !file.endsWith('.md')) return;
+    console.log(`[Orchestrator] AI Artifact Change detected: ${file}`);
+    triggerOrchestration(file);
+  });
+}
+
 console.log('--- Sentient GH Orchestrator Active ---');
+ensureProxy();
 orchestrate();

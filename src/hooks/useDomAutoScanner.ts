@@ -1,25 +1,26 @@
 // Feature: Core | Trace: README.md
+// Why: 10s scan interval (was 5s) halves CPU cost with negligible impact on AI responsiveness.
 import { useEffect } from 'react';
 import { HeadlessWebViewRef } from '../components/HeadlessWebView';
 
-/**
- * useDomAutoScanner: Encapsulates the periodic DOM scanning logic.
- * Scans the DOM every 5 seconds when AI mode is active and not paused.
- */
+const DOM_SCAN_INTERVAL_MS = 10_000; // 10s — frequent enough for survey AI loop
+
 export const useDomAutoScanner = (
-    webViewRef: React.RefObject<HeadlessWebViewRef>,
-    isAIMode: boolean,
-    isPaused: boolean,
-    activePrompt: string,
-    setStatusMessage: (m: string) => void
+    webViewRefs: React.MutableRefObject<Record<string, HeadlessWebViewRef>>,
+    groups: any[],
+    isAIMode: boolean
 ) => {
     useEffect(() => {
-        let interval: any;
-        if (isAIMode && !isPaused && activePrompt) {
-            interval = setInterval(() => webViewRef.current?.scanDOM(), 5000);
-        } else {
-            setStatusMessage(isPaused ? 'Paused' : 'Ready');
-        }
+        if (!isAIMode) return;
+
+        const interval = setInterval(() => {
+            groups.flatMap(g => g.tabs).forEach(tab => {
+                if (tab.activePrompt && !tab.isPaused) {
+                    webViewRefs.current[tab.id]?.scanDOM();
+                }
+            });
+        }, DOM_SCAN_INTERVAL_MS);
+        
         return () => clearInterval(interval);
-    }, [activePrompt, isAIMode, isPaused]);
+    }, [groups, isAIMode]);
 };

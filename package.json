@@ -12,8 +12,9 @@
     "run-android": "powershell -ExecutionPolicy Bypass -File ./run-android.ps1",
     "run-proxy": "powershell -ExecutionPolicy Bypass -File ./run-proxy.ps1",
     "build:web": "powershell -ExecutionPolicy Bypass -File ./build-web.ps1",
-    "genkit-dev": "npx tsx src/index.ts",
     "git-watch": "node scripts/orchestrator.service.js",
+    "antigravity-watch": "node scripts/orchestrator.service.js",
+    "stop-antigravity": "powershell -ExecutionPolicy Bypass -File .\\scripts\\stop-antigravity.ps1",
     "firebase": "powershell -ExecutionPolicy Bypass -File ./build-web.ps1 && firebase deploy --only hosting --project sentient-ai-browser",
     "sync-credentials": "powershell -ExecutionPolicy Bypass -File ./scripts/sync-secrets.ps1",
     "lint": "tsc --noEmit"

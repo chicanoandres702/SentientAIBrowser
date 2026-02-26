@@ -18,9 +18,13 @@ interface Props {
     domain?: string;
 }
 
-export const SentientHeader: React.FC<Props> = ({ isAIMode, isSidebarVisible, setIsSidebarVisible, setIsSettingsVisible, setIsIntelVisible, theme, domain }) => {
+export const SentientHeader: React.FC<Props> = React.memo(({ isAIMode, isSidebarVisible, setIsSidebarVisible, setIsSettingsVisible, setIsIntelVisible, theme, domain }) => {
     let accent = theme === 'red' ? '#ff003c' : '#00d2ff';
     if (domain === 'capella.edu') accent = '#D4AF37'; // Academy Gold
+
+    const brandOrbOuterShadow = Platform.OS === 'web' ? { boxShadow: `0 0 10px ${accent}` } as any : { shadowColor: accent };
+    const brandOrbInnerShadow = Platform.OS === 'web' ? { boxShadow: `0 0 4px ${accent}` } as any : { shadowColor: accent };
+    const textShadowStyle = Platform.OS === 'web' ? { textShadow: `0 0 12px ${accent}` } as any : { textShadowColor: accent };
 
     return (
         <View style={styles.headerContainer}>
@@ -39,11 +43,11 @@ export const SentientHeader: React.FC<Props> = ({ isAIMode, isSidebarVisible, se
                             animation={isAIMode ? 'pulse' : undefined}
                             iterationCount="infinite"
                             duration={2000}
-                            style={[styles.brandOrbOuter, { backgroundColor: accent + '33', shadowColor: accent }]}
+                            style={[styles.brandOrbOuter, { backgroundColor: accent + '33' }, brandOrbOuterShadow]}
                         />
-                        <View style={[styles.brandOrbInner, { backgroundColor: accent, shadowColor: accent }]} />
+                        <View style={[styles.brandOrbInner, { backgroundColor: accent }, brandOrbInnerShadow]} />
                     </View>
-                    <Text style={[styles.brandText, { textShadowColor: accent }]}>{domain === 'capella.edu' ? 'SCHOLAR' : 'SENTIENT'}</Text>
+                    <Text style={[styles.brandText, textShadowStyle]}>{domain === 'capella.edu' ? 'SCHOLAR' : 'SENTIENT'}</Text>
                 </View>
 
                 {/* Actions */}
@@ -66,5 +70,5 @@ export const SentientHeader: React.FC<Props> = ({ isAIMode, isSidebarVisible, se
             </View>
         </View>
     );
-};
+});
 

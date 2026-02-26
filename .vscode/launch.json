@@ -35,6 +35,29 @@
             "request": "launch",
             "preLaunchTask": "Sync Credentials",
             "cwd": "${workspaceFolder}"
+        },
+        {
+            "name": "Antigravity Watch",
+            "type": "node",
+            "request": "launch",
+            "program": "${workspaceFolder}/scripts/orchestrator.service.js",
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "Debug Orchestrator (Foreground)",
+            "type": "node",
+            "request": "launch",
+            "program": "${workspaceFolder}/scripts/orchestrator.service.js",
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "Stop Antigravity",
+            "type": "node",
+            "request": "launch",
+            "preLaunchTask": "Stop Antigravity",
+            "cwd": "${workspaceFolder}"
         }
     ]
 }

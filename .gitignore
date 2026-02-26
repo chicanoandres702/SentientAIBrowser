@@ -88,8 +88,11 @@ Desktop.ini
 .cursor/
 .windsurf/
 .claude/
+.genkit/
 .gemini/antigravity/brain/
 .gemini/antigravity/logs/
+.gemini/antigravity/browser_recordings/
 .gemini/antigravity/mcp_config.json
 .gemini/oauth_creds.json
 .agent/cache/
+.antigravity-tasks.json

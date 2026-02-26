@@ -1,6 +1,6 @@
 // Feature: Analytics | Trace: README.md
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, Platform } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Animatable from 'react-native-animatable';
 import { styles } from './EarningsChart.styles';
@@ -20,7 +20,7 @@ export const EarningsChart: React.FC<Props> = ({ theme, data }) => {
                 <View style={styles.barsContainer}>
                     {data.map((val, i) => (
                         <View key={i} style={styles.barWrapper}>
-                            <Animatable.View animation="bounceInUp" delay={i * 100} style={[styles.bar, { height: (val / maxVal) * chartHeight, backgroundColor: theme.accent, shadowColor: theme.accent, shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.8, shadowRadius: 10 }]}><LinearGradient colors={[theme.accent, theme.accent + '22']} style={StyleSheet.absoluteFill} /></Animatable.View>
+                            <Animatable.View animation="bounceInUp" delay={i * 100} style={[styles.bar, { height: (val / maxVal) * chartHeight, backgroundColor: theme.accent, ...Platform.select({ web: { boxShadow: `0 0 10px ${theme.accent}` } as any, native: { shadowColor: theme.accent, shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.8, shadowRadius: 10 } }) }]}><LinearGradient colors={[theme.accent, theme.accent + '22']} style={StyleSheet.absoluteFill} /></Animatable.View>
                         </View>
                     ))}
                 </View>

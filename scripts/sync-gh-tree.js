@@ -3,7 +3,7 @@ const { execSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 
-const TASKS_FILE = path.join(__dirname, '..', 'tasks.json');
+const TASKS_FILE = path.join(__dirname, '..', '.antigravity-tasks.json');
 const OWNER_REPO = 'chicanoandres702/SentientAIBrowser';
 
 function gh(cmd) {
@@ -15,7 +15,7 @@ function gh(cmd) {
 }
 
 function sync() {
-    console.log('[GH-Sync] Synchronizing Task Tree...');
+    console.log('[GH-Sync] Synchronizing Hierarchical Task Tree...');
     const tasks = JSON.parse(fs.readFileSync(TASKS_FILE, 'utf8'));
     
     // 1. Ensure Milestones exist
@@ -32,23 +32,45 @@ function sync() {
     });
 
     // 2. Sync Issues
-    const existingIssues = JSON.parse(gh(`issue list --label ai-autonomy --json title,number,body --limit 100`) || '[]');
+    const existingIssues = JSON.parse(gh(`issue list --label ai-autonomy --json title,number,body,labels --limit 100`) || '[]');
+    const idToGhNumber = {};
     
+    // Map existing issues to task IDs if possible (using title match for now)
     tasks.forEach(task => {
         const existing = existingIssues.find(i => i.title === task.title);
-        const taskDetails = task.details || 'Synced task';
+        if (existing) idToGhNumber[task.id] = existing.number;
+    });
+
+    // Sort tasks so epics are created first, then tasks, then sub-tasks
+    const sortedTasks = [...tasks].sort((a, b) => {
+        const order = { 'epic': 1, 'task': 2, 'sub-task': 3 };
+        return order[a.type] - order[b.type];
+    });
+
+    sortedTasks.forEach(task => {
+        const existing = existingIssues.find(i => i.title === task.title);
+        let body = task.details || `Synced ${task.type}`;
+        
+        if (task.parentId && idToGhNumber[task.parentId]) {
+            body += `\n\n**Parent**: #${idToGhNumber[task.parentId]}`;
+        }
 
         if (!existing) {
             if (task.status !== 'completed') {
-                console.log(`[GH-Sync] Creating Issue: ${task.title}`);
+                console.log(`[GH-Sync] Creating ${task.type}: ${task.title}`);
                 const milestoneArg = task.milestone ? `--milestone "${task.milestone}"` : '';
-                gh(`issue create --title "${task.title}" --body "${taskDetails}" --label "ai-autonomy" ${milestoneArg}`);
+                const labels = `ai-autonomy,${task.type}`;
+                const res = gh(`issue create --title "${task.title}" --body "${body}" --label "${labels}" ${milestoneArg}`);
+                if (res) {
+                    const number = res.match(/issuses\/(\d+)/)?.[1] || res.match(/(\d+)$/)?.[1];
+                    if (number) idToGhNumber[task.id] = number;
+                }
             }
         } else {
-            // Update logic: if body differs, sync it
-            if (existing.body !== taskDetails) {
-                console.log(`[GH-Sync] Updating Issue Body: ${task.title}`);
-                gh(`issue edit ${existing.number} --body "${taskDetails}"`);
+            // Update logic: if body differs significantly (ignoring Parent link if it was just added)
+            if (existing.body !== body) {
+                console.log(`[GH-Sync] Updating ${task.type} Body: ${task.title}`);
+                gh(`issue edit ${existing.number} --body "${body}"`);
             }
         }
     });

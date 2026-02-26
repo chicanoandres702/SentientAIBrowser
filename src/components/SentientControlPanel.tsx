@@ -24,7 +24,7 @@ export const SentientControlPanel: React.FC<Props> = React.memo(({ isPaused, onT
         Animated.timing(shockwaveAnim, {
             toValue: 1,
             duration: 500,
-            useNativeDriver: true,
+            useNativeDriver: Platform.OS !== 'web',
         }).start(() => shockwaveAnim.setValue(0));
     };
 

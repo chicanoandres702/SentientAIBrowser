@@ -27,11 +27,6 @@ if ($portProcess) {
     Stop-Process -Id $portPid -Force -ErrorAction SilentlyContinue
 }
 
-# Start Proxy Server using PM2 (Silent background management)
-Write-Host "[orchestration] Starting Proxy Core via PM2..." -ForegroundColor Cyan
-npx pm2 delete "sentient-proxy" -s # Ensure clean slate
-npx pm2 start proxy-server.js --name "sentient-proxy" -s
-
 # Launch Expo Web in Chromium
 Write-Host "Launching Expo Web on port $Port in Chromium..." -ForegroundColor Cyan
 Set-Location $ProjectDir

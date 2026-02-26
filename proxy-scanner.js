@@ -108,11 +108,17 @@ const SCANNER_SCRIPT = `
     }
   }, true);
 
-  // --- FETCH / XHR OVERRIDE ---
+  var originalReplaceState = history.replaceState;
+  var originalPushState = history.pushState;
+  history.replaceState = function() { try { return originalReplaceState.apply(this, arguments); } catch(e) {} };
+  history.pushState = function() { try { return originalPushState.apply(this, arguments); } catch(e) {} };
+
   var originalFetch = window.fetch;
   window.fetch = async function() {
     var args = Array.prototype.slice.call(arguments);
     var url = args[0];
+    if (url && typeof url.toString === 'function' && !(url instanceof Request)) url = url.toString();
+    
     if (typeof url === 'string' && url.indexOf('http://localhost') !== 0 && url.indexOf('/') !== 0) {
       try {
         var absUrl = new URL(url, window.location.origin).href;
@@ -141,6 +147,7 @@ const SCANNER_SCRIPT = `
 
   var originalXHR = window.XMLHttpRequest.prototype.open;
   window.XMLHttpRequest.prototype.open = function(method, url) {
+    if (url && typeof url.toString === 'function') url = url.toString();
     var rest = Array.prototype.slice.call(arguments, 2);
     if (typeof url === 'string' && url.indexOf('http://localhost') !== 0 && url.indexOf('/') !== 0) {
       try {
@@ -169,10 +176,13 @@ const SCANNER_SCRIPT = `
 </script>`;
 
 function injectScanner(html) {
-  if (html.includes('</body>')) {
-    return html.replace('</body>', SCANNER_SCRIPT + '</body>');
+  // Inject early into <head> so we can override XHR/fetch BEFORE page scripts cache them
+  if (html.includes('<head>')) {
+    return html.replace('<head>', '<head>' + SCANNER_SCRIPT);
+  } else if (html.includes('<html>')) {
+    return html.replace('<html>', '<html><head>' + SCANNER_SCRIPT + '</head>');
   }
-  return html + SCANNER_SCRIPT;
+  return SCANNER_SCRIPT + html;
 }
 
 module.exports = { injectScanner };

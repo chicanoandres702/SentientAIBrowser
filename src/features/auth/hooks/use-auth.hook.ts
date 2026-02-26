@@ -1,24 +1,14 @@
 // Feature: Auth | Trace: src/features/auth/trace.md
 import { useState, useEffect } from 'react';
-import { User, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, signInWithRedirect, getRedirectResult, GoogleAuthProvider } from 'firebase/auth';
+import { User, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
 import { auth } from '../firebase-config';
 
 export const useAuth = () => {
     const [user, setUser] = useState<User | null>(null);
     const [isLoading, setIsLoading] = useState(true);
+    const [googleAccessToken, setGoogleAccessToken] = useState<string | null>(null);
 
     useEffect(() => {
-        // Handle successful redirect from Google OAuth
-        getRedirectResult(auth)
-            .then((result) => {
-                if (result) {
-                    console.log("Successfully authenticated via redirect");
-                }
-            })
-            .catch((error) => {
-                console.error("Redirect Auth Error:", error);
-            });
-
         const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
             setUser(currentUser);
             setIsLoading(false);
@@ -53,13 +43,19 @@ export const useAuth = () => {
     const loginWithGoogle = async () => {
         setIsLoading(true);
         const provider = new GoogleAuthProvider();
+        provider.addScope('https://www.googleapis.com/auth/cloud-platform');
+
         try {
-            await signInWithRedirect(auth, provider);
+            const result = await signInWithPopup(auth, provider);
+            const credential = GoogleAuthProvider.credentialFromResult(result);
+            if (credential?.accessToken) {
+                setGoogleAccessToken(credential.accessToken);
+            }
         } catch (e) {
             console.error(e);
             setIsLoading(false);
         }
     };
 
-    return { user, isLoading, login, signup, logout, loginWithGoogle };
+    return { user, isLoading, login, signup, logout, loginWithGoogle, googleAccessToken };
 };

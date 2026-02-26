@@ -1,5 +1,5 @@
 // Feature: Core | Trace: README.md
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View } from 'react-native';
 import { StatusBar as ExpoStatusBar } from 'expo-status-bar';
 import { useSentientBrowser } from './src/hooks/useSentientBrowser';

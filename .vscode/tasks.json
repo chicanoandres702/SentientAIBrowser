@@ -75,6 +75,45 @@
                 "clear": true
             },
             "problemMatcher": []
+        },
+        {
+            "label": "Antigravity Watch",
+            "type": "shell",
+            "command": "node scripts/orchestrator.service.js",
+            "isBackground": true,
+            "group": "build",
+            "presentation": {
+                "reveal": "always",
+                "panel": "new",
+                "clear": true
+            },
+            "problemMatcher": [
+                {
+                    "pattern": [
+                        {
+                            "regexp": "^\\[Orchestrator\\] (.*)$",
+                            "message": 1
+                        }
+                    ],
+                    "background": {
+                        "activeOnStart": true,
+                        "beginsPattern": "^--- Sentient GH Orchestrator Active ---$",
+                        "endsPattern": "^\\[Orchestrator\\] Synchronized .*$"
+                    }
+                }
+            ]
+        },
+        {
+            "label": "Stop Antigravity",
+            "type": "shell",
+            "command": "npm run stop-antigravity",
+            "group": "build",
+            "presentation": {
+                "reveal": "always",
+                "panel": "new",
+                "clear": true
+            },
+            "problemMatcher": []
         }
     ]
 }

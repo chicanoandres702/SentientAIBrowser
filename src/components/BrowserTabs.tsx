@@ -16,15 +16,21 @@ interface Props {
     onSelectTab: (id: string) => void;
     onCloseTab: (id: string) => void;
     onNewTab: () => void;
+    onOpenOverview?: () => void;
     theme: AppTheme;
 }
 
-export const BrowserTabs: React.FC<Props> = React.memo(({ tabs, onSelectTab, onCloseTab, onNewTab, theme }) => {
+export const BrowserTabs: React.FC<Props> = React.memo(({ tabs, onSelectTab, onCloseTab, onNewTab, onOpenOverview, theme }) => {
     const accentColor = theme === 'red' ? '#ff003c' : '#00d2ff';
 
     return (
         <View style={styles.container}>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+                {onOpenOverview && (
+                    <TouchableOpacity style={[styles.tab, { backgroundColor: '#333' }]} onPress={onOpenOverview}>
+                        <Text style={{ color: '#fff', fontWeight: 'bold' }}>⊞ MISSIONS</Text>
+                    </TouchableOpacity>
+                )}
                 {tabs.map((tab) => (
                     <TouchableOpacity
                         key={tab.id}

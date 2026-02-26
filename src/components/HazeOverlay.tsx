@@ -18,12 +18,12 @@ export const HazeOverlay: React.FC<Props> = ({ theme }) => {
                 Animated.timing(pulseAnim, {
                     toValue: 1.0,
                     duration: 4000,
-                    useNativeDriver: true,
+                    useNativeDriver: Platform.OS !== 'web',
                 }),
                 Animated.timing(pulseAnim, {
                     toValue: 0.6,
                     duration: 4000,
-                    useNativeDriver: true,
+                    useNativeDriver: Platform.OS !== 'web',
                 }),
             ])
         ).start();
@@ -43,7 +43,7 @@ export const HazeOverlay: React.FC<Props> = ({ theme }) => {
 
     // On native, render 4 edge strips with fading opacity
     return (
-        <Animated.View style={[styles.fill, { opacity: pulseAnim }]} pointerEvents="none">
+        <Animated.View style={[styles.fill, { opacity: pulseAnim, pointerEvents: 'none' as any }]}>
             <EdgeStrip color={color} side="top" />
             <EdgeStrip color={color} side="bottom" />
             <EdgeStrip color={color} side="left" />

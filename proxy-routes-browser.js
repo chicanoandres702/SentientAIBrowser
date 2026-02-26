@@ -110,9 +110,13 @@ function setupBrowserRoutes(app) {
     try {
       const fetch = (await import('node-fetch')).default;
       const headers = { ...req.headers };
-      delete headers.host;
-      delete headers.referer;
-      delete headers.origin;
+      // surgical header removal: remove all headers that imply local proxy
+      const headersToRemove = [
+        'host', 'referer', 'origin', 'cookie', 'connection', 
+        'content-length', 'accept-encoding', 'x-real-ip', 
+        'x-forwarded-for', 'x-forwarded-proto'
+      ];
+      headersToRemove.forEach(h => delete headers[h]);
 
       const init = {
         method: req.method,
@@ -120,25 +124,38 @@ function setupBrowserRoutes(app) {
       };
 
       if (['POST', 'PUT', 'PATCH'].includes(req.method)) {
-        // Only attach body if we actually have one from the client
-        if (req.body && Object.keys(req.body).length > 0) {
-            init.body = typeof req.body === 'object' ? JSON.stringify(req.body) : req.body;
+        if (req.rawBody && req.rawBody.length > 0) {
+            init.body = req.rawBody;
+        } else if (req.body && Object.keys(req.body).length > 0) {
+            init.body = JSON.stringify(req.body);
         }
       }
 
       const response = await fetch(targetUrl, init);
+      if (!response.ok && response.status === 400) {
+          console.warn(`[Sentient Proxy] Forwarded 400 for ${targetUrl}`);
+          // console.log("Init headers used:", JSON.stringify(init.headers, null, 2));
+      }
       res.status(response.status);
       
       const resHeaders = {};
       for (const [key, value] of response.headers.entries()) {
         resHeaders[key] = value;
       }
-      delete resHeaders['access-control-allow-origin'];
+      
+      const headersToStrip = [
+        'content-encoding', 'x-frame-options', 'content-security-policy',
+        'content-security-policy-report-only', 'x-content-type-options',
+        'access-control-allow-origin'
+      ];
+      headersToStrip.forEach(h => delete resHeaders[h]);
+      
       res.set(resHeaders);
       res.set('Access-Control-Allow-Origin', '*');
       
       response.body.pipe(res);
     } catch (e) {
+      console.error(`[Sentient Proxy] Forward failure for ${targetUrl}:`, e.message);
       res.status(500).json({ error: e.message });
     }
   });

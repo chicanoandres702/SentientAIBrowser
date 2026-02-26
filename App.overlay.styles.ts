@@ -35,9 +35,9 @@ export const overlayStyles = StyleSheet.create({
         })
     },
     glowingShadow: {
-        shadowOffset: { width: 0, height: 0 },
-        shadowOpacity: 0.8,
-        shadowRadius: 15,
+        ...Platform.select({
+            native: { shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.8, shadowRadius: 15 },
+        }),
     },
     modalOverlay: {
         flex: 1,

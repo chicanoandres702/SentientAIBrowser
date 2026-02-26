@@ -3,7 +3,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
 import { styles } from './ScholarModuleView.styles';
 
-export const ScholarModuleView: React.FC<{ theme: any }> = ({ theme }) => {
+export const ScholarModuleView: React.FC<{ theme: any, domain?: string }> = ({ theme, domain }) => {
     return (
         <View style={styles.container}>
             <View style={styles.header}>
