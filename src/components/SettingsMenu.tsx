@@ -4,7 +4,6 @@ import { StyleSheet, Text, View, Modal, TouchableOpacity, ScrollView } from 'rea
 import { AppTheme } from '../../App';
 import { ConfigRow } from './settings/ConfigRow';
 import { ThemeSelector } from './settings/ThemeSelector';
-import { GitHubConfig } from './settings/GitHubConfig';
 
 interface Props {
     visible: boolean; onClose: () => void; theme: AppTheme; setTheme: (theme: AppTheme) => void;
@@ -12,7 +11,6 @@ interface Props {
     useProxy: boolean; setUseProxy: (val: boolean) => void;
     isScholarMode: boolean; setIsScholarMode: (val: boolean) => void;
     isDaemonRunning: boolean; onToggleDaemon: () => void;
-    github: { token: string; setToken: (v: string) => void; owner: string; setOwner: (v: string) => void; repo: string; setRepo: (v: string) => void; };
 }
 
 export const SettingsMenu: React.FC<Props> = (p) => {
@@ -32,8 +30,6 @@ export const SettingsMenu: React.FC<Props> = (p) => {
                         <ConfigRow label="Sentient AI Mode" sub="Enable autonomous navigation" value={p.isAIMode} onToggle={p.setIsAIMode} accent={accent} />
                         <ConfigRow label="CORS Proxy" sub="Bypass security restrictions" value={p.useProxy} onToggle={p.setUseProxy} accent={accent} />
                         <ConfigRow label="Scholar Mode" sub="MISSION: SCHOLAR (Capella.edu)" value={p.isScholarMode} onToggle={p.setIsScholarMode} accent={scholarAccent} />
-
-                        <GitHubConfig token={p.github.token} setToken={p.github.setToken} owner={p.github.owner} setOwner={p.github.setOwner} repo={p.github.repo} setRepo={p.github.setRepo} />
 
                         <Text style={styles.section}>APPEARANCE</Text>
                         <ThemeSelector current={p.theme} onSelect={p.setTheme} />

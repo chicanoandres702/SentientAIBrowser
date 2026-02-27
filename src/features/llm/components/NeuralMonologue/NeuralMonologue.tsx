@@ -22,7 +22,7 @@ export const NeuralMonologue = () => {
             if (list.length > 0) setLastId(list[list.length - 1].id);
         });
         return () => unsubscribe();
-    }, [auth.currentUser]);
+    }, [auth.currentUser?.uid]);
 
     if (thoughts.length === 0) return null;
 
