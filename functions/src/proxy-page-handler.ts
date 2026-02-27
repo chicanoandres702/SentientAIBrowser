@@ -2,7 +2,6 @@
 import { getBrowser, db } from './proxy-config';
 import { BLOCKED_EXTENSIONS } from './proxy-asset';
 import { collection, query, onSnapshot, doc, updateDoc, serverTimestamp, DocumentData, QuerySnapshot } from 'firebase/firestore';
-import { loadSession, saveSession } from './proxy-session.service';
 import { Page, BrowserContext } from 'playwright';
 
 export const activeContexts = new Map<string, BrowserContext>();
@@ -19,7 +18,7 @@ async function setupRequestBlocking(page: Page) {
 
 async function captureAndSync(tabId: string, userId: string, page: Page, context: BrowserContext) {
   try {
-    const screenshot = await page.screenshot({ encoding: 'base64', quality: 60, type: 'jpeg' });
+    const screenshot = (await page.screenshot({ quality: 60, type: 'jpeg' })).toString('base64');
     await updateDoc(doc(db, 'browser_tabs', tabId), {
       screenshot: `data:image/jpeg;base64,${screenshot}`,
       url: page.url(), title: (await page.title()) || 'Loading...',

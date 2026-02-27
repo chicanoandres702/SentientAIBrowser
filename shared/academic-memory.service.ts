@@ -1,5 +1,5 @@
 // Feature: Academic | Trace: README.md
-import { db } from './firebase.utils';
+import { db, auth } from './firebase.utils';
 import {
     collection,
     addDoc,
@@ -12,7 +12,7 @@ import {
     doc,
     setDoc
 } from 'firebase/firestore';
-import { sanitizeForCloud } from '../../../shared/safe-cloud.utils';
+import { sanitizeForCloud } from './safe-cloud.utils';
 
 export interface AcademicMemory {
     id?: string;

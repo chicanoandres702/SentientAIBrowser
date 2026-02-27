@@ -1,8 +1,8 @@
 // Feature: Browser | Trace: proxy-server.js
-import { stripSecurityHeaders, PORT } from './proxy-config';
+import { stripSecurityHeaders } from './proxy-config';
 import { injectScanner } from './proxy-scanner';
 import { isStaticAsset, setupAssetRoute } from './proxy-asset';
-import { getPersistentPage, closePage, activePages } from './proxy-page-handler';
+import { getPersistentPage, activePages } from './proxy-page-handler';
 import { rewriteHtml } from './proxy-html.service';
 import { Express } from 'express';
 
@@ -26,7 +26,7 @@ export function setupBrowserRoutes(app: Express) {
       res.set('Content-Type', 'text/html').status(200).send(injectScanner(rewriteHtml(html, targetUrl, tabId)));
     } catch (e: any) { res.status(500).send(`Proxy failed: ${e.message}`); }
   });
-  app.post('/proxy/action', async (req, res) => {
+  app.post('/proxy/action', async (req, res): Promise<any> => {
     const { url, action, id, value, tabId = 'default' } = req.body;
     let page = activePages.get(tabId) || await getPersistentPage(url, tabId).catch(() => null);
     if (!page) return res.status(500).json({ error: 'Session died' });
@@ -46,7 +46,7 @@ export function setupBrowserRoutes(app: Express) {
     try {
       const page = await getPersistentPage(req.query.url as string, (req.query.tabId as string) || 'default');
       if (!page) throw new Error('No active page');
-      res.json({ screenshot: `data:image/png;base64,${await page.screenshot({ encoding: 'base64' })}` });
+      res.json({ screenshot: `data:image/png;base64,${(await page.screenshot()).toString('base64')}` });
     } catch (e: any) { res.status(500).json({ error: e.message }); }
   });
 }

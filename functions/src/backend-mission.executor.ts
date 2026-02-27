@@ -26,7 +26,7 @@ export async function processMissionStep(missionId: string) {
             });
         });
 
-        const screenshot = await page.screenshot({ encoding: 'base64', quality: 50, type: 'jpeg' });
+        const screenshot = (await page.screenshot({ quality: 50, type: 'jpeg' })).toString('base64');
         const decision = await determineNextAction(data.goal, domMap, screenshot, new URL(page.url()).hostname, [], true, context);
         if (!decision) return;
 
@@ -64,4 +64,5 @@ export async function processMissionStep(missionId: string) {
     } catch (e: any) { 
         console.error(`[Executor] Fatal in mission ${missionId}:`, e.message); 
     }
+    return 'pending'; 
 }
