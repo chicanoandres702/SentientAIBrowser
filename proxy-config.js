@@ -1,9 +1,6 @@
 // Feature: System Utilities | Trace: README.md
 const path = require('path');
-const puppeteer = require('puppeteer-extra');
-const StealthPlugin = require('puppeteer-extra-plugin-stealth');
-
-puppeteer.use(StealthPlugin());
+const { chromium } = require('playwright');
 
 const PORT = 3000;
 const TASKS_FILE = path.join(__dirname, 'tasks.json');
@@ -12,7 +9,7 @@ let browserInstance = null;
 
 async function getBrowser() {
   if (!browserInstance) {
-    browserInstance = await puppeteer.launch({
+    browserInstance = await chromium.launch({
       headless: 'new',
       args: ['--no-sandbox', '--disable-setuid-sandbox']
     });

@@ -36,6 +36,7 @@
     "express": "^5.2.1",
     "firebase": "^12.9.0",
     "genkit": "^1.29.0",
+    "http-proxy-middleware": "^3.0.5",
     "octokit": "^5.0.5",
     "playwright": "^1.50.1",
     "puppeteer": "^24.37.5",
