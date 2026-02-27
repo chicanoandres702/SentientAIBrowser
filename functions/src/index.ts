@@ -1,20 +1,22 @@
-import { onRequest } from "firebase-functions/v2/https";
-import express from "express";
-import cors from "cors";
-import { setupBrowserRoutes } from "./proxy-routes-browser";
+import { onDocumentWritten } from "firebase-functions/v2/firestore";
+import { sentientProxy as proxyApp } from "./index-app";
 import orchestrator from "./backend-ai-orchestrator";
 
-const app = express();
-app.use(cors({ origin: true }));
+export { proxyApp as sentientProxy };
 
-// Reuse existing proxy logic
-setupBrowserRoutes(app);
-
-// Initialize Backend AI Orchestrator
-orchestrator.start();
-
-export const sentientProxy = onRequest({
-  memory: "2GiB", // Required for Puppeteer/Playwright
+/**
+ * onMissionTrigger: 2nd Gen Firestore trigger that activates the AI orchestrator
+ * when a mission is created or updated to 'active'.
+ */
+export const onMissionTrigger = onDocumentWritten({
+  document: "missions/{missionId}",
+  memory: "2GiB",
   timeoutSeconds: 300,
   cpu: 1,
-}, app);
+}, async (event) => {
+  const data = event.data?.after.data();
+  if (!data || data.status !== "active") return;
+  
+  console.log(`[Trigger] Processing active mission: ${event.params.missionId}`);
+  await orchestrator.processMission(event.params.missionId, data);
+});

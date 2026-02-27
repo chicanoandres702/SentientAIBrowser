@@ -1,40 +1,39 @@
-// Feature: AI Orchestration | Trace: scripts/orchestrator.service.js
 import { db } from './proxy-config';
 import { collection, query, onSnapshot, DocumentData, QuerySnapshot } from 'firebase/firestore';
 import { processMissionStep } from './backend-mission.executor';
 
 class BackendAIOrchestrator {
-    private activeMissions: Map<string, NodeJS.Timeout> = new Map();
     private isListening: boolean = false;
 
+    /**
+     * start: Local listener for missions.
+     * Use this when running the proxy server locally (fallback for no Blaze plan).
+     */
     start() {
         if (this.isListening) return;
         this.isListening = true;
-        console.log('[Orchestrator] Starting Backend AI Loop...');
+        console.log('[Orchestrator] Starting Local AI Listener (No Blaze Fallback)...');
+        
         onSnapshot(query(collection(db, 'missions')), (snapshot: QuerySnapshot<DocumentData>) => {
             snapshot.docChanges().forEach(async (change) => {
                 const missionId = change.doc.id;
                 const data = change.doc.data();
-                if (data.status === 'active') this.startMissionLoop(missionId, data);
-                else this.stopMissionLoop(missionId);
+                if (data.status === 'active') {
+                    await this.processMission(missionId, data);
+                }
             });
         });
     }
 
-    async startMissionLoop(missionId: string, data: any) {
-        if (this.activeMissions.has(missionId)) return;
-        console.log(`[Orchestrator] Launching Loop for: ${data.goal}`);
-        this.activeMissions.set(missionId, (setInterval as any)(async () => {
-            const res = await processMissionStep(missionId);
-            if (res === 'done') this.stopMissionLoop(missionId);
-        }, 10000));
-    }
-
-    stopMissionLoop(missionId: string) {
-        if (this.activeMissions.has(missionId)) {
-            clearInterval(this.activeMissions.get(missionId)!);
-            this.activeMissions.delete(missionId);
-            console.log(`[Orchestrator] Stopped Mission: ${missionId}`);
+    /**
+     * processMission: Entry point for both Cloud Triggers and Local Listeners.
+     */
+    async processMission(missionId: string, data: any) {
+        console.log(`[Orchestrator] Processing mission step for: ${data.goal}`);
+        const res = await processMissionStep(missionId);
+        
+        if (res === 'done') {
+            console.log(`[Orchestrator] Mission ${missionId} marked as completed.`);
         }
     }
 }
