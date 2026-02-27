@@ -6,22 +6,45 @@
  */
 
 import { buildGeminiPromptWithMemoryContext } from './llm-context.builder';
-import { ai, auth } from '../auth/firebase-config';
-import { getGenerativeModel } from 'firebase/ai';
+import { auth } from '../auth/firebase-config';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 import { getLessonsLearned } from './llm-memory-service';
 import { getRelevantContext, KnowledgeContext } from './knowledge-hierarchy.service';
 
 // No hardcoded keys. Firebase AI Logic handles authentication and quota via the project backend.
 
-export interface LLMAction {
-  action: 'click' | 'type' | 'wait' | 'done' | 'wait_for_user' | 'ask_user' | 'record_knowledge' | 'lookup_documentation' | 'create_github_issue';
+export interface MissionStep {
+  action: 'click' | 'type' | 'wait' | 'done' | 'wait_for_user' | 'ask_user' | 'record_knowledge' | 'lookup_documentation';
   targetId?: string;
   value?: string;
-  reasoning: string;
-  question?: string; 
-  requestType?: 'confirm' | 'input';
-  intelligenceRating?: number;
-  memoryUsed?: boolean;
+  domContext?: {
+    tagName?: string;
+    text?: string;
+    role?: string;
+    placeholder?: string;
+  };
+  knowledgeContext?: {
+    groupId?: string;
+    contextId?: string;
+    unitId?: string;
+  };
+  explanation: string;
+}
+
+export interface MissionResponse {
+  meta: {
+    reasoning: string;
+    intelligenceRating: number;
+    intelligenceSignals?: string[]; // Proactive insights about the site/goal
+    memoryUsed: boolean;
+  };
+  execution: {
+    plan: string;
+    segments: Array<{
+      name: string;
+      steps: MissionStep[];
+    }>;
+  };
 }
 
 export const determineNextAction = async (
@@ -32,44 +55,62 @@ export const determineNextAction = async (
   lookedUpDocs: any[] = [],
   isScholarMode: boolean = false,
   context?: KnowledgeContext
-): Promise<LLMAction | null> => {
+): Promise<MissionResponse | null> => {
   console.log('Sending DOM map to LLM. Domain:', domain, 'Scholar Mode:', isScholarMode, 'Node Count:', domMap.length);
 
   // Construct the strictly formatted prompt for the LLM
   const systemInstruction = `You are an advanced autonomous AI web browser agent.
-Your objective is to help the user complete tasks on the web efficiently and safely.
+Your objective is to help the user complete tasks on the web efficiently and safely using ATOMIC CHAINS.
 
 ### OPERATIONAL GUIDELINES (NEURAL ARCHETYPES):
-1. **MISSION: MEDIC (RECURSIVE DEBUGGING)**: Before taking an action, identify the design intent of the page. If an action fails, perform a Root Cause Analysis (RCA). Identify *why* it failed (e.g., "The button is covered by a modal") before trying again.
-2. **DIAGNOSTIC LISTENER**: Monitor the "Action Log". If the browser returns an ERROR message, prioritize diagnosing the error over the original goal.
-3. **ANTI-DRIFT**: Maintain strict focus on the User Objective. If the page tries to divert you (ads, popups, unrelated links), ignore them unless they block the goal.
-4. **AUTHENTICATION DETECTION**: If the page is a login screen, registration form, or requires MFA/Captcha, you MUST return action "wait_for_user" with a clear explanation.
-5. **MEMORY ARCHETYPE**: You have access to "HISTORICAL MEMORY" in the User Objective. These are answers that successfully avoided disqualification in the past. If the current page asks a question that matches a memory entry, you MUST give the same answer to ensure consistency and avoid disqualification.
-6. **INTERACTIVE PRIORITIZATION**: Prioritize <button>, <a>, and <input>. Look for critical verbs: "Submit", "Log In", "Continue", "Next".
-7. **SELECTIVE INTERACTION**: Minimize clicks. Do not interact with elements irrelevant to the goal.
-8. **GOAL COMPLETION**: Return action "done" only when the final destination is reached or the final task is performed.
-9. **INTERACTIVE PERMISSION**: If you encounter a state where multiple valid paths exist, or if an action has significant consequences (e.g. deleting an account, making a purchase), or if you need specific missing information from the user, use action "ask_user".
-10. **MISSION: SCHOLAR (ACADEMIC DOMAIN)**:
-    - If the domain is academic (e.g., capella.edu), you MUST read all instructions, reading lists, and rubrics before completing an assignment.
-    - Click all links in the instructional area to gather full context.
-    - Maintain formal academic etiquette and prioritize assignments with upcoming deadlines.
-    - If Microsoft Word Online is used and you encounter issues, suggest looking up documentation for integration.
-11. **KNOWLEDGE PERSISTENCE**: If you find critical data (Reading Lists, Quiz Instructions, Course Rubrics, Etiquette rules), use action "record_knowledge" with the data in the "value" field. This data will be available to you in future sessions on this domain.
-12. **AUTONOMOUS BUG TRACKING**: If you identify a persistent technical issue, a broken selector, or a bug in the browser's own logic that prevents progress across multiple retries, use action "create_github_issue" with a detailed title and body in the "value" field.
+1. **MISSION: MEDIC (RECURSIVE DEBUGGING)**: Before taking an action, identify the design intent of the page. If an action fails, perform a Root Cause Analysis (RCA).
+2. **ATOMIC CHAINING**: You MUST plan sequential actions (e.g., Click input -> Type text -> Click Search) in a single response if the target elements are visible. This drastically improves performance.
+3. **DIAGNOSTIC LISTENER**: Monitor the "Action Log". If the browser returns an ERROR message, prioritize diagnosing the error.
+4. **ANTI-DRIFT**: Maintain strict focus on the User Objective. Ignore ads or unrelated links.
+5. **AUTHENTICATION DETECTION**: If you hit a login/MFA gate, use action "wait_for_user" with a clear explanation.
+6. **MEMORY ARCHETYPE**: Use "HISTORICAL MEMORY" to ensure consistency in answers.
+7. **GOAL COMPLETION**: Return action "done" as the final step of your final segment.
+8. **MISSION: SCHOLAR**: read all instructions and rubrics for academic domains (e.g. capella.edu).
+9. **KNOWLEDGE PERSISTENCE (SMART AGENT)**: You MUST use "record_knowledge" whenever you discover critical facts (deadlines, prices, contact info) or navigational rules. You can categorize this data globally or within specific buckets using 'knowledgeContext' (e.g. 'contextId: "PSY101"').
 
-### RESPONSE FORMAT:
-You must respond ONLY with a single JSON object.
+### RESPONSE FORMAT (5-NEST HIGH FIDELITY):
+You must respond ONLY with a single JSON object matching this structure:
 
 {
-  "reasoning": "A step-by-step logical breakdown following the Medic/Diagnostic/Memory archetypes.",
-  "action": "click | type | wait | wait_for_user | ask_user | record_knowledge | lookup_documentation | create_github_issue | done",
-  "targetId": "The string ID of the element to interact with (optional)",
-  "value": "The text to type OR the knowledge to record (required for 'type' or 'record_knowledge')",
-  "question": "The question/prompt for the user (required if action is 'ask_user')",
-  "requestType": "confirm | input (required if action is 'ask_user')"
+  "meta": {
+    "reasoning": "Medic-style logical breakdown of the current state and goal.",
+    "intelligenceRating": 0-100,
+    "intelligenceSignals": ["List of short, high-level tactical observations about the page structure or goal"],
+    "memoryUsed": true/false
+  },
+  "execution": {
+    "plan": "Summary of your overall tactical approach.",
+    "segments": [
+      {
+        "name": "Logical grouping (e.g. 'Authentication' or 'Search Execution')",
+        "steps": [
+          {
+            "action": "click | type | wait | wait_for_user | ask_user | record_knowledge | lookup_documentation | done",
+            "targetId": "AI ID from the DOM Map",
+            "domContext": {
+              "tagName": "Expected tag (e.g. BUTTON)",
+              "text": "Expected text/value/placeholder for verification"
+            },
+            "knowledgeContext": {
+               "groupId": "Optional (e.g. School)",
+               "contextId": "Optional (e.g. Class Name 'PSY101')",
+               "unitId": "Optional (e.g. 'Unit 1')"
+            },
+            "value": "Input text for 'type' or saved data for 'record_knowledge'",
+            "explanation": "Why this specific atomic action is necessary."
+          }
+        ]
+      }
+    ]
+  }
 }
 
-NOTE: You have been provided with both a DOM Map (logic) and a Screenshot (visual). Use the screenshot to identify elements that might be missing or overlaying in the DOM (e.g. popups, ads, captchas).`;
+NOTE: Use the provided Screenshot to verify element locations and identify visual blockers (modals, overlays) not obvious in the DOM Map.`;
 
   const lessons = await getLessonsLearned(auth.currentUser?.uid || 'anonymous', prompt);
   const relevantContext = context ? await getRelevantContext(auth.currentUser?.uid || 'anonymous', context) : '';
@@ -88,7 +129,8 @@ ${JSON.stringify(domMap, null, 2)}
 `;
 
   try {
-    const model = getGenerativeModel(ai, { model: 'gemini-2.5-flash' });
+    const genAI = new GoogleGenerativeAI(process.env.EXPO_PUBLIC_GEMINI_API_KEY || "");
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
 
     const parts: any[] = [{ text: systemInstruction + '\n\n' + userPayload }];
 
@@ -102,29 +144,21 @@ ${JSON.stringify(domMap, null, 2)}
       });
     }
 
-    // To generate text output, call generateContent with the system + user instruction
     const result = await model.generateContent(parts);
     const llmResponseText = result.response.text();
 
-    if (!llmResponseText) {
-      console.error('Empty response from GenAI');
-      return null;
-    }
+    if (!llmResponseText) return null;
 
-    // Clean up potential markdown formatting (sometimes AI wraps JSON in ```json blocks)
     const cleanedText = llmResponseText.replace(/```json|```/g, '').trim();
+    const parsed: MissionResponse = JSON.parse(cleanedText);
 
-    // Parse the strictly requested JSON
-    const parsedAction: LLMAction = JSON.parse(cleanedText);
-
-    // Heuristic: If reasoning mentions memory or historical context, flag memoryUsed
-    parsedAction.memoryUsed = cleanedText.toLowerCase().includes('memory') ||
+    // Metadata Enrichment
+    parsed.meta.memoryUsed = cleanedText.toLowerCase().includes('memory') ||
       cleanedText.toLowerCase().includes('historical');
-    parsedAction.intelligenceRating = parsedAction.memoryUsed ? 85 : 45; // Base AI intelligence vs learning loop intelligence
+    parsed.meta.intelligenceRating = parsed.meta.memoryUsed ? 95 : 65;
 
-    console.log('LLM Decision Received:', parsedAction);
-
-    return parsedAction;
+    console.log('Atomic Chain Received:', parsed.execution.plan);
+    return parsed;
 
   } catch (error) {
     console.error('Failed to communicate with LLM:', error);

@@ -21,6 +21,7 @@
     "@expo/metro-runtime": "~6.1.2",
     "@genkit-ai/express": "^1.29.0",
     "@genkit-ai/google-genai": "^1.29.0",
+    "@google/generative-ai": "^0.21.0",
     "axios": "^1.13.5",
     "cors": "^2.8.6",
     "expo": "~54.0.33",

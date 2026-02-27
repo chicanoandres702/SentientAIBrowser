@@ -59,7 +59,7 @@ else {
 # Start Proxy in a labeled background window
 Write-Host "Starting Proxy Server..." -ForegroundColor Yellow
 Start-Process powershell -ArgumentList "-NoExit", "-Command", `
-    "Set-Location '$ProjectDir'; node proxy-server.js" `
+    "Set-Location '$ProjectDir'; node functions/lib/proxy-server.js" `
     -WindowStyle Normal
 
 Start-Sleep -Seconds 2
@@ -67,7 +67,7 @@ Start-Sleep -Seconds 2
 # Launch Expo for Android
 Write-Host "Launching Expo (Android) on port $ExpoPort..." -ForegroundColor Cyan
 Set-Location $ProjectDir
-$env:EXPO_OFFLINE = 0
+$env:EXPO_OFFLINE = "1"
 $env:NODE_OPTIONS = "--dns-result-order=ipv4first"
 $env:EXPO_NO_CACHE = "1"
 npx expo start --android --port $ExpoPort
