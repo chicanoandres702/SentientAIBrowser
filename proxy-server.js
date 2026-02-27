@@ -12,14 +12,16 @@ const { setupBrowserRoutes } = require('./proxy-routes-browser');
  * For production, a process manager like PM2 or native clustering can be reintroduced if needed.
  */
 const app = express();
-app.use(cors());
 
 // Why: The json parser middleware must only be applied to routes that expect a JSON body.
 // The /proxy/forward route needs to handle the raw request body, so the global
 // express.json() middleware was causing a "body already read" error.
+// The cors() middleware is also applied here to avoid global conflicts with other processes.
 const jsonParser = express.json();
-app.use('/proxy/tasks', jsonParser, setupTaskRoutes());
+app.use('/proxy/tasks', cors(), jsonParser, setupTaskRoutes());
 
+// Why: The Puppeteer-based browser proxy is more robust for modern web apps.
+// It handles complex JS, AJAX, and security policies better than simple HTTP proxies.
 setupBrowserRoutes(app);
 
 app.listen(PORT, () => {

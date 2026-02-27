@@ -1,8 +1,13 @@
 // Feature: System Utilities | Trace: proxy-routes-browser.js
 
 const STATIC_ASSET_EXTENSIONS = [
-    '.css', '.js', '.json', '.png', '.jpg', '.jpeg', '.gif', '.svg', '.webp',
-    '.woff', '.woff2', '.ttf', '.eot', '.ico', '.map'
+    '.css', '.js', '.json', '.png', '.jpg', '.jpeg', '.gif', '.svg', '.webp', '.ico', '.map'
+];
+
+const BLOCKED_RESOURCE_TYPES = ['image', 'font', 'stylesheet', 'media', 'other'];
+
+const BLOCKED_EXTENSIONS = [
+    '.png', '.jpg', '.jpeg', '.gif', '.svg', '.webp', '.ico', '.woff', '.woff2', '.ttf', '.eot', '.mp4', '.webm'
 ];
 
 /**
@@ -47,4 +52,4 @@ function setupAssetRoute(app) {
     });
 }
 
-module.exports = { isStaticAsset, setupAssetRoute };
+module.exports = { isStaticAsset, setupAssetRoute, BLOCKED_RESOURCE_TYPES, BLOCKED_EXTENSIONS };

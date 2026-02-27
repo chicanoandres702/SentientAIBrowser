@@ -1,24 +1,10 @@
+
 // Feature: System Utilities | Trace: README.md
 const { URL } = require('url');
-const { getBrowser, stripSecurityHeaders, PORT } = require('./proxy-config');
+const { stripSecurityHeaders, PORT } = require('./proxy-config');
 const { injectScanner } = require('./proxy-scanner');
 const { isStaticAsset, setupAssetRoute } = require('./proxy-asset');
-
-// Map to hold persistent browser sessions by tabId
-const activePages = new Map();
-
-async function getPersistentPage(targetUrl, tabId) {
-  const browser = await getBrowser();
-  let page = activePages.get(tabId);
-  if (!page) { page = await browser.newPage(); activePages.set(tabId, page); }
-  const currentUrl = page.url();
-  if (currentUrl === 'about:blank' || (!currentUrl.includes(targetUrl) && !targetUrl.includes(currentUrl))) {
-    await page.setExtraHTTPHeaders({ 'Accept-Language': 'en-US,en;q=0.9' });
-    await page.setViewport({ width: 1280, height: 800 });
-    await page.goto(targetUrl, { waitUntil: 'domcontentloaded', timeout: 30000 });
-  }
-  return page;
-}
+const { getPersistentPage, closePage, activePages } = require('./proxy-page-handler');
 
 function rewriteHtml(html, targetUrl, tabId) {
   // Why: Inject <base href> so all relative URLs (scripts, images, styles) resolve
@@ -92,6 +78,13 @@ function setupBrowserRoutes(app) {
       }
       res.json({ success: true });
     } catch (error) { res.status(500).json({ error: error.message }); }
+  });
+
+  app.post('/proxy/close', async (req, res) => {
+    const { tabId } = req.body;
+    if (!tabId) return res.status(400).json({ error: 'tabId is required' });
+    await closePage(tabId);
+    res.json({ success: true, message: `Tab ${tabId} closed.` });
   });
 
   app.get('/screenshot', async (req, res) => {
