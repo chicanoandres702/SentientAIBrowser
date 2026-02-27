@@ -29,9 +29,44 @@ service cloud.firestore {
 
     // Task Queue rules: Strictly user-scoped
     match /task_queues/{document} {
-      allow read: if isAuthenticated() && isOwner(resource.data.user_id);
-      allow create: if isAuthenticated() && isOwner(request.resource.data.user_id);
-      allow update, delete: if isAuthenticated() && isOwner(resource.data.user_id);
+      allow read, write: if isAuthenticated() && isOwner(resource.data.user_id || request.resource.data.user_id);
+    }
+
+    // Browser Tabs: Sync across devices
+    match /browser_tabs/{document} {
+      allow read, write: if isAuthenticated() && isOwner(resource.data.user_id || request.resource.data.user_id);
+    }
+
+    // Missions: Persistent AI missions
+    match /missions/{document} {
+      allow read, write: if isAuthenticated() && isOwner(resource.data.userId || request.resource.data.userId);
+    }
+
+    // Routines: Saved browser workflows
+    match /routines/{document} {
+      allow read, write: if isAuthenticated() && isOwner(resource.data.userId || request.resource.data.userId);
+    }
+
+    // User Sessions: Cloud persistence for cookies/storage
+    match /user_sessions/{document} {
+      allow read, write: if isAuthenticated() && isOwner(resource.data.userId || request.resource.data.userId);
+    }
+
+    // Mission Outcomes: Individual learning
+    match /mission_outcomes/{document} {
+      allow read, write: if isAuthenticated() && isOwner(resource.data.userId || request.resource.data.userId);
+    }
+
+    // Global Knowledge: Anonymous shared learning
+    match /global_knowledge/{document} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated(); // Redacted entries from services
+      allow update, delete: if false; // Immutable global memory
+    }
+
+    // User Knowledge: Universal hierarchical context (Private)
+    match /user_knowledge/{document} {
+      allow read, write: if isAuthenticated() && isOwner(resource.data.userId || request.resource.data.userId);
     }
   }
 }

@@ -22,19 +22,11 @@ export default function App() {
     );
   }
 
-  if (!user) {
-    return (
-      <View style={{ flex: 1, backgroundColor: '#000' }}>
-        <ExpoStatusBar style="light" />
-        <AuthModal theme={theme} />
-      </View>
-    );
-  }
-
   return (
     <View style={{ flex: 1, backgroundColor: '#000' }}>
       <MainLayout s={s} theme={theme} setTheme={setTheme} />
       <ExpoStatusBar style="light" />
+      {!user && !isLoading && <AuthModal theme={theme} />}
     </View>
   );
 }

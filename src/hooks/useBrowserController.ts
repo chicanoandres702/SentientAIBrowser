@@ -15,10 +15,23 @@ export const useBrowserController = (
     isDaemonRunning: boolean,
     setIsDaemonRunning: (r: boolean) => void
 ) => {
-    const handleExecutePrompt = async (prompt: string) => {
+    const handleExecutePrompt = async (prompt: string, tabId: string, userId: string) => {
         setActivePrompt(prompt);
         setTaskStartTime(Date.now());
         await addTask(`Execute: "${prompt}"`, 'in_progress');
+        
+        // Register mission in Firestore for backend persistence
+        await syncMissionToFirestore({
+            id: Math.random().toString(36).substr(2, 9),
+            goal: prompt,
+            status: 'active',
+            tabId,
+            userId,
+            progress: 0,
+            lastAction: 'Initializing autonomous flow...',
+            timestamp: Date.now()
+        });
+
         setStatusMessage('AI Analyzing Page...');
         webViewRef.current?.scanDOM();
         setIsPaused(false);

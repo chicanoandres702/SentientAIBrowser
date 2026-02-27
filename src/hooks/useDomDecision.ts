@@ -26,6 +26,8 @@ export const useDomDecision = (
     handleLookupDocumentation: (q: string) => Promise<any[]>,
     lookedUpDocs: any[],
     setLookedUpDocs: (docs: any[]) => void,
+    setInteractiveRequest: (req: { question: string, type: 'confirm' | 'input' } | null) => void,
+    setIsInteractiveModalVisible: (v: boolean) => void,
     PROXY_BASE_URL: string,
     isScholarMode: boolean = false
 ) => {
@@ -64,6 +66,14 @@ export const useDomDecision = (
                         action: decision.action,
                         timestamp: serverTimestamp()
                     }));
+
+                    if (decision.action === 'ask_user' && decision.value) {
+                        setInteractiveRequest({ question: decision.value, type: decision.value.includes('?') ? 'confirm' : 'input' });
+                        setIsInteractiveModalVisible(true);
+                        setIsPaused(true);
+                        setStatusMessage('Awaiting Input');
+                        return;
+                    }
 
                     if (decision.action === 'create_github_issue' && decision.value) {
                         handleCreateIssue(`AI Browser Bug: ${activeUrl}`, decision.value);
