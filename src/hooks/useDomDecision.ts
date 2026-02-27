@@ -7,6 +7,7 @@ import { db, auth } from '../features/auth/firebase-config';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { sanitizeForCloud } from '../../shared/safe-cloud.utils';
 import { recordAnswer } from '../../shared/survey-memory-db';
+import { saveContextualKnowledge } from '../features/llm/knowledge-hierarchy.service';
 import * as Haptics from 'expo-haptics';
 
 export const useDomDecision = (
@@ -62,18 +63,24 @@ export const useDomDecision = (
                     screenshotBase64 = snapData.screenshot;
                 }
 
-                const decision = await determineNextAction(activePrompt, map, screenshotBase64, new URL(activeUrl).hostname, lookedUpDocs, isScholarMode);
-                if (decision) {
+                const response = await determineNextAction(activePrompt, map, screenshotBase64, new URL(activeUrl).hostname, lookedUpDocs, isScholarMode);
+                if (response) {
                     await addDoc(collection(db, 'thoughts'), sanitizeForCloud({
                         user_id: auth.currentUser?.uid || 'anonymous',
                         prompt: activePrompt,
-                        reasoning: decision.reasoning,
-                        action: decision.action,
+                        reasoning: response.meta.reasoning,
+                        intelligenceRating: response.meta.intelligenceRating,
+                        intelligenceSignals: response.meta.intelligenceSignals || [],
+                        action: response.execution.segments[0]?.steps[0]?.action || 'none',
                         timestamp: serverTimestamp()
                     }));
 
-                    if (decision.action === 'ask_user' && decision.value) {
-                        setInteractiveRequest({ question: decision.value, type: decision.value.includes('?') ? 'confirm' : 'input' });
+                    // For the frontend hook, we execute the first step of the first segment
+                    const firstStep = response.execution.segments[0]?.steps[0];
+                    if (!firstStep) return;
+
+                    if (firstStep.action === 'ask_user' && firstStep.value) {
+                        setInteractiveRequest({ question: firstStep.value, type: firstStep.value.includes('?') ? 'confirm' : 'input' });
                         setIsInteractiveModalVisible(true);
                         setIsPaused(true);
                         setStatusMessage('Awaiting Input');
@@ -81,25 +88,42 @@ export const useDomDecision = (
                         return;
                     }
 
-                    if (decision.action === 'lookup_documentation' && decision.value) {
+                    if (firstStep.action === 'lookup_documentation' && firstStep.value) {
                         setStatusMessage('Docs lookup disabled');
                     }
 
-                    if (decision.action === 'type' && decision.value) {
-                        await recordAnswer(activePrompt, decision.value);
+                    if (firstStep.action === 'type' && firstStep.value) {
+                        await recordAnswer(activePrompt, firstStep.value);
                     }
 
-                    if (decision.targetId) {
-                        setStatusMessage(`Executing: ${decision.action}...`);
-                        webViewRef.current?.executeAction(decision.action as any, decision.targetId, decision.value);
-                    } else if (decision.action === 'wait') {
+                    if (firstStep.action === 'record_knowledge' && firstStep.value) {
+                        setStatusMessage('Saving Brain Data...');
+                        const targetContext = {
+                            contextId: new URL(activeUrl).hostname,
+                            ...(firstStep.knowledgeContext || {})
+                        };
+                        await saveContextualKnowledge(
+                            auth.currentUser?.uid || 'anonymous',
+                            targetContext,
+                            'rule',
+                            firstStep.value
+                        );
+                        // After recording, we still want to proceed to the next available action if any
+                    }
+
+                    if (firstStep.targetId) {
+                        setStatusMessage(`Executing: ${firstStep.action}...`);
+                        webViewRef.current?.executeAction(firstStep.action as any, firstStep.targetId, firstStep.value);
+                    } else if (firstStep.action === 'wait') {
                         setStatusMessage('Waiting...');
                         await new Promise(r => setTimeout(r, 2000));
+                    } else if (firstStep.action === 'done') {
+                        setStatusMessage('Task Complete');
                     }
                 }
             }
-        } catch (e) { 
-            console.error("Decision failure", e); 
+        } catch (e) {
+            console.error("Decision failure", e);
             setStatusMessage('Retry required');
         } finally {
             setIsThinking(false);

@@ -1,6 +1,6 @@
 // Feature: LLM | Trace: README.md
-import { ai } from '../auth/firebase-config';
-import { getGenerativeModel } from 'firebase/ai';
+import { db } from '../auth/firebase-config';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 
 /**
  * Tactical Step Planner: Breaks down high-level objectives into granular tactical steps.
@@ -14,7 +14,8 @@ Focus on navigation and critical interaction points.
 Return ONLY a JSON array of strings.`;
 
     try {
-        const model = getGenerativeModel(ai, { model: 'gemini-1.5-flash' });
+        const genAI = new GoogleGenerativeAI(process.env.EXPO_PUBLIC_GEMINI_API_KEY || "");
+        const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
         const result = await model.generateContent(`${systemInstruction}\n\nObjective: ${goal}`);
         const text = result.response.text();
 

@@ -3,6 +3,14 @@ const { getDefaultConfig } = require('expo/metro-config');
 
 const config = getDefaultConfig(__dirname);
 config.watchFolders = [__dirname, `${__dirname}/shared`].filter(Boolean);
+
+// Exclude backend-only code from the Metro bundler to prevent watch errors (ENOENT) 
+// during the Functions build process.
+config.resolver = {
+  ...config.resolver,
+  blockList: [/functions\/.*/],
+};
+
 module.exports = config;
 
 // Note: The custom middleware for COOP/COEP headers was removed.

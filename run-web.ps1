@@ -34,7 +34,7 @@ Write-Host "[orchestration] Starting Proxy Core..." -ForegroundColor Cyan
 # after the process finishes or crashes, allowing you to see any error output.
 # We use `node --inspect-brk=0` to explicitly disable the debugger, preventing
 # auto-attach behaviors that cause the process to exit prematurely.
-Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd '$ProjectDir'; node --inspect-brk=0 proxy-server.js; Read-Host 'Proxy process finished. Press Enter to close.'"
+Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd '$ProjectDir'; . './load-env.ps1'; node --inspect-brk=0 functions/lib/proxy-server.js; Read-Host 'Proxy process finished. Press Enter to close.'"
 
 # Give the proxy server a moment to initialize before Expo tries to connect to it.
 Start-Sleep -Seconds 5
@@ -45,4 +45,5 @@ Set-Location $ProjectDir
 $env:BROWSER = "chrome"
 $env:NODE_OPTIONS = "--dns-result-order=ipv4first"
 $env:EXPO_NO_CACHE = "1"
+$env:EXPO_OFFLINE = "1"
 npx expo start -c --web --port $Port

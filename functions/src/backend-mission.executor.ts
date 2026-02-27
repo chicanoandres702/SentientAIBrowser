@@ -15,7 +15,7 @@ export async function processMissionStep(missionId: string) {
         const tabId = data.tabId || 'default';
         const userId = data.userId;
         const context = { groupId: data.groupId || 'DefaultGroup', contextId: data.contextId || 'DefaultContext', unitId: missionId };
-        
+
         const page = await getPersistentPage(null, tabId, userId);
         if (!page) return;
 
@@ -27,42 +27,77 @@ export async function processMissionStep(missionId: string) {
         });
 
         const screenshot = (await page.screenshot({ quality: 50, type: 'jpeg' })).toString('base64');
-        const decision = await determineNextAction(data.goal, domMap, screenshot, new URL(page.url()).hostname, [], true, context);
-        if (!decision) return;
+        const response = await determineNextAction(data.goal, domMap, screenshot, new URL(page.url()).hostname, [], true, context);
+        if (!response) return;
 
-        if (decision.action === 'record_knowledge' && decision.value) {
-            await saveContextualKnowledge(userId, context, 'rule', decision.value);
-            await updateDoc(missionRef, { lastAction: `Saved knowledge: ${decision.value.substring(0, 30)}...` });
-            return;
-        }
+        // Log logical signals and high-level reasoning
+        await updateDoc(missionRef, {
+            intelligenceSignals: response.meta.intelligenceSignals || [],
+            lastReasoning: response.meta.reasoning,
+            updated_at: serverTimestamp()
+        });
 
-        let result: 'success' | 'failure' = 'success';
-        let observation = decision.reasoning;
-        try {
-            const sel = `[data-ai-id="${decision.targetId}"]`;
-            if (decision.action === 'click') await page.click(sel, { timeout: 8000 });
-            else if (decision.action === 'type' && decision.value) { 
-                await page.fill(sel, decision.value); 
-                await page.keyboard.press('Enter'); 
+        // Flatten all segments into a single atomic queue
+        const stepQueue = response.execution.segments.flatMap(s => s.steps);
+
+        for (const step of stepQueue) {
+            console.log(`[Executor] Executing Step: ${step.action} on ${step.targetId} (${step.explanation})`);
+
+            if (step.action === 'wait_for_user' || step.action === 'ask_user') {
+                await updateDoc(missionRef, { status: 'waiting', lastAction: `Waiting: ${step.explanation}` });
+                return 'pending';
             }
-            else if (decision.action === 'done') {
+
+            if (step.action === 'record_knowledge' && step.value) {
+                const targetContext = { ...context, ...(step.knowledgeContext || {}) };
+                await saveContextualKnowledge(userId, targetContext, 'rule', step.value);
+                await updateDoc(missionRef, { lastAction: `Stored knowledge: ${step.value.substring(0, 30)}...` });
+                // We DON'T continue; we execute the rest of the chain if possible
+            }
+
+            if (step.action === 'done') {
                 await saveContextualKnowledge(userId, context, 'breadcrumb', `Completed: ${data.goal}`);
-                await updateDoc(missionRef, { status: 'completed', progress: 100 });
+                await updateDoc(missionRef, { status: 'completed', progress: 100, lastAction: 'Mission Completed Successfully' });
                 return 'done';
             }
-        } catch (err: any) { 
-            result = 'failure'; 
-            observation = `Action failed: ${err.message}`; 
-        }
 
-        await recordActionOutcome(userId, data.goal, decision.action, result, observation, new URL(page.url()).hostname);
-        await updateDoc(missionRef, { 
-            lastAction: observation.substring(0, 100) + '...', 
-            progress: Math.min((data.progress || 0) + 5, 95), 
-            updated_at: serverTimestamp() 
-        });
-    } catch (e: any) { 
-        console.error(`[Executor] Fatal in mission ${missionId}:`, e.message); 
+            let result: 'success' | 'failure' = 'success';
+            let observation = step.explanation;
+
+            try {
+                const sel = `[data-ai-id="${step.targetId}"]`;
+                // Verification using domContext if provided
+                if (step.domContext?.tagName) {
+                    const isCorrect = await page.evaluate(({ sel, tag }) => {
+                        const el = document.querySelector(sel);
+                        return el?.tagName === tag;
+                    }, { sel, tag: step.domContext.tagName });
+                    if (!isCorrect) console.warn(`[Executor] Warning: DOM Context mismatch for ${sel}`);
+                }
+
+                if (step.action === 'click') await page.click(sel, { timeout: 8000 });
+                else if (step.action === 'type' && step.value) {
+                    await page.fill(sel, step.value);
+                    await page.keyboard.press('Enter');
+                }
+                else if (step.action === 'wait') await page.waitForTimeout(2000);
+            } catch (err: any) {
+                result = 'failure';
+                observation = `Action failed: ${err.message}`;
+                console.error(`[Executor] Step failed:`, observation);
+            }
+
+            await recordActionOutcome(userId, data.goal, step.action, result, observation, new URL(page.url()).hostname);
+            await updateDoc(missionRef, {
+                lastAction: observation.substring(0, 100) + '...',
+                progress: Math.min((data.progress || 0) + 2, 98), // Incremental progress
+                updated_at: serverTimestamp()
+            });
+
+            if (result === 'failure') break; // Stop chain on failure
+        }
+    } catch (e: any) {
+        console.error(`[Executor] Fatal in mission ${missionId}:`, e.message);
     }
-    return 'pending'; 
+    return 'pending';
 }
