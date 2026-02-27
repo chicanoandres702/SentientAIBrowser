@@ -15,6 +15,7 @@ import { detectModeFromUrl } from '../utils/mode-detector';
 import { useGitAutoCommit } from './useGitAutoCommit';
 
 import { useTaskFileWatcher } from './useTaskFileWatcher';
+import { auth } from '../features/auth/firebase-config';
 
 export const useSentientBrowser = (theme: AppTheme) => {
     const s = useBrowserState();
