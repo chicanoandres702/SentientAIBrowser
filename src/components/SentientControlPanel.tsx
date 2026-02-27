@@ -56,7 +56,7 @@ export const SentientControlPanel: React.FC<Props> = React.memo(({ isPaused, onT
                     duration={1500}
                 >
                     <TouchableOpacity
-                        style={[styles.mainBtn, { borderColor: accent, shadowColor: accent }]}
+                        style={[styles.mainBtn, { borderColor: accent, boxShadow: `0 0 15px ${accent}` }]}
                         onPress={() => handlePress(onTogglePause)}
                     >
                         <Animated.View style={[
@@ -85,7 +85,7 @@ export const SentientControlPanel: React.FC<Props> = React.memo(({ isPaused, onT
                     <Text style={styles.stopIcon}>⏹</Text>
                 </TouchableOpacity>
 
-                <View style={[styles.statusDot, { backgroundColor: isPaused ? '#555' : accent, shadowColor: accent }]} />
+                <View style={[styles.statusDot, { backgroundColor: isPaused ? '#555' : accent, boxShadow: `0 0 8px ${accent}` }]} />
                 <Text style={[styles.statusLabel, { color: isPaused ? '#555' : accent }]}>
                     {isPaused ? 'PAUSED' : 'LIVE'}
                 </Text>

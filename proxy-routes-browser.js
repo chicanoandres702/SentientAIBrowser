@@ -119,11 +119,11 @@ function setupBrowserRoutes(app) {
         headers,
       };
 
+      // Why: For POST/PUT requests, we must stream the raw request body directly
+      // to the target. Trying to use a pre-parsed req.body will fail as no
+      // global body parser is active, and it would break non-JSON content types.
       if (['POST', 'PUT', 'PATCH'].includes(req.method)) {
-        // Only attach body if we actually have one from the client
-        if (req.body && Object.keys(req.body).length > 0) {
-            init.body = typeof req.body === 'object' ? JSON.stringify(req.body) : req.body;
-        }
+        init.body = req;
       }
 
       const response = await fetch(targetUrl, init);

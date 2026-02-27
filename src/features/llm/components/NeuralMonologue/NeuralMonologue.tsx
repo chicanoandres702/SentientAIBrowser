@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView } from 'react-native';
 import { collection, query, where, orderBy, limit, onSnapshot } from 'firebase/firestore';
-import { db, auth } from '../../auth/firebase-config';
+import { db, auth } from '../../../../features/auth/firebase-config';
 import * as Animatable from 'react-native-animatable';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Scanline } from '../../../components/Scanline';

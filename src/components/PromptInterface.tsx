@@ -22,7 +22,7 @@ export const PromptInterface: React.FC<Props> = React.memo(({ onExecutePrompt, t
 
     return (
         <View style={[styles.container, { borderTopColor: accent + '18' }]}>
-            <View style={[styles.inputWrap, isFocused && { borderColor: accent, shadowColor: accent, shadowOpacity: 0.2, shadowRadius: 12 }]}>
+            <View style={[styles.inputWrap, isFocused && { borderColor: accent, boxShadow: `0 0 12px ${accent}33` }]}>
                 <Text style={[styles.promptGlyph, { color: accent }]}>›_</Text>
                 <TextInput
                     style={styles.input}
@@ -37,7 +37,7 @@ export const PromptInterface: React.FC<Props> = React.memo(({ onExecutePrompt, t
                 />
             </View>
             <TouchableOpacity
-                style={[styles.sendBtn, { backgroundColor: accent, shadowColor: accent }]}
+                style={[styles.sendBtn, { backgroundColor: accent, boxShadow: `0 0 10px ${accent}` }]}
                 onPress={handleSend}
             >
                 <Text style={styles.sendIcon}>⏎</Text>
@@ -65,7 +65,6 @@ const styles = StyleSheet.create({
         borderColor: '#111',
         paddingHorizontal: 14,
         paddingVertical: 10,
-        shadowOffset: { width: 0, height: 0 },
     },
     promptGlyph: { fontSize: 14, fontWeight: '900', marginRight: 10, opacity: 0.7 },
     input: { flex: 1, color: '#ccc', fontSize: 13, maxHeight: 80 },
@@ -75,9 +74,6 @@ const styles = StyleSheet.create({
         borderRadius: 22,
         justifyContent: 'center',
         alignItems: 'center',
-        shadowOffset: { width: 0, height: 0 },
-        shadowOpacity: 0.5,
-        shadowRadius: 10,
     },
     sendIcon: { color: '#000', fontSize: 18, fontWeight: 'bold' },
 });

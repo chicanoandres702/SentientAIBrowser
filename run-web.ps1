@@ -27,10 +27,17 @@ if ($portProcess) {
     Stop-Process -Id $portPid -Force -ErrorAction SilentlyContinue
 }
 
-# Start Proxy Server using PM2 (Silent background management)
-Write-Host "[orchestration] Starting Proxy Core via PM2..." -ForegroundColor Cyan
-npx pm2 delete "sentient-proxy" -s # Ensure clean slate
-npx pm2 start proxy-server.js --name "sentient-proxy" -s
+# Start Proxy Server in a new window for stability in local dev
+Write-Host "[orchestration] Starting Proxy Core..." -ForegroundColor Cyan
+# Why: The command is wrapped in a script block that ends with `Read-Host`.
+# This is the most robust way to force the new terminal window to stay open
+# after the process finishes or crashes, allowing you to see any error output.
+# We use `node --inspect-brk=0` to explicitly disable the debugger, preventing
+# auto-attach behaviors that cause the process to exit prematurely.
+Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd '$ProjectDir'; node --inspect-brk=0 proxy-server.js; Read-Host 'Proxy process finished. Press Enter to close.'"
+
+# Give the proxy server a moment to initialize before Expo tries to connect to it.
+Start-Sleep -Seconds 5
 
 # Launch Expo Web in Chromium
 Write-Host "Launching Expo Web on port $Port in Chromium..." -ForegroundColor Cyan
