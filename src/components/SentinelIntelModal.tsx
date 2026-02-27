@@ -46,7 +46,7 @@ export const SentinelIntelModal: React.FC<Props> = ({ visible, onClose, theme, e
                     </View>
 
                     <ScrollView showsVerticalScrollIndicator={false}>
-                        {domain.includes('swagbucks') && <EarningsChart theme={theme} data={earningsData} />}
+                        {domain?.includes('swagbucks') && <EarningsChart theme={theme} data={earningsData} />}
                         {isScholar && <ScholarModuleView theme={theme} domain={domain} />}
                         <MemoryPersonaView theme={theme} />
                     </ScrollView>

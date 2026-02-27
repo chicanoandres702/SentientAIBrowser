@@ -3,7 +3,6 @@ const express = require('express');
 const cors = require('cors');
 const { PORT } = require('./proxy-config');
 const { setupTaskRoutes } = require('./proxy-routes-tasks');
-const { setupGitRoutes } = require('./proxy-routes-git');
 const { setupBrowserRoutes } = require('./proxy-routes-browser');
 
 /**
@@ -20,7 +19,6 @@ app.use(cors());
 // express.json() middleware was causing a "body already read" error.
 const jsonParser = express.json();
 app.use('/proxy/tasks', jsonParser, setupTaskRoutes());
-app.use('/git/commit', jsonParser, setupGitRoutes());
 
 setupBrowserRoutes(app);
 
