@@ -3,17 +3,16 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.processMissionStep = processMissionStep;
 // Feature: Mission Executor | Trace: backend-ai-orchestrator.js
 const proxy_config_1 = require("./proxy-config");
-const firestore_1 = require("firebase/firestore");
 const proxy_page_handler_1 = require("./proxy-page-handler");
 const llm_decision_engine_1 = require("./features/llm/llm-decision.engine");
 const llm_memory_service_1 = require("./features/llm/llm-memory-service");
 const knowledge_hierarchy_service_1 = require("./features/llm/knowledge-hierarchy.service");
 async function processMissionStep(missionId) {
-    var _a;
+    var _a, _b;
     try {
-        const missionRef = (0, firestore_1.doc)(proxy_config_1.db, 'missions', missionId);
-        const snap = await (0, firestore_1.getDoc)(missionRef);
-        if (!snap.exists() || snap.data().status !== 'active')
+        const missionRef = proxy_config_1.db.collection('missions').doc(missionId);
+        const snap = await missionRef.get();
+        if (!snap.exists || ((_a = snap.data()) === null || _a === void 0 ? void 0 : _a.status) !== 'active')
             return;
         const data = snap.data();
         const tabId = data.tabId || 'default';
@@ -29,32 +28,32 @@ async function processMissionStep(missionId) {
             });
         });
         const screenshot = (await page.screenshot({ quality: 50, type: 'jpeg' })).toString('base64');
-        const response = await (0, llm_decision_engine_1.determineNextAction)(data.goal, domMap, screenshot, new URL(page.url()).hostname, [], true, context);
+        const response = await (0, llm_decision_engine_1.determineNextAction)(userId, data.goal, domMap, screenshot, new URL(page.url()).hostname, [], true, context);
         if (!response)
             return;
         // Log logical signals and high-level reasoning
-        await (0, firestore_1.updateDoc)(missionRef, {
+        await missionRef.update({
             intelligenceSignals: response.meta.intelligenceSignals || [],
             lastReasoning: response.meta.reasoning,
-            updated_at: (0, firestore_1.serverTimestamp)()
+            updated_at: new Date().toISOString()
         });
         // Flatten all segments into a single atomic queue
         const stepQueue = response.execution.segments.flatMap(s => s.steps);
         for (const step of stepQueue) {
             console.log(`[Executor] Executing Step: ${step.action} on ${step.targetId} (${step.explanation})`);
             if (step.action === 'wait_for_user' || step.action === 'ask_user') {
-                await (0, firestore_1.updateDoc)(missionRef, { status: 'waiting', lastAction: `Waiting: ${step.explanation}` });
+                await missionRef.update({ status: 'waiting', lastAction: `Waiting: ${step.explanation}` });
                 return 'pending';
             }
             if (step.action === 'record_knowledge' && step.value) {
                 const targetContext = Object.assign(Object.assign({}, context), (step.knowledgeContext || {}));
                 await (0, knowledge_hierarchy_service_1.saveContextualKnowledge)(userId, targetContext, 'rule', step.value);
-                await (0, firestore_1.updateDoc)(missionRef, { lastAction: `Stored knowledge: ${step.value.substring(0, 30)}...` });
+                await missionRef.update({ lastAction: `Stored knowledge: ${step.value.substring(0, 30)}...` });
                 // We DON'T continue; we execute the rest of the chain if possible
             }
             if (step.action === 'done') {
                 await (0, knowledge_hierarchy_service_1.saveContextualKnowledge)(userId, context, 'breadcrumb', `Completed: ${data.goal}`);
-                await (0, firestore_1.updateDoc)(missionRef, { status: 'completed', progress: 100, lastAction: 'Mission Completed Successfully' });
+                await missionRef.update({ status: 'completed', progress: 100, lastAction: 'Mission Completed Successfully' });
                 return 'done';
             }
             let result = 'success';
@@ -62,7 +61,7 @@ async function processMissionStep(missionId) {
             try {
                 const sel = `[data-ai-id="${step.targetId}"]`;
                 // Verification using domContext if provided
-                if ((_a = step.domContext) === null || _a === void 0 ? void 0 : _a.tagName) {
+                if ((_b = step.domContext) === null || _b === void 0 ? void 0 : _b.tagName) {
                     const isCorrect = await page.evaluate(({ sel, tag }) => {
                         const el = document.querySelector(sel);
                         return (el === null || el === void 0 ? void 0 : el.tagName) === tag;
@@ -85,10 +84,10 @@ async function processMissionStep(missionId) {
                 console.error(`[Executor] Step failed:`, observation);
             }
             await (0, llm_memory_service_1.recordActionOutcome)(userId, data.goal, step.action, result, observation, new URL(page.url()).hostname);
-            await (0, firestore_1.updateDoc)(missionRef, {
+            await missionRef.update({
                 lastAction: observation.substring(0, 100) + '...',
                 progress: Math.min((data.progress || 0) + 2, 98), // Incremental progress
-                updated_at: (0, firestore_1.serverTimestamp)()
+                updated_at: new Date().toISOString()
             });
             if (result === 'failure')
                 break; // Stop chain on failure

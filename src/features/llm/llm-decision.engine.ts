@@ -47,6 +47,31 @@ export interface MissionResponse {
   };
 }
 
+export const MISSION_RESPONSE_SCHEMA = {
+  meta: {
+    reasoning: "string (Medic-style breakdown)",
+    intelligenceRating: "number (0-100)",
+    intelligenceSignals: "string[] (tactical observations)",
+    memoryUsed: "boolean"
+  },
+  execution: {
+    plan: "string (summary of approach)",
+    segments: [
+      {
+        name: "string (grouping name)",
+        steps: [
+          {
+            action: "click | type | wait | wait_for_user | ask_user | record_knowledge | lookup_documentation | done",
+            targetId: "string (optional)",
+            value: "string (optional)",
+            explanation: "string"
+          }
+        ]
+      }
+    ]
+  }
+};
+
 export const determineNextAction = async (
   prompt: string,
   domMap: any[],

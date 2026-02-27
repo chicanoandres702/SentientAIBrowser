@@ -32,6 +32,8 @@ export const useBrowserState = () => {
     const config = getEnvConfig();
     const PROXY_BASE_URL = config.proxyBaseUrl;
 
+    const trackManualInteraction = () => setLastInteractionTime(Date.now());
+
     return {
         isDesktop, showWebView, setShowWebView, isAIMode, setIsAIMode,
         useProxy, setUseProxy, isDaemonRunning, setIsDaemonRunning,
@@ -43,6 +45,7 @@ export const useBrowserState = () => {
         retryCount, setRetryCount, taskStartTime, setTaskStartTime,
         lastInteractionTime, setLastInteractionTime, PROXY_BASE_URL,
         lookedUpDocs, setLookedUpDocs, isScholarMode, setIsScholarMode,
-        sessionAnswerIds, setSessionAnswerIds, isThinking, setIsThinking
+        sessionAnswerIds, setSessionAnswerIds, isThinking, setIsThinking,
+        trackManualInteraction
     };
 };

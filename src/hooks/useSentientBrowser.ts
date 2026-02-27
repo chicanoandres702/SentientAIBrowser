@@ -10,6 +10,8 @@ import { useDomDecision } from './useDomDecision';
 import { useDomAutoScanner } from './useDomAutoScanner';
 import { useBrowserController } from './useBrowserController';
 import { detectModeFromUrl } from '../utils/mode-detector';
+import { useSessionSync } from '../features/browser/hooks/useSessionSync';
+import { useKnowledgeSync } from '../features/browser/hooks/useKnowledgeSync';
 
 import { auth } from '../features/auth/firebase-config';
 
@@ -18,6 +20,11 @@ export const useSentientBrowser = (theme: AppTheme) => {
     const { tabs, setTabs, activeUrl, setActiveUrl, addNewTab, closeTab, selectTab } = useBrowserTabs('https://www.google.com');
     const { tasks, setTasks, addTask, updateTask, removeTask, clearTasks, editTask } = useTaskQueue();
     const webViewRef = useRef<HeadlessWebViewRef>(null);
+
+    // Firestore-synced session and contextual knowledge
+    const { session, persistSession } = useSessionSync();
+    const activeHost = activeUrl ? new URL(activeUrl).hostname : '';
+    const { entries: knowledgeEntries, addEntry: addKnowledge } = useKnowledgeSync(activeHost);
 
     // Auto-Mode Detection
     useEffect(() => {
@@ -67,11 +74,10 @@ export const useSentientBrowser = (theme: AppTheme) => {
     return {
         ...s, tabs, setTabs, activeUrl, setActiveUrl, addNewTab, closeTab, selectTab,
         activeTabId: activeTab?.id,
-        tasks, addTask, updateTask, removeTask, clearTasks, editTask, 
+        tasks, addTask, updateTask, removeTask, clearTasks, editTask,
+        session, persistSession, knowledgeEntries, addKnowledge,
         handleExecutePrompt: (p: string) => handleExecutePrompt(p, activeTab?.id || 'default', auth.currentUser?.uid || 'anonymous'),
-        toggleDaemon,
-        handleInteractiveResponse,
-        webViewRef, handleDomMapReceived,
-        handleReload
+        toggleDaemon, handleInteractiveResponse,
+        webViewRef, handleDomMapReceived, handleReload
     };
 };

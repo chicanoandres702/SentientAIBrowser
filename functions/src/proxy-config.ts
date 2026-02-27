@@ -1,24 +1,11 @@
 // Feature: System Utilities | Trace: README.md
 import { chromium, Browser } from 'playwright';
-import { initializeApp, getApps, getApp } from 'firebase/app';
-import { getFirestore, Firestore } from 'firebase/firestore';
+import { db, auth } from './auth/firebase-config';
 
-// Hardcoded for simplicity in proxy environment matching App.tsx
-// Why: Standardizing fallbacks to match .env for project studio-3401704068-3986b
-const firebaseConfig = {
-  apiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY || "AIzaSyBOLfwvlZfE3tVFqX3AbVwP1ef-vR1M4jA",
-  authDomain: process.env.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN || "sentient-ai-browser.firebaseapp.com",
-  projectId: process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID || "sentient-ai-browser",
-  storageBucket: process.env.EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET || "sentient-ai-browser.firebasestorage.app",
-  messagingSenderId: process.env.EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || "184717935920",
-  appId: process.env.EXPO_PUBLIC_FIREBASE_APP_ID || "1:184717935920:web:f3810db4ba6755f08a34f5",
-  measurementId: process.env.EXPO_PUBLIC_FIREBASE_MEASUREMENT_ID || "G-12D6HTCRD6"
-};
+export { db, auth };
 
-const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
-export const db: Firestore = getFirestore(app);
-
-export const PORT = process.env.PORT || 3000;
+// Why: In the Local-First Hybrid model, the browser proxy runs on localhost:3000.
+export const PORT = 3000;
 
 let browserInstance: Browser | null = null;
 

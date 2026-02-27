@@ -19,12 +19,23 @@ export const useBrowserController = (
     const handleExecutePrompt = async (prompt: string, tabId: string, userId: string) => {
         setActivePrompt(prompt);
         setTaskStartTime(Date.now());
-        await addTask(`Execute: "${prompt}"`, 'in_progress');
         
-        // Register mission via AgentService for tactical planning and backend persistence
-        await AgentService.startMission(prompt, tabId);
+        // 1. Initial acknowledgment task
+        await addTask(`Mission: "${prompt}"`, 'in_progress');
+        
+        // 2. Register mission and get high-fidelity plan
+        const { missionResponse } = await AgentService.startMission(prompt, tabId);
 
-        setStatusMessage('AI Analyzing Page...');
+        // 3. Populate visual task queue from segments and steps
+        if (missionResponse?.execution.segments) {
+            for (const segment of missionResponse.execution.segments) {
+                for (const step of segment.steps) {
+                    await addTask(step.explanation, 'pending', `Action: ${step.action}`);
+                }
+            }
+        }
+
+        setStatusMessage('AI Starting Tactical Execution...');
         webViewRef.current?.scanDOM();
         setIsPaused(false);
     };

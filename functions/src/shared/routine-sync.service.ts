@@ -1,6 +1,5 @@
 // Feature: Routines | Trace: src/utils/browser-sync-service.ts
-import { collection, doc, setDoc, onSnapshot, query, where, orderBy, serverTimestamp } from 'firebase/firestore';
-import { db } from './firebase.utils';
+import { db } from '../auth/firebase-config';
 import { sanitizeForCloud } from './safe-cloud.utils';
 
 export interface RoutineItem {
@@ -9,20 +8,17 @@ export interface RoutineItem {
 }
 
 export const syncRoutineToFirestore = async (routine: RoutineItem) => {
-    const ref = doc(db, 'routines', routine.id);
-    await setDoc(ref, sanitizeForCloud({ ...routine, updated_at: serverTimestamp() }));
+    const ref = db.collection('routines').doc(routine.id);
+    await ref.set(sanitizeForCloud({ ...routine, updated_at: new Date().toISOString() }));
 };
 
 export const listenToRoutines = (userId: string, callback: (routines: RoutineItem[]) => void) => {
-    const q = query(
-        collection(db, 'routines'),
-        where('userId', '==', userId),
-        orderBy('updated_at', 'desc')
-    );
-
-    return onSnapshot(q, (snapshot) => {
-        const routines: RoutineItem[] = [];
-        snapshot.forEach((doc) => routines.push({ ...doc.data(), id: doc.id } as RoutineItem));
-        callback(routines);
-    });
+    return db.collection('routines')
+        .where('userId', '==', userId)
+        .orderBy('updated_at', 'desc')
+        .onSnapshot((snapshot) => {
+            const routines: RoutineItem[] = [];
+            snapshot.forEach((doc) => routines.push({ ...doc.data(), id: doc.id } as RoutineItem));
+            callback(routines);
+        });
 };

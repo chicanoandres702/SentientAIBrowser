@@ -4,7 +4,6 @@ exports.getLessonsLearned = exports.recordActionOutcome = void 0;
 // Feature: LLM Memory | Trace: src/features/llm/llm-decision.engine.ts
 const outcome_sync_service_1 = require("../../shared/outcome-sync.service");
 const firebase_config_1 = require("../../auth/firebase-config");
-const firestore_1 = require("firebase/firestore");
 /**
  * Why: This service handles the "Learning" loop, allowing the AI to
  * avoid previous mistakes and repeat successes.
@@ -26,17 +25,16 @@ const recordActionOutcome = async (userId, goal, action, result, observation, do
         domain.includes('word.live.com'));
     // Sync navigation patterns to global knowledge ONLY for universal tools
     if (result === 'success' && isUniversalTool) {
-        const globalRef = (0, firestore_1.collection)(firebase_config_1.db, 'global_knowledge');
         const redact = (str) => str
             .replace(/[0-9]/g, '#')
             .replace(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g, '[EMAIL]')
             .replace(/\b\d{3}[-.]?\d{3}[-.]?\d{4}\b/g, '[PHONE]');
-        await (0, firestore_1.addDoc)(globalRef, {
+        await firebase_config_1.db.collection('global_knowledge').add({
             goalPattern: redact(goal.toLowerCase()),
             action,
             observation: redact(observation),
             tool: domain,
-            updated_at: (0, firestore_1.serverTimestamp)()
+            updated_at: new Date().toISOString()
         });
     }
 };

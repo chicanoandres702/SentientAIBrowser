@@ -1,12 +1,15 @@
 // Feature: Core | Trace: src/hooks/useBrowserTabs.ts
 import { collection, doc, setDoc, updateDoc, deleteDoc, onSnapshot, query, where, orderBy, limit, serverTimestamp, getDocs } from 'firebase/firestore';
 import { db } from '../features/auth/firebase-config';
-import { TabItem } from '../hooks/useBrowserTabs';
+import { TabItem } from '../features/browser/types';
 import { sanitizeForCloud } from '../../shared/safe-cloud.utils';
 
 export * from '../../shared/mission-sync.service';
 export * from '../../shared/routine-sync.service';
 export * from '../../shared/outcome-sync.service';
+export * from '../../shared/session-sync.service';
+export * from '../../shared/knowledge-sync.service';
+export * from '../../shared/global-knowledge.service';
 
 export const syncTabToFirestore = async (tab: TabItem, userId: string) => {
     const tabRef = doc(db, 'browser_tabs', tab.id);

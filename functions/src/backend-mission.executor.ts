@@ -1,6 +1,5 @@
 // Feature: Mission Executor | Trace: backend-ai-orchestrator.js
 import { db } from './proxy-config';
-import { doc, updateDoc, serverTimestamp, getDoc } from 'firebase/firestore';
 import { getPersistentPage } from './proxy-page-handler';
 import { determineNextAction } from './features/llm/llm-decision.engine';
 import { recordActionOutcome } from './features/llm/llm-memory-service';
@@ -8,10 +7,10 @@ import { saveContextualKnowledge } from './features/llm/knowledge-hierarchy.serv
 
 export async function processMissionStep(missionId: string) {
     try {
-        const missionRef = doc(db, 'missions', missionId);
-        const snap = await getDoc(missionRef);
-        if (!snap.exists() || snap.data().status !== 'active') return;
-        const data = snap.data();
+        const missionRef = db.collection('missions').doc(missionId);
+        const snap = await missionRef.get();
+        if (!snap.exists || snap.data()?.status !== 'active') return;
+        const data = snap.data()!;
         const tabId = data.tabId || 'default';
         const userId = data.userId;
         const context = { groupId: data.groupId || 'DefaultGroup', contextId: data.contextId || 'DefaultContext', unitId: missionId };
@@ -27,14 +26,14 @@ export async function processMissionStep(missionId: string) {
         });
 
         const screenshot = (await page.screenshot({ quality: 50, type: 'jpeg' })).toString('base64');
-        const response = await determineNextAction(data.goal, domMap, screenshot, new URL(page.url()).hostname, [], true, context);
+        const response = await determineNextAction(userId, data.goal, domMap, screenshot, new URL(page.url()).hostname, [], true, context);
         if (!response) return;
 
         // Log logical signals and high-level reasoning
-        await updateDoc(missionRef, {
+        await missionRef.update({
             intelligenceSignals: response.meta.intelligenceSignals || [],
             lastReasoning: response.meta.reasoning,
-            updated_at: serverTimestamp()
+            updated_at: new Date().toISOString()
         });
 
         // Flatten all segments into a single atomic queue
@@ -44,20 +43,20 @@ export async function processMissionStep(missionId: string) {
             console.log(`[Executor] Executing Step: ${step.action} on ${step.targetId} (${step.explanation})`);
 
             if (step.action === 'wait_for_user' || step.action === 'ask_user') {
-                await updateDoc(missionRef, { status: 'waiting', lastAction: `Waiting: ${step.explanation}` });
+                await missionRef.update({ status: 'waiting', lastAction: `Waiting: ${step.explanation}` });
                 return 'pending';
             }
 
             if (step.action === 'record_knowledge' && step.value) {
                 const targetContext = { ...context, ...(step.knowledgeContext || {}) };
                 await saveContextualKnowledge(userId, targetContext, 'rule', step.value);
-                await updateDoc(missionRef, { lastAction: `Stored knowledge: ${step.value.substring(0, 30)}...` });
+                await missionRef.update({ lastAction: `Stored knowledge: ${step.value.substring(0, 30)}...` });
                 // We DON'T continue; we execute the rest of the chain if possible
             }
 
             if (step.action === 'done') {
                 await saveContextualKnowledge(userId, context, 'breadcrumb', `Completed: ${data.goal}`);
-                await updateDoc(missionRef, { status: 'completed', progress: 100, lastAction: 'Mission Completed Successfully' });
+                await missionRef.update({ status: 'completed', progress: 100, lastAction: 'Mission Completed Successfully' });
                 return 'done';
             }
 
@@ -88,10 +87,10 @@ export async function processMissionStep(missionId: string) {
             }
 
             await recordActionOutcome(userId, data.goal, step.action, result, observation, new URL(page.url()).hostname);
-            await updateDoc(missionRef, {
+            await missionRef.update({
                 lastAction: observation.substring(0, 100) + '...',
                 progress: Math.min((data.progress || 0) + 2, 98), // Incremental progress
-                updated_at: serverTimestamp()
+                updated_at: new Date().toISOString()
             });
 
             if (result === 'failure') break; // Stop chain on failure

@@ -1,17 +1,4 @@
-// Feature: Surveys | Trace: src/features/surveys/trace.md
-import { db, auth } from './firebase.utils';
-import {
-    collection,
-    addDoc,
-    query,
-    orderBy,
-    limit,
-    getDocs,
-    updateDoc,
-    doc,
-    increment,
-    serverTimestamp
-} from 'firebase/firestore';
+import { db, FieldValue } from './firebase.utils';
 
 export interface SurveyAnswer {
     id?: string;
@@ -24,25 +11,22 @@ export interface SurveyAnswer {
 
 const COLLECTION_NAME = 'survey_memory';
 
-export const recordAnswer = async (question: string, answer: string) => {
-    const user = auth.currentUser;
-    const docRef = await addDoc(collection(db, COLLECTION_NAME), {
+export const recordAnswer = async (question: string, answer: string, userId: string = 'anonymous') => {
+    const docRef = await db.collection(COLLECTION_NAME).add({
         question_context: question,
         answer_given: answer,
         success_weight: 0,
-        created_at: serverTimestamp(),
-        user_id: user?.uid || 'anonymous'
+        created_at: new Date().toISOString(),
+        user_id: userId
     });
     return docRef.id;
 };
 
 export const getHighlyRatedAnswers = async (limitCount: number = 10) => {
-    const q = query(
-        collection(db, COLLECTION_NAME),
-        orderBy('success_weight', 'desc'),
-        limit(limitCount)
-    );
-    const querySnapshot = await getDocs(q);
+    const querySnapshot = await db.collection(COLLECTION_NAME)
+        .orderBy('success_weight', 'desc')
+        .limit(limitCount)
+        .get();
     const answers: SurveyAnswer[] = [];
     querySnapshot.forEach((doc) => {
         answers.push({ id: doc.id, ...doc.data() } as SurveyAnswer);
@@ -52,17 +36,15 @@ export const getHighlyRatedAnswers = async (limitCount: number = 10) => {
 
 export const recordSuccessWeight = async (ids: string[]) => {
     for (const id of ids) {
-        const docRef = doc(db, COLLECTION_NAME, id);
-        await updateDoc(docRef, {
-            success_weight: increment(1)
+        await db.collection(COLLECTION_NAME).doc(id).update({
+            success_weight: FieldValue.increment(1)
         });
     }
 };
 
 export const recordDisqualificationPenalty = async (disputedAnswerId: string) => {
-    const docRef = doc(db, COLLECTION_NAME, disputedAnswerId);
-    await updateDoc(docRef, {
-        success_weight: increment(-10)
+    await db.collection(COLLECTION_NAME).doc(disputedAnswerId).update({
+        success_weight: FieldValue.increment(-10)
     });
 };
 

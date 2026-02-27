@@ -1,7 +1,6 @@
 // Feature: LLM Memory | Trace: src/features/llm/llm-decision.engine.ts
 import { logMissionOutcome, getRelevantOutcomes, MissionOutcome } from '../../shared/outcome-sync.service';
 import { db } from '../../auth/firebase-config';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 
 /**
  * Why: This service handles the "Learning" loop, allowing the AI to 
@@ -36,18 +35,17 @@ export const recordActionOutcome = async (
 
     // Sync navigation patterns to global knowledge ONLY for universal tools
     if (result === 'success' && isUniversalTool) {
-        const globalRef = collection(db, 'global_knowledge');
         const redact = (str: string) => str
             .replace(/[0-9]/g, '#')
             .replace(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g, '[EMAIL]')
             .replace(/\b\d{3}[-.]?\d{3}[-.]?\d{4}\b/g, '[PHONE]');
 
-        await addDoc(globalRef, {
+        await db.collection('global_knowledge').add({
             goalPattern: redact(goal.toLowerCase()),
             action,
             observation: redact(observation),
             tool: domain,
-            updated_at: serverTimestamp()
+            updated_at: new Date().toISOString()
         });
     }
 };

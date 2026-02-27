@@ -1,6 +1,5 @@
 // Feature: Outcomes | Trace: src/utils/browser-sync-service.ts
-import { collection, doc, setDoc, getDocs, query, where, limit, serverTimestamp } from 'firebase/firestore';
-import { db } from './firebase.utils';
+import { db } from '../auth/firebase-config';
 import { sanitizeForCloud } from './safe-cloud.utils';
 
 export interface MissionOutcome {
@@ -9,13 +8,16 @@ export interface MissionOutcome {
 }
 
 export const logMissionOutcome = async (outcome: MissionOutcome) => {
-    const ref = doc(db, 'mission_outcomes', outcome.id);
-    await setDoc(ref, sanitizeForCloud({ ...outcome, updated_at: serverTimestamp() }));
+    const ref = db.collection('mission_outcomes').doc(outcome.id);
+    await ref.set(sanitizeForCloud({ ...outcome, updated_at: new Date().toISOString() }));
 };
 
 export const getRelevantOutcomes = async (userId: string, goalPattern: string) => {
-    const q = query(collection(db, 'mission_outcomes'), where('userId', '==', userId), limit(20));
-    const snap = await getDocs(q);
+    const snap = await db.collection('mission_outcomes')
+        .where('userId', '==', userId)
+        .limit(20)
+        .get();
+        
     const outcomes: MissionOutcome[] = [];
     snap.forEach(d => {
         const data = d.data() as MissionOutcome;

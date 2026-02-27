@@ -14,12 +14,13 @@ export class AgentService {
     /**
      * Starts a new mission by planning tactical steps and syncing to Firestore.
      */
-    public static async startMission(goal: string, tabId: string): Promise<string> {
+    public static async startMission(goal: string, tabId: string): Promise<any> {
         const userId = auth.currentUser?.uid || 'anonymous';
         console.log(`[AgentService] Starting mission: ${goal}`);
 
-        // 1. Plan tactical steps using the LLM
-        const steps = await planTacticalSteps(goal);
+        // 1. Plan tactical steps using the LLM (High-Fidelity)
+        const missionResponse = await planTacticalSteps(goal);
+        const steps = missionResponse?.execution.segments.flatMap(s => s.steps.map(step => step.explanation)) || [goal];
 
         // 2. Create mission document
         const missionRef = await addDoc(collection(db, this.COLLECTION), {
@@ -29,13 +30,14 @@ export class AgentService {
             userId,
             progress: 0,
             currentStepIndex: 0,
-            steps: steps || [],
+            steps,
             lastAction: 'Mission started',
             timestamp: serverTimestamp(),
             updated_at: serverTimestamp()
         });
 
-        return missionRef.id;
+        // Return both the ID and the detailed response for the controller to use
+        return { id: missionRef.id, missionResponse };
     }
 
     /**

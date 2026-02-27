@@ -1,15 +1,5 @@
 // Feature: Academic | Trace: README.md
-import { db, auth } from './firebase.utils';
-import {
-    collection,
-    addDoc,
-    query,
-    where,
-    orderBy,
-    limit,
-    getDocs,
-    serverTimestamp
-} from 'firebase/firestore';
+import { db } from './firebase.utils';
 import { sanitizeForCloud } from './safe-cloud.utils';
 
 export interface AcademicMemory {
@@ -28,35 +18,30 @@ export const recordAcademicKnowledge = async (
     domain: string, 
     contextType: AcademicMemory['context_type'], 
     content: string,
-    courseId?: string
+    courseId?: string,
+    userId: string = 'anonymous'
 ) => {
-    const user = auth.currentUser;
-    const docRef = await addDoc(collection(db, COLLECTION_NAME), sanitizeForCloud({
+    const docRef = await db.collection(COLLECTION_NAME).add(sanitizeForCloud({
         domain,
         context_type: contextType,
         content,
         course_id: courseId,
-        created_at: serverTimestamp(),
-        user_id: user?.uid || 'anonymous'
+        created_at: new Date().toISOString(),
+        user_id: userId,
     }));
     return docRef.id;
 };
 
-export const getAcademicContext = async (domain: string, courseId?: string) => {
-    const user = auth.currentUser;
-    if (!user) return [];
+export const getAcademicContext = async (domain: string, courseId?: string, userId: string = 'default') => {
+    if (!userId) return [];
 
-    let q = query(
-        collection(db, COLLECTION_NAME),
-        where('user_id', '==', user.uid),
-        where('domain', '==', domain),
-        orderBy('created_at', 'desc'),
-        limit(20)
-    );
+    const querySnapshot = await db.collection(COLLECTION_NAME)
+        .where('user_id', '==', userId)
+        .where('domain', '==', domain)
+        .orderBy('created_at', 'desc')
+        .limit(20)
+        .get();
 
-    // If courseId is provided, secondary filtering or a different query might be needed
-    // For now we fetch all domain relevant and filter locally to keep it simple
-    const querySnapshot = await getDocs(q);
     const results: AcademicMemory[] = [];
     querySnapshot.forEach((doc) => {
         const data = doc.data();
@@ -68,13 +53,12 @@ export const getAcademicContext = async (domain: string, courseId?: string) => {
     return results;
 };
 
-export const recordDeadline = async (assignment: string, dueDate: string, domain: string) => {
-    const user = auth.currentUser;
-    await addDoc(collection(db, 'academic_deadlines'), sanitizeForCloud({
+export const recordDeadline = async (assignment: string, dueDate: string, domain: string, userId: string = 'anonymous') => {
+    await db.collection('academic_deadlines').add(sanitizeForCloud({
         assignment,
         due_date: dueDate,
         domain,
-        user_id: user?.uid || 'anonymous',
-        timestamp: serverTimestamp()
+        user_id: userId,
+        timestamp: new Date().toISOString()
     }));
 };

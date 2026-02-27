@@ -72,6 +72,7 @@ export const useDomDecision = (
                         intelligenceRating: response.meta.intelligenceRating,
                         intelligenceSignals: response.meta.intelligenceSignals || [],
                         action: response.execution.segments[0]?.steps[0]?.action || 'none',
+                        execution: response.execution, // Full plan data
                         timestamp: serverTimestamp()
                     }));
 

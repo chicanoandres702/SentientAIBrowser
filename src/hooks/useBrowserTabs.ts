@@ -1,14 +1,15 @@
 // Feature: Core | Trace: README.md
 import { useState, useCallback, useEffect } from 'react';
 import { auth } from '../features/auth/firebase-config';
-import { listenToTabs, syncTabToFirestore, updateTabInFirestore, removeTabFromFirestore } from '../utils/browser-sync-service';
+import { TabItem } from '../features/browser/types';
+import {
+    listenToTabs, syncTabToFirestore,
+    updateTabInFirestore, removeTabFromFirestore
+} from '../utils/browser-sync-service';
 
-export interface TabItem {
-    id: string;
-    title: string;
-    isActive: boolean;
-    url: string;
-}
+export type { TabItem };
+
+const DEFAULT_URL = 'https://www.google.com';
 
 export const useBrowserTabs = (initialUrl: string) => {
     const [tabs, setTabs] = useState<TabItem[]>([
@@ -19,31 +20,29 @@ export const useBrowserTabs = (initialUrl: string) => {
 
     useEffect(() => {
         if (!auth.currentUser) return;
+        const defaultTab = tabs.find(t => t.id === '1');
+        if (defaultTab) {
+            syncTabToFirestore(defaultTab, auth.currentUser.uid)
+                .catch(e => console.log('Init sync failed:', e));
+        }
         const unsubscribe = listenToTabs(auth.currentUser.uid, (cloudTabs) => {
             if (cloudTabs.length > 0) {
                 setTabs(cloudTabs);
                 const active = cloudTabs.find(t => t.isActive);
-                if (active) {
-                    setActiveTabId(active.id);
-                    setActiveUrl(active.url);
-                }
+                if (active) { setActiveTabId(active.id); setActiveUrl(active.url); }
             }
         });
         return () => unsubscribe();
     }, [auth.currentUser]);
 
-    const addNewTab = useCallback(async (url: string, title: string = 'New Tab') => {
+    const addNewTab = useCallback(async (url: string, title = 'New Tab') => {
         const id = Date.now().toString();
         const newTab: TabItem = { id, title, isActive: true, url };
-        
-        // Optimistic UI
         setTabs(prev => prev.map(t => ({ ...t, isActive: false })).concat(newTab));
         setActiveTabId(id);
         setActiveUrl(url);
-
         if (auth.currentUser) {
             try {
-                // Deactivate others in cloud
                 for (const tab of tabs) {
                     if (tab.isActive) await updateTabInFirestore(tab.id, { isActive: false });
                 }
@@ -54,15 +53,13 @@ export const useBrowserTabs = (initialUrl: string) => {
 
     const closeTab = useCallback(async (id: string) => {
         if (auth.currentUser) {
-            try {
-                await removeTabFromFirestore(id);
-            } catch (e) { console.error("Tab close sync failed:", e); }
+            try { await removeTabFromFirestore(id); }
+            catch (e) { console.error("Tab close sync failed:", e); }
         }
-        
         setTabs(prev => {
             const nextTabs = prev.filter(t => t.id !== id);
             if (nextTabs.length === 0) {
-                const homeTab = { id: '1', title: 'Google', isActive: true, url: 'https://www.google.com' };
+                const homeTab: TabItem = { id: '1', title: 'Google', isActive: true, url: DEFAULT_URL };
                 setActiveTabId('1');
                 setActiveUrl(homeTab.url);
                 return [homeTab];
@@ -85,13 +82,9 @@ export const useBrowserTabs = (initialUrl: string) => {
                 }
             } catch (e) { console.error("Tab selection sync failed:", e); }
         }
-
         setTabs(prev => {
             const tab = prev.find(t => t.id === id);
-            if (tab) {
-                setActiveTabId(id);
-                setActiveUrl(tab.url);
-            }
+            if (tab) { setActiveTabId(id); setActiveUrl(tab.url); }
             return prev.map(t => ({ ...t, isActive: t.id === id }));
         });
     }, [auth.currentUser, tabs]);

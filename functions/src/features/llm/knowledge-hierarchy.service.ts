@@ -1,5 +1,4 @@
 // Feature: AI Memory | Trace: implementation_plan.md
-import { collection, query, where, getDocs, addDoc, serverTimestamp, orderBy, limit } from 'firebase/firestore';
 import { db } from '../../auth/firebase-config';
 
 export interface KnowledgeContext {
@@ -18,13 +17,12 @@ export const saveContextualKnowledge = async (
     type: 'rule' | 'book_info' | 'breadcrumb',
     content: string
 ) => {
-    const knowledgeRef = collection(db, 'user_knowledge');
-    await addDoc(knowledgeRef, {
+    await db.collection('user_knowledge').add({
         userId,
         ...context,
         type,
         content,
-        updated_at: serverTimestamp()
+        updated_at: new Date().toISOString()
     });
 };
 
@@ -32,18 +30,14 @@ export const getRelevantContext = async (
     userId: string,
     context: KnowledgeContext
 ): Promise<string> => {
-    const knowledgeRef = collection(db, 'user_knowledge');
-    
     // Fetch rules and latest breadcrumb for this specific context
-    const q = query(
-        knowledgeRef,
-        where('userId', '==', userId),
-        where('contextId', '==', context.contextId),
-        orderBy('updated_at', 'desc'),
-        limit(10)
-    );
+    const snapshot = await db.collection('user_knowledge')
+        .where('userId', '==', userId)
+        .where('contextId', '==', context.contextId)
+        .orderBy('updated_at', 'desc')
+        .limit(10)
+        .get();
 
-    const snapshot = await getDocs(q);
     const knowledge = snapshot.docs.map(doc => {
         const d = doc.data();
         return `[${d.type.toUpperCase()}] ${d.content}`;

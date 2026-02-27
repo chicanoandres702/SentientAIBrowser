@@ -4,10 +4,8 @@ exports.activePages = exports.activeContexts = void 0;
 exports.getPersistentPage = getPersistentPage;
 exports.startFirestoreListener = startFirestoreListener;
 exports.closePage = closePage;
-// Feature: System Utilities | Trace: proxy-routes-browser.js
 const proxy_config_1 = require("./proxy-config");
 const proxy_asset_1 = require("./proxy-asset");
-const firestore_1 = require("firebase/firestore");
 exports.activeContexts = new Map();
 exports.activePages = new Map();
 let isListening = false;
@@ -23,11 +21,11 @@ async function setupRequestBlocking(page) {
 async function captureAndSync(tabId, userId, page, context) {
     try {
         const screenshot = (await page.screenshot({ quality: 60, type: 'jpeg' })).toString('base64');
-        await (0, firestore_1.updateDoc)((0, firestore_1.doc)(proxy_config_1.db, 'browser_tabs', tabId), {
+        await proxy_config_1.db.collection('browser_tabs').doc(tabId).set({
             screenshot: `data:image/jpeg;base64,${screenshot}`,
             url: page.url(), title: (await page.title()) || 'Loading...',
-            last_sync: (0, firestore_1.serverTimestamp)()
-        });
+            last_sync: new Date().toISOString()
+        }, { merge: true });
         // Session saving logic removed for local stability if proxy-session.service is missing
         // await saveSession(userId, context);
     }
@@ -61,7 +59,7 @@ function startFirestoreListener() {
     if (isListening)
         return;
     isListening = true;
-    (0, firestore_1.onSnapshot)((0, firestore_1.query)((0, firestore_1.collection)(proxy_config_1.db, 'browser_tabs')), (snapshot) => {
+    proxy_config_1.db.collection('browser_tabs').onSnapshot((snapshot) => {
         snapshot.docChanges().forEach(async (change) => {
             if (change.type === 'added' || change.type === 'modified') {
                 const data = change.doc.data(), tabId = change.doc.id, page = exports.activePages.get(tabId);
@@ -71,6 +69,8 @@ function startFirestoreListener() {
                 }
             }
         });
+    }, (error) => {
+        console.error(`[Proxy] Firestore listener error:`, error);
     });
 }
 function closePage(id) {
