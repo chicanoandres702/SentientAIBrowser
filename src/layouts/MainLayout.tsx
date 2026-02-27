@@ -6,6 +6,7 @@ import { BrowserTabs } from '../components/BrowserTabs';
 import { BrowserChrome } from '../components/BrowserChrome';
 import { SentientHeader } from '../components/SentientHeader';
 import { SentientStatusBar } from '../components/SentientStatusBar';
+import { BrowserPreview } from '../components/BrowserPreview';
 import * as Animatable from 'react-native-animatable';
 import { styles } from '../../App.styles';
 
@@ -56,7 +57,7 @@ export const MainLayout = ({ s, theme, setTheme }: any) => {
             <View style={styles.mainLayout}>
                 <View style={styles.contentArea}>
                     <View style={styles.webViewWrapper} onStartShouldSetResponder={handleStartShouldSetResponder}>
-                        <HeadlessWebView ref={s.webViewRef} isVisible={s.showWebView} url={s.activeUrl} useProxy={s.useProxy} onDomMapReceived={s.handleDomMapReceived} onNewTabRequested={s.addNewTab} />
+                        <BrowserPreview tabId={s.activeTabId} theme={theme} />
                         {s.isAIMode && !s.isPaused && <Animatable.View animation="fadeIn" iterationCount="infinite" direction="alternate" duration={2500} style={styles.hazeLayer} pointerEvents="none"><Suspense fallback={null}><HazeOverlay theme={theme} /></Suspense></Animatable.View>}
                     </View>
                     {s.isAIMode && <Suspense fallback={null}><SentientControlPanel isPaused={s.isPaused} onTogglePause={handleTogglePause} onStop={handleStop} onNext={() => {}} onPrev={() => {}} theme={theme} /></Suspense>}
