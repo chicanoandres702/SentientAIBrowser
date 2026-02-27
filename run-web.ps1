@@ -43,4 +43,6 @@ Start-Sleep -Seconds 5
 Write-Host "Launching Expo Web on port $Port in Chromium..." -ForegroundColor Cyan
 Set-Location $ProjectDir
 $env:BROWSER = "chrome"
+$env:NODE_OPTIONS = "--dns-result-order=ipv4first"
+$env:EXPO_NO_CACHE = "1"
 npx expo start -c --web --port $Port

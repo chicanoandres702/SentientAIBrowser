@@ -1,6 +1,6 @@
 // Feature: LLM | Trace: README.md
-import { getHighlyRatedAnswers, SurveyAnswer } from '../surveys/survey-memory-db';
-import { getAcademicContext, AcademicMemory } from '../academic/academic-memory.service';
+import { getHighlyRatedAnswers, SurveyAnswer } from '../../../shared/survey-memory-db';
+import { getAcademicContext, AcademicMemory } from '../../../shared/academic-memory.service';
 
 /**
  * Intercepts the raw user prompt and injects historical memory from the 

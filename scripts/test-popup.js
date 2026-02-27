@@ -1,3 +1,4 @@
+// Feature: System Utilities | Trace: scripts/test-popup.js
 const http = require('http');
 
 const html = `

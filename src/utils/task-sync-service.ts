@@ -2,7 +2,7 @@
 import { collection, query, where, orderBy, limit, getDocs, doc, setDoc, updateDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
 import { db, auth } from '../features/auth/firebase-config';
 import { TaskItem, TaskStatus } from '../features/tasks/types';
-import { sanitizeForCloud } from '../utils/safe-cloud.utils';
+import { sanitizeForCloud } from '../../shared/safe-cloud.utils';
 
 export const syncTaskToFirestore = async (task: TaskItem, userId: string) => {
     const taskRef = doc(db, 'task_queues', task.id);

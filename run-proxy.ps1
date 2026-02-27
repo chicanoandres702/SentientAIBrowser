@@ -20,4 +20,4 @@ if ($portProcess) {
 
 Write-Host "Starting Proxy Server on port $ProxyPort..." -ForegroundColor Green
 Set-Location $ProjectDir
-node proxy-server.js
+node functions/src/proxy-server.js

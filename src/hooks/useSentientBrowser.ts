@@ -7,14 +7,10 @@ import { useBrowserState } from './useBrowserState';
 import { useBrowserTabs } from './useBrowserTabs';
 import { useTaskQueue } from './useTaskQueue';
 import { useDomDecision } from './useDomDecision';
-import { useGitHubActions } from './useGitHubActions';
 import { useDomAutoScanner } from './useDomAutoScanner';
 import { useBrowserController } from './useBrowserController';
 import { detectModeFromUrl } from '../utils/mode-detector';
 
-import { useGitAutoCommit } from './useGitAutoCommit';
-
-import { useTaskFileWatcher } from './useTaskFileWatcher';
 import { auth } from '../features/auth/firebase-config';
 
 export const useSentientBrowser = (theme: AppTheme) => {
@@ -33,31 +29,7 @@ export const useSentientBrowser = (theme: AppTheme) => {
         }
     }, [activeUrl]);
 
-    const {
-        handleCreateIssue,
-        handleRecordKnowledge,
-        handleLookupDocumentation,
-        handleSyncTasks
-    } = useGitHubActions(s.githubToken, s.repoOwner, s.repoName);
-
-    // Local file watcher for tasks.json
-    const { syncTaskToFile } = useTaskFileWatcher(tasks, setTasks);
-
-    // Autonomous Git Engine
-    const { handleAutoCommit } = useGitAutoCommit();
-
-    // Sync to GitHub and Auto-Commit whenever tasks change locally (Debounced)
-    useEffect(() => {
-        if (tasks.length === 0) return;
-        
-        const timeoutId = setTimeout(() => {
-            handleSyncTasks(tasks).then(() => {
-                handleAutoCommit("AI: Autonomous Task Sync Update");
-            });
-        }, 5000);
-
-        return () => clearTimeout(timeoutId);
-    }, [tasks]);
+    // Unified Task Tracking (No longer syncing to local file or GitHub)
 
 
     useUrlTracker(activeUrl, tasks.map(t => t.id), s.sessionAnswerIds);
@@ -65,9 +37,9 @@ export const useSentientBrowser = (theme: AppTheme) => {
     const { handleDomMapReceived } = useDomDecision(
         s.activePrompt, activeUrl, s.retryCount, s.setRetryCount, updateTask,
         tasks.map(t => t.id), webViewRef, s.setBlockedReason, s.setIsBlockedModalVisible,
-        s.setStatusMessage, s.setIsPaused, handleCreateIssue,
-        handleRecordKnowledge, handleLookupDocumentation, s.lookedUpDocs,
-        s.setLookedUpDocs, s.setInteractiveRequest, s.setIsInteractiveModalVisible,
+        s.setStatusMessage, s.setIsPaused, s.lookedUpDocs, s.setLookedUpDocs,
+        s.setInteractiveRequest, s.setIsInteractiveModalVisible,
+        s.isThinking, s.setIsThinking,
         s.PROXY_BASE_URL, s.isScholarMode
     );
 
@@ -83,9 +55,9 @@ export const useSentientBrowser = (theme: AppTheme) => {
         }
     };
 
-    useDomAutoScanner(webViewRef, s.isAIMode, s.isPaused, s.activePrompt, s.setStatusMessage);
+    useDomAutoScanner(webViewRef, s.isAIMode, s.isPaused, s.activePrompt, s.setStatusMessage, s.isThinking);
 
-    const { handleExecutePrompt, toggleDaemon } = useBrowserController(
+    const { handleExecutePrompt, toggleDaemon, handleReload } = useBrowserController(
         webViewRef, addTask, s.setActivePrompt, s.setTaskStartTime,
         s.setStatusMessage, s.setIsPaused, s.isDaemonRunning, s.setIsDaemonRunning
     );
@@ -99,6 +71,7 @@ export const useSentientBrowser = (theme: AppTheme) => {
         handleExecutePrompt: (p: string) => handleExecutePrompt(p, activeTab?.id || 'default', auth.currentUser?.uid || 'anonymous'),
         toggleDaemon,
         handleInteractiveResponse,
-        webViewRef, handleDomMapReceived
+        webViewRef, handleDomMapReceived,
+        handleReload
     };
 };

@@ -1,6 +1,7 @@
 // Feature: Core | Trace: README.md
 import { HeadlessWebViewRef } from '../components/HeadlessWebView';
 import { registerBackgroundFetchAsync, unregisterBackgroundFetchAsync } from '../features/background-tasks/background-scanner.service';
+import { syncMissionToFirestore } from '../utils/browser-sync-service';
 
 /**
  * useBrowserController: Encapsulates manual controls like executing prompts and toggling the daemon.
@@ -43,5 +44,10 @@ export const useBrowserController = (
         setIsDaemonRunning(!isDaemonRunning);
     };
 
-    return { handleExecutePrompt, toggleDaemon };
+    const handleReload = () => {
+        webViewRef.current?.reload();
+        webViewRef.current?.scanDOM(); // Re-scan after reload intent
+    };
+
+    return { handleExecutePrompt, toggleDaemon, handleReload };
 };

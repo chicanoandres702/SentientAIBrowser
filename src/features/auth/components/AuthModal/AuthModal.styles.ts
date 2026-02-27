@@ -33,7 +33,13 @@ export const styles = StyleSheet.create({
         fontSize: 14,
     },
     errorText: { color: '#ff4444', fontSize: 12, marginBottom: 15, textAlign: 'center' },
-    submitBtn: { width: '100%', height: 50, borderRadius: 25, justifyContent: 'center', alignItems: 'center', marginTop: 10, shadowOpacity: 0.6, shadowRadius: 10, elevation: 6 },
+    submitBtn: { 
+        width: '100%', height: 50, borderRadius: 25, justifyContent: 'center', alignItems: 'center', marginTop: 10,
+        ...Platform.select({
+            web: { boxShadow: '0 5px 15px rgba(255, 0, 60, 0.4)' } as any,
+            default: { elevation: 6 }
+        })
+    },
     submitText: { color: '#000', fontSize: 14, fontWeight: '900', letterSpacing: 2 },
     divider: { flexDirection: 'row', alignItems: 'center', marginVertical: 20, width: '100%' },
     line: { flex: 1, height: 1, backgroundColor: 'rgba(255, 255, 255, 0.1)' },
