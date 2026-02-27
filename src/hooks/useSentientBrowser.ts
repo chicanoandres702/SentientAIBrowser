@@ -66,8 +66,21 @@ export const useSentientBrowser = (theme: AppTheme) => {
         tasks.map(t => t.id), webViewRef, s.setBlockedReason, s.setIsBlockedModalVisible,
         s.setStatusMessage, s.setIsPaused, handleCreateIssue,
         handleRecordKnowledge, handleLookupDocumentation, s.lookedUpDocs,
-        s.setLookedUpDocs, s.PROXY_BASE_URL, s.isScholarMode
+        s.setLookedUpDocs, s.setInteractiveRequest, s.setIsInteractiveModalVisible,
+        s.PROXY_BASE_URL, s.isScholarMode
     );
+
+    const handleInteractiveResponse = (response: string | boolean) => {
+        s.setIsInteractiveModalVisible(false);
+        s.setIsPaused(false);
+        s.setInteractiveRequest(null);
+        if (response) {
+            s.setActivePrompt(prev => `${prev}\n\n[USER RESPONSE]: ${response}`);
+            s.setStatusMessage('Resuming with info...');
+        } else {
+            s.setStatusMessage('Permission Denied');
+        }
+    };
 
     useDomAutoScanner(webViewRef, s.isAIMode, s.isPaused, s.activePrompt, s.setStatusMessage);
 
@@ -76,9 +89,15 @@ export const useSentientBrowser = (theme: AppTheme) => {
         s.setStatusMessage, s.setIsPaused, s.isDaemonRunning, s.setIsDaemonRunning
     );
 
+    const activeTab = tabs.find(t => t.isActive);
+
     return {
         ...s, tabs, setTabs, activeUrl, setActiveUrl, addNewTab, closeTab, selectTab,
-        tasks, addTask, updateTask, removeTask, clearTasks, editTask, handleExecutePrompt, toggleDaemon,
+        activeTabId: activeTab?.id,
+        tasks, addTask, updateTask, removeTask, clearTasks, editTask, 
+        handleExecutePrompt: (p: string) => handleExecutePrompt(p, activeTab?.id || 'default', auth.currentUser?.uid || 'anonymous'),
+        toggleDaemon,
+        handleInteractiveResponse,
         webViewRef, handleDomMapReceived
     };
 };

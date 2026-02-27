@@ -6,8 +6,10 @@
  */
 
 import { buildGeminiPromptWithMemoryContext } from './llm-context.builder';
-import { ai } from '../auth/firebase-config';
+import { ai, auth } from '../auth/firebase-config';
 import { getGenerativeModel } from 'firebase/ai';
+import { getLessonsLearned } from './llm-memory-service';
+import { getRelevantContext, KnowledgeContext } from './knowledge-hierarchy.service';
 
 // No hardcoded keys. Firebase AI Logic handles authentication and quota via the project backend.
 
@@ -16,9 +18,9 @@ export interface LLMAction {
   targetId?: string;
   value?: string;
   reasoning: string;
-  question?: string; // The message to show the user if action is 'ask_user'
-  requestType?: 'confirm' | 'input'; // confirm = Yes/No, input = text prompt
-  intelligenceRating?: number; // 0-100 score of memory integration
+  question?: string; 
+  requestType?: 'confirm' | 'input';
+  intelligenceRating?: number;
   memoryUsed?: boolean;
 }
 
@@ -28,7 +30,8 @@ export const determineNextAction = async (
   screenshotBase64?: string,
   domain?: string,
   lookedUpDocs: any[] = [],
-  isScholarMode: boolean = false
+  isScholarMode: boolean = false,
+  context?: KnowledgeContext
 ): Promise<LLMAction | null> => {
   console.log('Sending DOM map to LLM. Domain:', domain, 'Scholar Mode:', isScholarMode, 'Node Count:', domMap.length);
 
@@ -68,10 +71,17 @@ You must respond ONLY with a single JSON object.
 
 NOTE: You have been provided with both a DOM Map (logic) and a Screenshot (visual). Use the screenshot to identify elements that might be missing or overlaying in the DOM (e.g. popups, ads, captchas).`;
 
+  const lessons = await getLessonsLearned(auth.currentUser?.uid || 'anonymous', prompt);
+  const relevantContext = context ? await getRelevantContext(auth.currentUser?.uid || 'anonymous', context) : '';
+
   const resolvedPrompt = await buildGeminiPromptWithMemoryContext(prompt, domain, lookedUpDocs, isScholarMode);
   const userPayload = `
 User Objective: ${resolvedPrompt}
 Current Domain: ${domain || 'General Navigation'}
+
+${lessons}
+
+${relevantContext}
 
 DOM Map:
 ${JSON.stringify(domMap, null, 2)}

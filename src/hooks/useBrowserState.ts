@@ -15,6 +15,8 @@ export const useBrowserState = () => {
     const [isSettingsVisible, setIsSettingsVisible] = useState(false);
     const [isIntelVisible, setIsIntelVisible] = useState(false);
     const [isBlockedModalVisible, setIsBlockedModalVisible] = useState(false);
+    const [isInteractiveModalVisible, setIsInteractiveModalVisible] = useState(false);
+    const [interactiveRequest, setInteractiveRequest] = useState<{ question: string, type: 'confirm' | 'input' } | null>(null);
     const [blockedReason, setBlockedReason] = useState('');
     const [statusMessage, setStatusMessage] = useState('Ready');
     const [isPaused, setIsPaused] = useState(false);
@@ -36,10 +38,12 @@ export const useBrowserState = () => {
         activePrompt, setActivePrompt, isSidebarVisible, setIsSidebarVisible,
         isSettingsVisible, setIsSettingsVisible, isIntelVisible, setIsIntelVisible,
         isBlockedModalVisible, setIsBlockedModalVisible, blockedReason, setBlockedReason,
+        isInteractiveModalVisible, setIsInteractiveModalVisible, interactiveRequest, setInteractiveRequest,
         statusMessage, setStatusMessage, isPaused, setIsPaused,
         retryCount, setRetryCount, taskStartTime, setTaskStartTime,
         lastInteractionTime, setLastInteractionTime, PROXY_BASE_URL,
         githubToken, setGithubToken, repoOwner, setRepoOwner, repoName, setRepoName,
-        lookedUpDocs, setLookedUpDocs, isScholarMode, setIsScholarMode
+        lookedUpDocs, setLookedUpDocs, isScholarMode, setIsScholarMode,
+        sessionAnswerIds, setSessionAnswerIds
     };
 };

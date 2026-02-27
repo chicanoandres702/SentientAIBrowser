@@ -24,6 +24,9 @@ app.use('/proxy/tasks', cors(), jsonParser, setupTaskRoutes());
 // It handles complex JS, AJAX, and security policies better than simple HTTP proxies.
 setupBrowserRoutes(app);
 
+const orchestrator = require('./backend-ai-orchestrator');
+
 app.listen(PORT, () => {
   console.log(`[Sentient Proxy] Active at http://localhost:${PORT}`);
+  orchestrator.start();
 });
