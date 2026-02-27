@@ -1,6 +1,4 @@
 // Feature: System Utilities | Trace: README.md
-const cluster = require('cluster');
-const os = require('os');
 const express = require('express');
 const cors = require('cors');
 const { PORT } = require('./proxy-config');
@@ -10,30 +8,22 @@ const { setupBrowserRoutes } = require('./proxy-routes-browser');
 
 /**
  * Sentinel AI Browser Proxy Server
- * Multithreaded Cluster Architecture for Horizontal Scaling.
+ * Note: The cluster module was removed for local development stability.
+ * It introduced unnecessary complexity and potential resource conflicts that can cause build processes to hang.
+ * For production, a process manager like PM2 or native clustering can be reintroduced if needed.
  */
-if (cluster.isMaster) {
-  const numCPUs = os.cpus().length;
-  console.log(`[Sentient Master] Forking ${numCPUs} proxy workers...`);
+const app = express();
+app.use(cors());
 
-  for (let i = 0; i < numCPUs; i++) {
-    cluster.fork();
-  }
+// Why: The json parser middleware must only be applied to routes that expect a JSON body.
+// The /proxy/forward route needs to handle the raw request body, so the global
+// express.json() middleware was causing a "body already read" error.
+const jsonParser = express.json();
+app.use('/proxy/tasks', jsonParser, setupTaskRoutes());
+app.use('/git/commit', jsonParser, setupGitRoutes());
 
-  cluster.on('exit', (worker) => {
-    console.log(`[Sentient Master] Worker ${worker.process.pid} died. Respawning...`);
-    cluster.fork();
-  });
-} else {
-  const app = express();
-  app.use(cors());
-  app.use(express.json());
+setupBrowserRoutes(app);
 
-  setupTaskRoutes(app);
-  setupGitRoutes(app);
-  setupBrowserRoutes(app);
-
-  app.listen(PORT, () => {
-    console.log(`[Worker ${process.pid}] Sentient Proxy active at http://localhost:${PORT}`);
-  });
-}
+app.listen(PORT, () => {
+  console.log(`[Sentient Proxy] Active at http://localhost:${PORT}`);
+});

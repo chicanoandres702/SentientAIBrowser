@@ -18,12 +18,12 @@ export const HazeOverlay: React.FC<Props> = ({ theme }) => {
                 Animated.timing(pulseAnim, {
                     toValue: 1.0,
                     duration: 4000,
-                    useNativeDriver: true,
+                    useNativeDriver: Platform.OS !== 'web',
                 }),
                 Animated.timing(pulseAnim, {
                     toValue: 0.6,
                     duration: 4000,
-                    useNativeDriver: true,
+                    useNativeDriver: Platform.OS !== 'web',
                 }),
             ])
         ).start();
@@ -103,4 +103,3 @@ const styles = StyleSheet.create({
     },
     strip: { overflow: 'hidden' },
 });
-

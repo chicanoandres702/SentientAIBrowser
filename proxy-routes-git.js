@@ -1,8 +1,10 @@
 // Feature: System Utilities | Trace: README.md
 const { exec } = require('child_process');
+const express = require('express');
 
-function setupGitRoutes(app) {
-  app.post('/git/commit', (req, res) => {
+function setupGitRoutes() {
+  const router = express.Router();
+  router.post('/', (req, res) => {
     const { message } = req.body;
     const commitMsg = message || "AI: Autonomous Sync Update";
     
@@ -12,13 +14,14 @@ function setupGitRoutes(app) {
     
     exec(command, { cwd: __dirname }, (error, stdout, stderr) => {
       if (error) {
-        console.error(\`[Sentient Git] Error: \${error.message}\`);
+        console.error(`[Sentient Git] Error: ${error.message}`);
         return res.status(500).json({ error: error.message, details: stderr });
       }
-      console.log(\`[Sentient Git] Success: \${stdout}\`);
+      console.log(`[Sentient Git] Success: ${stdout}`);
       res.json({ success: true, output: stdout });
     });
   });
+  return router;
 }
 
 module.exports = { setupGitRoutes };
