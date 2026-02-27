@@ -1,6 +1,8 @@
+// Feature: System Utilities | Trace: README.md
 const { getDefaultConfig } = require('expo/metro-config');
 
 const config = getDefaultConfig(__dirname);
+config.watchFolders = [__dirname, `${__dirname}/shared`].filter(Boolean);
 module.exports = config;
 
 // Note: The custom middleware for COOP/COEP headers was removed.

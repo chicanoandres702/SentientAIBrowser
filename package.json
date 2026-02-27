@@ -13,9 +13,8 @@
     "run-proxy": "powershell -ExecutionPolicy Bypass -File ./run-proxy.ps1",
     "build:web": "powershell -ExecutionPolicy Bypass -File ./build-web.ps1",
     "genkit-dev": "npx tsx src/index.ts",
-    "git-watch": "node scripts/orchestrator.service.js",
     "firebase": "powershell -ExecutionPolicy Bypass -File ./build-web.ps1 && firebase deploy --only hosting --project sentient-ai-browser",
-    "sync-credentials": "powershell -ExecutionPolicy Bypass -File ./scripts/sync-secrets.ps1",
+    "firebase:all": "powershell -ExecutionPolicy Bypass -File ./build-web.ps1 && npm run build --prefix functions && firebase deploy --project sentient-ai-browser",
     "lint": "tsc --noEmit"
   },
   "dependencies": {

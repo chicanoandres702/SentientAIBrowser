@@ -1,6 +1,7 @@
 // Feature: Core | Trace: README.md
 import { useState } from 'react';
 import { Platform, useWindowDimensions } from 'react-native';
+import { getEnvConfig } from '../../shared/env.utils';
 
 export const useBrowserState = () => {
     const { width } = useWindowDimensions();
@@ -24,13 +25,12 @@ export const useBrowserState = () => {
     const [taskStartTime, setTaskStartTime] = useState<number | null>(null);
     const [lastInteractionTime, setLastInteractionTime] = useState(0);
     const [sessionAnswerIds, setSessionAnswerIds] = useState<string[]>([]);
-    const [githubToken, setGithubToken] = useState<string>('');
-    const [repoOwner, setRepoOwner] = useState<string>('');
-    const [repoName, setRepoName] = useState<string>('');
     const [lookedUpDocs, setLookedUpDocs] = useState<any[]>([]);
+    const [isThinking, setIsThinking] = useState(false);
     const [isScholarMode, setIsScholarMode] = useState(false);
 
-    const PROXY_BASE_URL = Platform.OS === 'android' ? 'http://10.0.2.2:3000' : 'http://localhost:3000';
+    const config = getEnvConfig();
+    const PROXY_BASE_URL = config.proxyBaseUrl;
 
     return {
         isDesktop, showWebView, setShowWebView, isAIMode, setIsAIMode,
@@ -42,8 +42,7 @@ export const useBrowserState = () => {
         statusMessage, setStatusMessage, isPaused, setIsPaused,
         retryCount, setRetryCount, taskStartTime, setTaskStartTime,
         lastInteractionTime, setLastInteractionTime, PROXY_BASE_URL,
-        githubToken, setGithubToken, repoOwner, setRepoOwner, repoName, setRepoName,
         lookedUpDocs, setLookedUpDocs, isScholarMode, setIsScholarMode,
-        sessionAnswerIds, setSessionAnswerIds
+        sessionAnswerIds, setSessionAnswerIds, isThinking, setIsThinking
     };
 };

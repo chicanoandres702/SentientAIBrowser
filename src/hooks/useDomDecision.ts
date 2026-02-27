@@ -5,8 +5,8 @@ import { determineNextAction } from '../features/llm/llm-decision.engine';
 import { SurveyOrchestrator } from '../features/surveys/surveys.orchestrator';
 import { db, auth } from '../features/auth/firebase-config';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
-import { sanitizeForCloud } from '../utils/safe-cloud.utils';
-import { recordAnswer } from '../features/surveys/survey-memory-db';
+import { sanitizeForCloud } from '../../shared/safe-cloud.utils';
+import { recordAnswer } from '../../shared/survey-memory-db';
 import * as Haptics from 'expo-haptics';
 
 export const useDomDecision = (
@@ -21,18 +21,19 @@ export const useDomDecision = (
     setIsBlockedModalVisible: (v: boolean) => void,
     setStatusMessage: (m: string) => void,
     setIsPaused: (p: boolean) => void,
-    handleCreateIssue: (t: string, b: string) => void,
-    handleRecordKnowledge: (p: string, k: string) => void,
-    handleLookupDocumentation: (q: string) => Promise<any[]>,
     lookedUpDocs: any[],
     setLookedUpDocs: (docs: any[]) => void,
     setInteractiveRequest: (req: { question: string, type: 'confirm' | 'input' } | null) => void,
     setIsInteractiveModalVisible: (v: boolean) => void,
+    isThinking: boolean,
+    setIsThinking: (t: boolean) => void,
     PROXY_BASE_URL: string,
     isScholarMode: boolean = false
 ) => {
     const handleDomMapReceived = useCallback(async (map: any) => {
-        if (!activePrompt) return;
+        if (!activePrompt || isThinking) return;
+        setIsThinking(true);
+        setStatusMessage('Thinking...');
         try {
             const isLoginPage = map.some((n: any) =>
                 n.text?.toLowerCase().includes('sign in') || n.attributes?.type === 'password'
@@ -43,12 +44,16 @@ export const useDomDecision = (
                 setIsPaused(true);
                 setBlockedReason('A security wall (Login) has been detected.');
                 setIsBlockedModalVisible(true);
+                setIsThinking(false);
                 return;
             }
 
             if (activePrompt.includes('Swagbucks: Survey Sweeper')) {
                 const bestSurvey = SurveyOrchestrator.evaluateDashboard(map);
-                if (bestSurvey) webViewRef.current?.executeAction('click', bestSurvey.id);
+                if (bestSurvey) {
+                    setStatusMessage('Selecting Survey...');
+                    webViewRef.current?.executeAction('click', bestSurvey.id);
+                }
             } else {
                 let screenshotBase64 = '';
                 if (retryCount > 0) {
@@ -72,35 +77,34 @@ export const useDomDecision = (
                         setIsInteractiveModalVisible(true);
                         setIsPaused(true);
                         setStatusMessage('Awaiting Input');
+                        setIsThinking(false);
                         return;
                     }
 
-                    if (decision.action === 'create_github_issue' && decision.value) {
-                        handleCreateIssue(`AI Browser Bug: ${activeUrl}`, decision.value);
-                    }
-
-                    if (decision.action === 'record_knowledge' && decision.value) {
-                        const path = `knowledge/${new URL(activeUrl).hostname}.md`;
-                        handleRecordKnowledge(path, decision.value);
-                    }
-
                     if (decision.action === 'lookup_documentation' && decision.value) {
-                        const docs = await handleLookupDocumentation(decision.value);
-                        if (docs.length > 0) {
-                            setLookedUpDocs(docs);
-                            setStatusMessage(`Found ${docs.length} docs`);
-                        }
+                        setStatusMessage('Docs lookup disabled');
                     }
 
                     if (decision.action === 'type' && decision.value) {
                         await recordAnswer(activePrompt, decision.value);
                     }
 
-                    if (decision.targetId) webViewRef.current?.executeAction(decision.action as any, decision.targetId, decision.value);
+                    if (decision.targetId) {
+                        setStatusMessage(`Executing: ${decision.action}...`);
+                        webViewRef.current?.executeAction(decision.action as any, decision.targetId, decision.value);
+                    } else if (decision.action === 'wait') {
+                        setStatusMessage('Waiting...');
+                        await new Promise(r => setTimeout(r, 2000));
+                    }
                 }
             }
-        } catch (e) { console.error("Decision failure", e); }
-    }, [activePrompt, activeUrl, retryCount, setStatusMessage, setIsPaused, setBlockedReason, setIsBlockedModalVisible, PROXY_BASE_URL, lookedUpDocs, isScholarMode, handleCreateIssue, handleRecordKnowledge, handleLookupDocumentation, setLookedUpDocs, webViewRef]);
+        } catch (e) { 
+            console.error("Decision failure", e); 
+            setStatusMessage('Retry required');
+        } finally {
+            setIsThinking(false);
+        }
+    }, [activePrompt, activeUrl, retryCount, setStatusMessage, setIsPaused, setBlockedReason, setIsBlockedModalVisible, PROXY_BASE_URL, lookedUpDocs, isScholarMode, setLookedUpDocs, webViewRef, isThinking, setIsThinking]);
 
     return { handleDomMapReceived };
 };

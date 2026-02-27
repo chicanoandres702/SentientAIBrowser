@@ -1,7 +1,7 @@
 // Feature: Analytics | Trace: README.md
 import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, ActivityIndicator } from 'react-native';
-import { getHighlyRatedAnswers, SurveyAnswer } from '../surveys/survey-memory-db';
+import { getHighlyRatedAnswers, SurveyAnswer } from '../../../../shared/survey-memory-db';
 import * as Animatable from 'react-native-animatable';
 import { styles } from './MemoryPersonaView.styles';
 

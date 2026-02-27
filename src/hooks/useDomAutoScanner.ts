@@ -11,12 +11,15 @@ export const useDomAutoScanner = (
     isAIMode: boolean,
     isPaused: boolean,
     activePrompt: string,
-    setStatusMessage: (m: string) => void
+    setStatusMessage: (m: string) => void,
+    isThinking: boolean
 ) => {
     useEffect(() => {
         let interval: any;
         if (isAIMode && !isPaused && activePrompt) {
-            interval = setInterval(() => webViewRef.current?.scanDOM(), 5000);
+            interval = setInterval(() => {
+                if (!isThinking) webViewRef.current?.scanDOM();
+            }, 10000);
         } else {
             setStatusMessage(isPaused ? 'Paused' : 'Ready');
         }
