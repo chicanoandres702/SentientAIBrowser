@@ -24,7 +24,7 @@ class BackendAIOrchestrator {
     async startMissionLoop(missionId: string, data: any) {
         if (this.activeMissions.has(missionId)) return;
         console.log(`[Orchestrator] Launching Loop for: ${data.goal}`);
-        this.activeMissions.set(missionId, setInterval(async () => {
+        this.activeMissions.set(missionId, (setInterval as any)(async () => {
             const res = await processMissionStep(missionId);
             if (res === 'done') this.stopMissionLoop(missionId);
         }, 10000));

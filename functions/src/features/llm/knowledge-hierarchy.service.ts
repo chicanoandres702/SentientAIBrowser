@@ -1,5 +1,5 @@
 // Feature: AI Memory | Trace: implementation_plan.md
-import { collection, query, where, getDocs, addDoc, serverTimestamp, orderBy, limit, doc, setDoc } from 'firebase/firestore';
+import { collection, query, where, getDocs, addDoc, serverTimestamp, orderBy, limit } from 'firebase/firestore';
 import { db } from '../../auth/firebase-config';
 
 export interface KnowledgeContext {

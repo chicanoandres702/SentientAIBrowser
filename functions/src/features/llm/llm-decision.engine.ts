@@ -9,9 +9,6 @@ import { buildGeminiPromptWithMemoryContext } from './llm-context.builder';
 import { ai, auth } from '../../auth/firebase-config';
 import { getGenerativeModel } from 'firebase/ai';
 import { getLessonsLearned } from './llm-memory-service';
-import { SurveyOrchestrator } from '../surveys/surveys.orchestrator';
-import { getHighlyRatedAnswers, SurveyAnswer } from '../../shared/survey-memory-db';
-import { recordAnswer } from '../../shared/survey-memory-db';
 import { getRelevantContext, KnowledgeContext } from './knowledge-hierarchy.service';
 
 // No hardcoded keys. Firebase AI Logic handles authentication and quota via the project backend.

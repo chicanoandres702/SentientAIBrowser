@@ -21,7 +21,7 @@ export function isStaticAsset(url: string): boolean {
 }
 
 export function setupAssetRoute(app: Express) {
-    app.get('/proxy/asset', async (req, res) => {
+    app.get('/proxy/asset', async (req, res): Promise<any> => {
         const targetUrl = req.query.url as string;
         if (!targetUrl) {
             return res.status(400).send('URL parameter required for asset proxy.');
