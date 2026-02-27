@@ -5,7 +5,7 @@ import { collection, query, where, orderBy, limit, onSnapshot } from 'firebase/f
 import { db, auth } from '../../../../features/auth/firebase-config';
 import * as Animatable from 'react-native-animatable';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Scanline } from '../../../components/Scanline';
+import { Scanline } from '../../../../components/Scanline';
 import { TypewriterText } from './TypewriterText';
 import { styles } from './NeuralMonologue.styles';
 
