@@ -1,5 +1,4 @@
 import { db } from './proxy-config';
-import { collection, query, onSnapshot, DocumentData, QuerySnapshot } from 'firebase/firestore';
 import { processMissionStep } from './backend-mission.executor';
 
 class BackendAIOrchestrator {
@@ -12,16 +11,18 @@ class BackendAIOrchestrator {
     start() {
         if (this.isListening) return;
         this.isListening = true;
-        console.log('[Orchestrator] Starting Local AI Listener (No Blaze Fallback)...');
+        console.log('[Orchestrator] Starting Local AI Listener (Admin SDK Mode)...');
         
-        onSnapshot(query(collection(db, 'missions')), (snapshot: QuerySnapshot<DocumentData>) => {
+        db.collection('missions').where('status', '==', 'active').onSnapshot((snapshot) => {
             snapshot.docChanges().forEach(async (change) => {
-                const missionId = change.doc.id;
-                const data = change.doc.data();
-                if (data.status === 'active') {
+                if (change.type === 'added' || change.type === 'modified') {
+                    const missionId = change.doc.id;
+                    const data = change.doc.data();
                     await this.processMission(missionId, data);
                 }
             });
+        }, (error) => {
+            console.error('[Orchestrator] Firestore listener error:', error);
         });
     }
 

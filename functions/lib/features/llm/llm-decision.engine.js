@@ -8,12 +8,10 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.determineNextAction = void 0;
 const llm_context_builder_1 = require("./llm-context.builder");
-const firebase_utils_1 = require("../../shared/firebase.utils");
 const generative_ai_1 = require("@google/generative-ai");
 const llm_memory_service_1 = require("./llm-memory-service");
 const knowledge_hierarchy_service_1 = require("./knowledge-hierarchy.service");
-const determineNextAction = async (prompt, domMap, screenshotBase64, domain, lookedUpDocs = [], isScholarMode = false, context) => {
-    var _a, _b;
+const determineNextAction = async (userId, prompt, domMap, screenshotBase64, domain, lookedUpDocs = [], isScholarMode = false, context) => {
     console.log('Sending DOM map to LLM. Domain:', domain, 'Scholar Mode:', isScholarMode, 'Node Count:', domMap.length);
     // Construct the strictly formatted prompt for the LLM
     const systemInstruction = `You are an advanced autonomous AI web browser agent.
@@ -68,8 +66,8 @@ You must respond ONLY with a single JSON object matching this structure:
 }
 
 NOTE: Use the provided Screenshot to verify element locations and identify visual blockers (modals, overlays) not obvious in the DOM Map.`;
-    const lessons = await (0, llm_memory_service_1.getLessonsLearned)(((_a = firebase_utils_1.auth.currentUser) === null || _a === void 0 ? void 0 : _a.uid) || 'anonymous', prompt);
-    const relevantContext = context ? await (0, knowledge_hierarchy_service_1.getRelevantContext)(((_b = firebase_utils_1.auth.currentUser) === null || _b === void 0 ? void 0 : _b.uid) || 'anonymous', context) : '';
+    const lessons = await (0, llm_memory_service_1.getLessonsLearned)(userId || 'anonymous', prompt);
+    const relevantContext = context ? await (0, knowledge_hierarchy_service_1.getRelevantContext)(userId || 'anonymous', context) : '';
     const resolvedPrompt = await (0, llm_context_builder_1.buildGeminiPromptWithMemoryContext)(prompt, domain, lookedUpDocs, isScholarMode);
     const userPayload = `
 User Objective: ${resolvedPrompt}

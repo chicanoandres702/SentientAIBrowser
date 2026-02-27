@@ -1,7 +1,5 @@
-// Feature: System Utilities | Trace: proxy-routes-browser.js
 import { getBrowser, db } from './proxy-config';
 import { BLOCKED_EXTENSIONS } from './proxy-asset';
-import { collection, query, onSnapshot, doc, updateDoc, serverTimestamp, DocumentData, QuerySnapshot } from 'firebase/firestore';
 import { Page, BrowserContext } from 'playwright';
 
 export const activeContexts = new Map<string, BrowserContext>();
@@ -19,11 +17,11 @@ async function setupRequestBlocking(page: Page) {
 async function captureAndSync(tabId: string, userId: string, page: Page, context: BrowserContext) {
   try {
     const screenshot = (await page.screenshot({ quality: 60, type: 'jpeg' })).toString('base64');
-    await updateDoc(doc(db, 'browser_tabs', tabId), {
+    await db.collection('browser_tabs').doc(tabId).set({
       screenshot: `data:image/jpeg;base64,${screenshot}`,
       url: page.url(), title: (await page.title()) || 'Loading...',
-      last_sync: serverTimestamp()
-    });
+      last_sync: new Date().toISOString()
+    }, { merge: true });
     // Session saving logic removed for local stability if proxy-session.service is missing
     // await saveSession(userId, context);
   } catch (e: any) { 
@@ -57,7 +55,7 @@ export async function getPersistentPage(targetUrl: string | null, tabId: string,
 export function startFirestoreListener() {
   if (isListening) return;
   isListening = true;
-  onSnapshot(query(collection(db, 'browser_tabs')), (snapshot: QuerySnapshot<DocumentData>) => {
+  db.collection('browser_tabs').onSnapshot((snapshot) => {
     snapshot.docChanges().forEach(async (change) => {
       if (change.type === 'added' || change.type === 'modified') {
         const data = change.doc.data(), tabId = change.doc.id, page = activePages.get(tabId);
@@ -67,6 +65,8 @@ export function startFirestoreListener() {
         }
       }
     });
+  }, (error) => {
+    console.error(`[Proxy] Firestore listener error:`, error);
   });
 }
 

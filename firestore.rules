@@ -17,7 +17,7 @@ service cloud.firestore {
     match /survey_memory/{document} {
       allow read: if isAuthenticated();
       allow create: if isAuthenticated();
-      allow update: if isAuthenticated(); // Weights can be updated by anyone for shared learning
+      allow update: if isAuthenticated(); 
     }
 
     // Thoughts rules: Strictly user-scoped for privacy
@@ -29,44 +29,51 @@ service cloud.firestore {
 
     // Task Queue rules: Strictly user-scoped
     match /task_queues/{document} {
-      allow read, write: if isAuthenticated() && isOwner(resource.data.user_id || request.resource.data.user_id);
+      allow read: if isAuthenticated() && isOwner(resource.data.user_id);
+      allow write: if isAuthenticated() && (resource == null || isOwner(resource.data.user_id)) && isOwner(request.resource.data.user_id);
     }
 
     // Browser Tabs: Sync across devices
     match /browser_tabs/{document} {
-      allow read, write: if isAuthenticated() && isOwner(resource.data.user_id || request.resource.data.user_id);
+      allow read: if isAuthenticated() && isOwner(resource.data.user_id);
+      allow write: if isAuthenticated() && (resource == null || isOwner(resource.data.user_id)) && isOwner(request.resource.data.user_id);
     }
 
     // Missions: Persistent AI missions
     match /missions/{document} {
-      allow read, write: if isAuthenticated() && isOwner(resource.data.userId || request.resource.data.userId);
+      allow read: if isAuthenticated() && isOwner(resource.data.userId);
+      allow write: if isAuthenticated() && (resource == null || isOwner(resource.data.userId)) && isOwner(request.resource.data.userId);
     }
 
     // Routines: Saved browser workflows
     match /routines/{document} {
-      allow read, write: if isAuthenticated() && isOwner(resource.data.userId || request.resource.data.userId);
+      allow read: if isAuthenticated() && isOwner(resource.data.userId);
+      allow write: if isAuthenticated() && (resource == null || isOwner(resource.data.userId)) && isOwner(request.resource.data.userId);
     }
 
-    // User Sessions: Cloud persistence for cookies/storage
-    match /user_sessions/{document} {
-      allow read, write: if isAuthenticated() && isOwner(resource.data.userId || request.resource.data.userId);
+    // User Sessions: Presence and status
+    match /user_sessions/{documentId} {
+      allow read: if isAuthenticated() && isOwner(documentId);
+      allow write: if isAuthenticated() && isOwner(documentId);
     }
 
     // Mission Outcomes: Individual learning
     match /mission_outcomes/{document} {
-      allow read, write: if isAuthenticated() && isOwner(resource.data.userId || request.resource.data.userId);
+      allow read: if isAuthenticated() && isOwner(resource.data.userId);
+      allow write: if isAuthenticated() && (resource == null || isOwner(resource.data.userId)) && isOwner(request.resource.data.userId);
     }
 
     // Global Knowledge: Anonymous shared learning
     match /global_knowledge/{document} {
       allow read: if isAuthenticated();
-      allow create: if isAuthenticated(); // Redacted entries from services
-      allow update, delete: if false; // Immutable global memory
+      allow create: if isAuthenticated(); 
+      allow update, delete: if false; 
     }
 
     // User Knowledge: Universal hierarchical context (Private)
     match /user_knowledge/{document} {
-      allow read, write: if isAuthenticated() && isOwner(resource.data.userId || request.resource.data.userId);
+      allow read: if isAuthenticated() && isOwner(resource.data.userId);
+      allow write: if isAuthenticated() && (resource == null || isOwner(resource.data.userId)) && isOwner(request.resource.data.userId);
     }
   }
 }

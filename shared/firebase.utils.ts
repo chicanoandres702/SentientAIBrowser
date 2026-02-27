@@ -13,6 +13,9 @@ const firebaseConfig = {
     measurementId: process.env.EXPO_PUBLIC_FIREBASE_MEASUREMENT_ID || "G-12D6HTCRD6"
 };
 
+// Diagnostic log (masking sensitive data)
+console.log("[Firebase] Initializing with Project:", firebaseConfig.projectId, "AuthDomain:", firebaseConfig.authDomain);
+
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
 export const auth = getAuth(app);
 export const db = getFirestore(app);

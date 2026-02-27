@@ -19,11 +19,17 @@ export const AuthModal: React.FC<{ theme: AppTheme }> = ({ theme }) => {
         catch (err: any) { setErrorMsg(err.message || 'Authentication failed.'); }
     };
 
+    const handleGoogleLogin = async () => {
+        setErrorMsg('');
+        try { await loginWithGoogle(); }
+        catch (err: any) { setErrorMsg(err.message || 'Google login failed.'); }
+    };
+
     return (
         <View style={styles.overlay}>
             <View style={styles.modalBg}>
                 <Text style={styles.title}>SENTIENT <Text style={{ color: accent }}>OS</Text></Text>
-                <Text style={styles.subtitle}>{isLogin ? 'AUTHORIZE ACCESS' : 'CREATE IDENTITY'}</Text>
+                <Text style={styles.subtitle}>{isLogin ? 'AUTHORIZE ACCESS' : 'CREATE IDENTITY'} | v1.2.0-DIAGNOSTIC</Text>
                 <TextInput style={styles.input} placeholder="Email" placeholderTextColor="#555" value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" />
                 <TextInput style={styles.input} placeholder="Password" placeholderTextColor="#555" value={password} onChangeText={setPassword} secureTextEntry />
                 {errorMsg ? <Text style={styles.errorText}>{errorMsg}</Text> : null}
@@ -31,7 +37,7 @@ export const AuthModal: React.FC<{ theme: AppTheme }> = ({ theme }) => {
                     {isLoading ? <ActivityIndicator color="#000" /> : <Text style={styles.submitText}>{isLogin ? 'INITIALIZE' : 'REGISTER'}</Text>}
                 </TouchableOpacity>
                 <View style={styles.divider}><View style={styles.line} /><Text style={styles.dividerText}>OR</Text><View style={styles.line} /></View>
-                <TouchableOpacity style={styles.googleBtn} onPress={loginWithGoogle} disabled={isLoading}>
+                <TouchableOpacity style={styles.googleBtn} onPress={handleGoogleLogin} disabled={isLoading}>
                     {isLoading ? <ActivityIndicator color="#000" /> : <Text style={styles.googleText}>CONTINUE WITH GOOGLE</Text>}
                 </TouchableOpacity>
                 <TouchableOpacity style={styles.toggleBtn} onPress={() => setIsLogin(!isLogin)}><Text style={styles.toggleText}>{isLogin ? 'Register' : 'Access'}</Text></TouchableOpacity>

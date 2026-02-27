@@ -3,13 +3,13 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.loadSession = loadSession;
 exports.saveSession = saveSession;
 const proxy_config_1 = require("./proxy-config");
-const firestore_1 = require("firebase/firestore");
 async function loadSession(userId) {
+    var _a;
     if (!userId || userId === 'default')
         return undefined;
     try {
-        const snap = await (0, firestore_1.getDoc)((0, firestore_1.doc)(proxy_config_1.db, 'user_sessions', userId));
-        return snap.exists() ? snap.data().storageState : undefined;
+        const snap = await proxy_config_1.db.collection('user_sessions').doc(userId).get();
+        return snap.exists ? (_a = snap.data()) === null || _a === void 0 ? void 0 : _a.storageState : undefined;
     }
     catch (e) {
         console.error(`[Session] Load failed for ${userId}:`, e.message);
@@ -21,7 +21,10 @@ async function saveSession(userId, context) {
         return;
     try {
         const storageState = await context.storageState();
-        await (0, firestore_1.setDoc)((0, firestore_1.doc)(proxy_config_1.db, 'user_sessions', userId), { storageState, updated_at: new Date().toISOString() });
+        await proxy_config_1.db.collection('user_sessions').doc(userId).set({
+            storageState,
+            updated_at: new Date().toISOString()
+        }, { merge: true });
     }
     catch (e) {
         console.error(`[Session] Save failed for ${userId}:`, e.message);

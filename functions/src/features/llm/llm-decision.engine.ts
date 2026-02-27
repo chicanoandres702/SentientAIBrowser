@@ -6,7 +6,6 @@
  */
 
 import { buildGeminiPromptWithMemoryContext } from './llm-context.builder';
-import { auth } from '../../shared/firebase.utils';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { getLessonsLearned } from './llm-memory-service';
 import { getRelevantContext, KnowledgeContext } from './knowledge-hierarchy.service';
@@ -48,6 +47,7 @@ export interface MissionResponse {
 }
 
 export const determineNextAction = async (
+  userId: string,
   prompt: string,
   domMap: any[],
   screenshotBase64?: string,
@@ -112,8 +112,8 @@ You must respond ONLY with a single JSON object matching this structure:
 
 NOTE: Use the provided Screenshot to verify element locations and identify visual blockers (modals, overlays) not obvious in the DOM Map.`;
 
-  const lessons = await getLessonsLearned(auth.currentUser?.uid || 'anonymous', prompt);
-  const relevantContext = context ? await getRelevantContext(auth.currentUser?.uid || 'anonymous', context) : '';
+  const lessons = await getLessonsLearned(userId || 'anonymous', prompt);
+  const relevantContext = context ? await getRelevantContext(userId || 'anonymous', context) : '';
 
   const resolvedPrompt = await buildGeminiPromptWithMemoryContext(prompt, domain, lookedUpDocs, isScholarMode);
   const userPayload = `

@@ -1,7 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const proxy_config_1 = require("./proxy-config");
-const firestore_1 = require("firebase/firestore");
 const backend_mission_executor_1 = require("./backend-mission.executor");
 class BackendAIOrchestrator {
     constructor() {
@@ -15,15 +14,17 @@ class BackendAIOrchestrator {
         if (this.isListening)
             return;
         this.isListening = true;
-        console.log('[Orchestrator] Starting Local AI Listener (No Blaze Fallback)...');
-        (0, firestore_1.onSnapshot)((0, firestore_1.query)((0, firestore_1.collection)(proxy_config_1.db, 'missions')), (snapshot) => {
+        console.log('[Orchestrator] Starting Local AI Listener (Admin SDK Mode)...');
+        proxy_config_1.db.collection('missions').where('status', '==', 'active').onSnapshot((snapshot) => {
             snapshot.docChanges().forEach(async (change) => {
-                const missionId = change.doc.id;
-                const data = change.doc.data();
-                if (data.status === 'active') {
+                if (change.type === 'added' || change.type === 'modified') {
+                    const missionId = change.doc.id;
+                    const data = change.doc.data();
                     await this.processMission(missionId, data);
                 }
             });
+        }, (error) => {
+            console.error('[Orchestrator] Firestore listener error:', error);
         });
     }
     /**
