@@ -1,15 +1,16 @@
-// Feature: Tasks | Why: Lean orchestrator — filter logic + filter UI extracted
+// Feature: Tasks | Why: Hierarchical mission→task rendering with fullscreen toggle
 import React, { useCallback, useState } from 'react';
-import { View, Text, FlatList, TouchableOpacity, Platform } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, Platform, StyleSheet } from 'react-native';
 import { TaskItem } from '../features/tasks/types';
 import { AppTheme } from '../../App';
 import { LinearGradient } from 'expo-linear-gradient';
 import { TaskItemView } from './tasks/TaskItemView';
 import { TaskInput } from './tasks/TaskInput';
 import { TaskFilterBar } from './tasks/TaskFilterBar';
-import { styles } from './tasks/TaskQueueUI.styles';
-import { uiColors } from '../features/ui/theme/ui.theme';
-import { FilterType, SortMode, getTaskStats, useFilteredTasks, useActiveMission } from './tasks/task-filter.utils';
+import { TaskProgressBar } from './tasks/TaskProgressBar';
+import { styles, missionStyles } from './tasks/TaskQueueUI.styles';
+import { uiColors, BASE } from '../features/ui/theme/ui.theme';
+import { FilterType, SortMode, getTaskStats, useHierarchicalTasks, HierarchyRow } from './tasks/task-filter.utils';
 
 interface Props {
     tasks: TaskItem[];
@@ -20,6 +21,19 @@ interface Props {
     editTask: (id: string, t: string) => void;
 }
 
+/** Fullscreen overlay styles — absolute positioning covers entire viewport */
+const fsStyles = StyleSheet.create({
+    overlay: {
+        position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+        zIndex: 999, backgroundColor: BASE.bg,
+    },
+    toggleBtn: {
+        borderWidth: 1, paddingHorizontal: 10, paddingVertical: 5,
+        borderRadius: 8, marginRight: 8,
+    },
+    toggleText: { fontSize: 9, fontWeight: 'bold', letterSpacing: 0.6 },
+});
+
 export const TaskQueueUI: React.FC<Props> = React.memo(({
     tasks, theme, addTask, removeTask, clearTasks, editTask,
 }) => {
@@ -27,20 +41,36 @@ export const TaskQueueUI: React.FC<Props> = React.memo(({
     const accentColor = colors.accent;
     const [filterType, setFilterType] = useState<FilterType>('all');
     const [sortBy, setSortBy] = useState<SortMode>('time');
+    const [isFullscreen, setIsFullscreen] = useState(false);
 
-    const filteredTasks = useFilteredTasks(tasks, filterType, sortBy);
-    const activeMission = useActiveMission(tasks);
+    const hierarchyRows = useHierarchicalTasks(tasks, filterType, sortBy);
     const stats = getTaskStats(tasks);
 
-    const renderItem = useCallback(
-        ({ item }: { item: TaskItem }) => (
-            <TaskItemView item={item} accentColor={accentColor} removeTask={removeTask} editTask={editTask} />
-        ),
+    const renderRow = useCallback(
+        ({ item }: { item: HierarchyRow }) => {
+            if (item.type === 'mission') {
+                const m = item.mission;
+                return (
+                    <View style={[missionStyles.card, { borderColor: accentColor + '44' }]}>
+                        <Text style={[missionStyles.label, { color: accentColor }]}>📋 MISSION</Text>
+                        <Text style={missionStyles.title} numberOfLines={2}>{m.title.toUpperCase()}</Text>
+                        <View style={missionStyles.progressRow}>
+                            <View style={missionStyles.track}>
+                                <View style={[missionStyles.bar, { width: `${m.progress || 0}%`, backgroundColor: accentColor }]} />
+                            </View>
+                            <Text style={[missionStyles.pct, { color: accentColor }]}>{m.progress || 0}%</Text>
+                        </View>
+                        <Text style={missionStyles.details}>{item.completedCount}/{item.totalCount} tasks done{m.details ? ` · ${m.details}` : ''}</Text>
+                    </View>
+                );
+            }
+            return <TaskItemView item={item.task} accentColor={accentColor} removeTask={removeTask} editTask={editTask} />;
+        },
         [accentColor, removeTask, editTask],
     );
 
-    return (
-        <View style={styles.container}>
+    const content = (
+        <View style={[styles.container, isFullscreen && { flex: 1 }]}>
             <LinearGradient colors={[colors.panel, colors.panel2]} style={styles.absoluteGradient} />
 
             <View style={styles.headerRow}>
@@ -48,11 +78,21 @@ export const TaskQueueUI: React.FC<Props> = React.memo(({
                     <Text style={[styles.header, { color: accentColor }]}>AGENT INTEL</Text>
                     <Text style={styles.subHeader}>NEURAL SYNC ACTIVE</Text>
                 </View>
-                {tasks.length > 0 && (
-                    <TouchableOpacity onPress={clearTasks} style={styles.purgeBtn}>
-                        <Text style={styles.clearText}>PRIME PURGE</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                    <TouchableOpacity
+                        onPress={() => setIsFullscreen(!isFullscreen)}
+                        style={[fsStyles.toggleBtn, { borderColor: accentColor + '66' }]}
+                    >
+                        <Text style={[fsStyles.toggleText, { color: accentColor }]}>
+                            {isFullscreen ? '⊟ MINIMIZE' : '⊞ FULLSCREEN'}
+                        </Text>
                     </TouchableOpacity>
-                )}
+                    {tasks.length > 0 && (
+                        <TouchableOpacity onPress={clearTasks} style={styles.purgeBtn}>
+                            <Text style={styles.clearText}>PRIME PURGE</Text>
+                        </TouchableOpacity>
+                    )}
+                </View>
             </View>
 
             <TaskFilterBar
@@ -66,26 +106,12 @@ export const TaskQueueUI: React.FC<Props> = React.memo(({
 
             <TaskInput addTask={addTask} accentColor={accentColor} />
 
-            {activeMission && (
-                <View style={{ backgroundColor: 'rgba(0,210,255,0.06)', borderWidth: 1, borderColor: accentColor + '44', borderRadius: 12, padding: 12, marginBottom: 12 }}>
-                    <Text style={{ fontSize: 8, fontWeight: '900', letterSpacing: 1.2, color: accentColor, marginBottom: 4 }}>📋 ACTIVE MISSION</Text>
-                    <Text style={{ fontSize: 12, fontWeight: '800', color: '#fff', letterSpacing: 0.3 }} numberOfLines={2}>{activeMission.title.toUpperCase()}</Text>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 8, gap: 8 }}>
-                        <View style={{ flex: 1, height: 4, backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 2, overflow: 'hidden' }}>
-                            <View style={{ width: `${activeMission.progress || 0}%`, height: '100%', backgroundColor: accentColor, borderRadius: 2 }} />
-                        </View>
-                        <Text style={{ fontSize: 9, fontWeight: '700', color: accentColor }}>{activeMission.progress || 0}%</Text>
-                    </View>
-                    {activeMission.details ? <Text style={{ fontSize: 9, color: 'rgba(255,255,255,0.4)', marginTop: 4 }}>{activeMission.details}</Text> : null}
-                </View>
-            )}
-
             <FlatList
-                data={filteredTasks}
-                keyExtractor={(item) => item.id}
+                data={hierarchyRows}
+                keyExtractor={(item) => item.type === 'mission' ? `m-${item.mission.id}` : `t-${item.task.id}`}
                 showsVerticalScrollIndicator={false}
                 contentContainerStyle={{ paddingBottom: 20 }}
-                renderItem={renderItem}
+                renderItem={renderRow}
                 windowSize={5}
                 maxToRenderPerBatch={5}
                 initialNumToRender={10}
@@ -98,4 +124,10 @@ export const TaskQueueUI: React.FC<Props> = React.memo(({
             />
         </View>
     );
+
+    // Why: Fullscreen wraps content in an absolute overlay that covers entire viewport
+    if (isFullscreen) {
+        return <View style={fsStyles.overlay}>{content}</View>;
+    }
+    return content;
 });

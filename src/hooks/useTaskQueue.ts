@@ -18,21 +18,23 @@ export const useTaskQueue = () => {
         hydrate();
     }, [auth.currentUser]);
 
-    /** Recalculate a mission task's progress from its child tasks */
+    /** Recalculate a mission task's progress from its child tasks.
+     *  Counts in_progress tasks as half-done so the bar advances during execution. */
     const recalcMissionProgress = useCallback((allTasks: TaskItem[], missionId: string): TaskItem[] => {
         const children = allTasks.filter(t => t.missionId === missionId && !t.isMission);
         if (children.length === 0) return allTasks;
 
         const completed = children.filter(t => t.status === 'completed').length;
+        const inProgress = children.filter(t => t.status === 'in_progress').length;
         const failed = children.filter(t => t.status === 'failed').length;
         const total = children.length;
-        const progress = Math.round((completed / total) * 100);
+        // Each completed = 1 unit, each in_progress = 0.5 unit (half-done)
+        const progress = Math.min(100, Math.round(((completed + inProgress * 0.5) / total) * 100));
 
-        // Determine mission status from children
         let missionStatus: TaskStatus = 'in_progress';
         if (completed === total) missionStatus = 'completed';
         else if (failed === total) missionStatus = 'failed';
-        else if (children.some(t => t.status === 'in_progress')) missionStatus = 'in_progress';
+        else if (completed + failed === total) missionStatus = failed > 0 ? 'failed' : 'completed';
 
         return allTasks.map(t => {
             if (t.id === missionId && t.isMission) {
@@ -65,21 +67,39 @@ export const useTaskQueue = () => {
 
     const updateTask = useCallback(async (id: string, status: TaskStatus, details?: string) => {
         setTasks(prev => {
+            const now = Date.now();
             let updated = prev.map(t => {
                 if (t.id !== id) return t;
-                const completedTime = status === 'completed' ? Date.now() : t.completedTime;
+                const completedTime = status === 'completed' ? now : t.completedTime;
                 const progress = status === 'completed' ? 100 : status === 'failed' ? 0 : t.progress;
-                return { ...t, status, details: details || t.details, completedTime, progress };
+                // Fix: set startTime when promoting pending → in_progress
+                const startTime = (status === 'in_progress' && !t.startTime) ? now : t.startTime;
+                return { ...t, status, details: details || t.details, completedTime, progress, startTime };
             });
 
-            // If this task belongs to a mission, recalculate the mission's progress
             const task = updated.find(t => t.id === id);
             if (task?.missionId) {
+                // Auto-advance: when a task completes, promote next pending sibling
+                if (status === 'completed' || status === 'failed') {
+                    const nextPending = updated.find(t =>
+                        !t.isMission && t.missionId === task.missionId
+                        && t.status === 'pending' && t.id !== id
+                    );
+                    if (nextPending) {
+                        updated = updated.map(t =>
+                            t.id === nextPending.id
+                                ? { ...t, status: 'in_progress' as TaskStatus, startTime: now, details: `Executing: ${t.title}` }
+                                : t
+                        );
+                        updateTaskInFirestore(nextPending.id, { status: 'in_progress', details: `Executing: ${nextPending.title}` }).catch(() => {});
+                    }
+                }
                 updated = recalcMissionProgress(updated, task.missionId);
-                // Fire async Firestore update for the mission task too
                 const mission = updated.find(t => t.id === task.missionId);
                 if (mission) {
-                    updateTaskInFirestore(mission.id, { status: mission.status, progress: mission.progress, details: `${updated.filter(t => t.missionId === mission.id && !t.isMission && t.status === 'completed').length}/${updated.filter(t => t.missionId === mission.id && !t.isMission).length} tasks done` }).catch(() => {});
+                    const done = updated.filter(t => t.missionId === mission.id && !t.isMission && t.status === 'completed').length;
+                    const total = updated.filter(t => t.missionId === mission.id && !t.isMission).length;
+                    updateTaskInFirestore(mission.id, { status: mission.status, progress: mission.progress, details: `${done}/${total} tasks done` }).catch(() => {});
                 }
             }
 

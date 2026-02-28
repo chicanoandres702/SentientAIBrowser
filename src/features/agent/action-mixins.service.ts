@@ -1,0 +1,80 @@
+// Feature: Agent | Why: Register core browser actions into the action registry — web-ui-1's Mixin pattern
+// Separated from registry to keep each file focused and under 100 lines
+
+import { actionRegistry, ActionParams, ActionResult } from './action-registry.service';
+
+/** Navigation actions — from web-ui-1's NavigationActionsMixin */
+export const registerNavigationActions = (): void => {
+    actionRegistry.register({
+        name: 'click', category: 'navigation', requiresTarget: true,
+        description: 'Click a DOM element by AI target ID',
+        handler: async (p) => ({ success: true, message: `Click → ${p.targetId}` }),
+    });
+    actionRegistry.register({
+        name: 'type', category: 'interaction', requiresTarget: true,
+        description: 'Type text into a form field by AI target ID',
+        handler: async (p) => ({ success: true, message: `Type "${p.value}" → ${p.targetId}` }),
+    });
+    actionRegistry.register({
+        name: 'navigate', category: 'navigation', requiresTarget: false,
+        description: 'Navigate to a URL',
+        handler: async (p) => ({ success: !!p.url, message: `Navigate → ${p.url || 'no URL'}` }),
+    });
+    actionRegistry.register({
+        name: 'wait', category: 'system', requiresTarget: false,
+        description: 'Wait for page content to stabilize',
+        handler: async () => { await sleep(2000); return { success: true, message: 'Waited 2s' }; },
+    });
+    actionRegistry.register({
+        name: 'done', category: 'system', requiresTarget: false,
+        description: 'Signal task completion',
+        handler: async () => ({ success: true, message: 'Task complete' }),
+    });
+};
+
+/** Interaction actions — from web-ui-1's InteractionActionsMixin */
+export const registerInteractionActions = (): void => {
+    actionRegistry.register({
+        name: 'ask_user', category: 'user', requiresTarget: false,
+        description: 'Pause and ask the human for input or confirmation',
+        handler: async (p) => ({ success: true, message: `Asking: ${p.value}` }),
+    });
+    actionRegistry.register({
+        name: 'scroll_down', category: 'navigation', requiresTarget: false,
+        description: 'Scroll page down to reveal more content',
+        handler: async () => ({ success: true, message: 'Scrolled down' }),
+    });
+    actionRegistry.register({
+        name: 'scroll_up', category: 'navigation', requiresTarget: false,
+        description: 'Scroll page up',
+        handler: async () => ({ success: true, message: 'Scrolled up' }),
+    });
+};
+
+/** System actions — from web-ui-1's SystemActionsMixin */
+export const registerSystemActions = (): void => {
+    actionRegistry.register({
+        name: 'record_knowledge', category: 'system', requiresTarget: false,
+        description: 'Save a discovered fact to the knowledge hierarchy',
+        handler: async (p) => ({ success: true, message: `Recorded: ${p.value?.slice(0, 50)}` }),
+    });
+    actionRegistry.register({
+        name: 'lookup_documentation', category: 'extraction', requiresTarget: false,
+        description: 'Look up documentation or reference material',
+        handler: async (p) => ({ success: true, message: `Lookup: ${p.value}` }),
+    });
+    actionRegistry.register({
+        name: 'take_screenshot', category: 'debugging', requiresTarget: false,
+        description: 'Capture current page state for debugging',
+        handler: async () => ({ success: true, message: 'Screenshot captured' }),
+    });
+};
+
+/** Register all action mixins — call once at app init */
+export const registerAllActions = (): void => {
+    registerNavigationActions();
+    registerInteractionActions();
+    registerSystemActions();
+};
+
+const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));

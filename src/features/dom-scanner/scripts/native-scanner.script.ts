@@ -39,11 +39,20 @@ export const getAIDomScannerScript = () => `
           // Only map if there is something identifying about it
           // OR if it's an input field
           if (text || el.tagName === 'INPUT') {
+            var rect = el.getBoundingClientRect();
             elementMap.push({
               id: currentId,
               tag: el.tagName.toLowerCase(),
               type: el.type || undefined,
-              text: text.substring(0, 50) // Limit text length to save tokens
+              text: text.substring(0, 50),
+              rect: {
+                x: Math.round(rect.left),
+                y: Math.round(rect.top),
+                w: Math.round(rect.width),
+                h: Math.round(rect.height)
+              },
+              vw: window.innerWidth,
+              vh: window.innerHeight
             });
             currentId++;
           }

@@ -9,14 +9,16 @@ export type { HierarchyRow, MissionNode } from './task-hierarchy.utils';
 export type FilterType = 'all' | 'active' | 'completed' | 'failed';
 export type SortMode = 'time' | 'status';
 
-/** Counts tasks by status category (excludes mission tasks) */
+/** Counts tasks by status category — single pass O(n) instead of 4 filter passes */
 export const getTaskStats = (tasks: TaskItem[]) => {
-    const regular = tasks.filter(t => !t.isMission);
-    return {
-        active: regular.filter(t => t.status === 'pending' || t.status === 'in_progress').length,
-        completed: regular.filter(t => t.status === 'completed').length,
-        failed: regular.filter(t => t.status === 'failed' || t.status === 'blocked_on_user').length,
-    };
+    let active = 0, completed = 0, failed = 0;
+    for (const t of tasks) {
+        if (t.isMission) continue;
+        if (t.status === 'pending' || t.status === 'in_progress') active++;
+        else if (t.status === 'completed') completed++;
+        else if (t.status === 'failed' || t.status === 'blocked_on_user') failed++;
+    }
+    return { active, completed, failed };
 };
 
 export const STATUS_ORDER: Record<TaskStatus, number> = {
