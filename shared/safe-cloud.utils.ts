@@ -42,6 +42,7 @@ export const sanitizeForCloud = (data: any): any => {
     if (typeof data === 'object') {
         const sanitizedObj: any = {};
         for (const key in data) {
+            if (data[key] === undefined) continue;
             const lowerKey = key.toLowerCase();
             if (SENSITIVE_KEYS.some(sk => lowerKey.includes(sk))) {
                 sanitizedObj[key] = '[REDACTED_SENSITIVE_KEY]';

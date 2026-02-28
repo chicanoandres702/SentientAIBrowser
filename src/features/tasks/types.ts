@@ -20,6 +20,14 @@ export interface TaskItem {
     progress?: number;
     /** Links this task to a parent mission */
     missionId?: string;
+    /** Mission run identifier for multi-run analytics */
+    runId?: string;
+    /** Browser tab context for task execution */
+    tabId?: string;
+    /** Display order within a mission segment */
+    order?: number;
+    /** Task source for telemetry and routing */
+    source?: 'planner' | 'manual' | 'fallback';
     /** True if this task IS the top-level mission entry */
     isMission?: boolean;
     /** Background sub-actions (clicks, types, waits) hidden under this task */

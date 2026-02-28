@@ -7,10 +7,11 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { TaskItemView } from './tasks/TaskItemView';
 import { TaskInput } from './tasks/TaskInput';
 import { TaskFilterBar } from './tasks/TaskFilterBar';
-import { TaskProgressBar } from './tasks/TaskProgressBar';
 import { styles, missionStyles } from './tasks/TaskQueueUI.styles';
 import { uiColors, BASE } from '../features/ui/theme/ui.theme';
-import { FilterType, SortMode, getTaskStats, useHierarchicalTasks, HierarchyRow } from './tasks/task-filter.utils';
+import { FilterType, SortMode, getTaskStats } from './tasks/task-filter.utils';
+import { useMissionNodes } from './tasks/mission-nodes.utils';
+import type { MissionNode } from './tasks/mission-nodes.utils';
 
 interface Props {
     tasks: TaskItem[];
@@ -43,31 +44,29 @@ export const TaskQueueUI: React.FC<Props> = React.memo(({
     const [sortBy, setSortBy] = useState<SortMode>('time');
     const [isFullscreen, setIsFullscreen] = useState(false);
 
-    const hierarchyRows = useHierarchicalTasks(tasks, filterType, sortBy);
+    const { missions, orphans } = useMissionNodes(tasks, filterType, sortBy);
     const stats = getTaskStats(tasks);
 
-    const renderRow = useCallback(
-        ({ item }: { item: HierarchyRow }) => {
-            if (item.type === 'mission') {
-                const m = item.mission;
-                return (
-                    <View style={[missionStyles.card, { borderColor: accentColor + '44' }]}>
-                        <Text style={[missionStyles.label, { color: accentColor }]}>📋 MISSION</Text>
-                        <Text style={missionStyles.title} numberOfLines={2}>{m.title.toUpperCase()}</Text>
-                        <View style={missionStyles.progressRow}>
-                            <View style={missionStyles.track}>
-                                <View style={[missionStyles.bar, { width: `${m.progress || 0}%`, backgroundColor: accentColor }]} />
-                            </View>
-                            <Text style={[missionStyles.pct, { color: accentColor }]}>{m.progress || 0}%</Text>
-                        </View>
-                        <Text style={missionStyles.details}>{item.completedCount}/{item.totalCount} tasks done{m.details ? ` · ${m.details}` : ''}</Text>
+    const renderMissionCard = useCallback((node: MissionNode) => (
+        <View style={[missionStyles.card, { borderColor: accentColor + '44' }]}>
+            <Text style={[missionStyles.label, { color: accentColor }]}>📋 MISSION</Text>
+            <Text style={missionStyles.title} numberOfLines={2}>{node.mission.title.toUpperCase()}</Text>
+            <View style={missionStyles.progressRow}>
+                <View style={missionStyles.track}>
+                    <View style={[missionStyles.bar, { width: `${node.mission.progress || 0}%`, backgroundColor: accentColor }]} />
+                </View>
+                <Text style={[missionStyles.pct, { color: accentColor }]}>{node.mission.progress || 0}%</Text>
+            </View>
+            <Text style={missionStyles.details}>{node.completedCount}/{node.totalCount} tasks done{node.mission.details ? ` · ${node.mission.details}` : ''}</Text>
+            <View style={missionStyles.childList}>
+                {node.children.map((child: TaskItem) => (
+                    <View key={child.id} style={missionStyles.childItem}>
+                        <TaskItemView item={child} accentColor={accentColor} removeTask={removeTask} editTask={editTask} />
                     </View>
-                );
-            }
-            return <TaskItemView item={item.task} accentColor={accentColor} removeTask={removeTask} editTask={editTask} />;
-        },
-        [accentColor, removeTask, editTask],
-    );
+                ))}
+            </View>
+        </View>
+    ), [accentColor, removeTask, editTask]);
 
     const content = (
         <View style={[styles.container, isFullscreen && { flex: 1 }]}>
@@ -107,11 +106,15 @@ export const TaskQueueUI: React.FC<Props> = React.memo(({
             <TaskInput addTask={addTask} accentColor={accentColor} />
 
             <FlatList
-                data={hierarchyRows}
-                keyExtractor={(item) => item.type === 'mission' ? `m-${item.mission.id}` : `t-${item.task.id}`}
+                data={[...missions, ...orphans]}
+                keyExtractor={(item) => 'mission' in item ? `m-${item.mission.id}` : `t-${item.id}`}
                 showsVerticalScrollIndicator={false}
                 contentContainerStyle={{ paddingBottom: 20 }}
-                renderItem={renderRow}
+                renderItem={({ item }) => (
+                    'mission' in item
+                        ? renderMissionCard(item)
+                        : <TaskItemView item={item as TaskItem} accentColor={accentColor} removeTask={removeTask} editTask={editTask} />
+                )}
                 windowSize={5}
                 maxToRenderPerBatch={5}
                 initialNumToRender={10}

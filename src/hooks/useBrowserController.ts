@@ -20,6 +20,8 @@ export const useBrowserController = (
     PROXY_BASE_URL: string
 ) => {
     const handleExecutePrompt = async (prompt: string, tabId: string, _userId: string) => {
+        const FIRST_TASK_ORDER = 1;
+        const runId = `run_${Date.now()}`;
         setActivePrompt(prompt);
         setTaskStartTime(Date.now());
 
@@ -47,9 +49,14 @@ export const useBrowserController = (
 
         // 3. Build mission tasks or single fallback task
         if (missionResponse?.execution?.segments) {
-            await buildMissionFromSegments(prompt, missionResponse, llmError, tabId, { addTask, setStatusMessage });
+            await buildMissionFromSegments(prompt, missionResponse, llmError, tabId, runId, { addTask, setStatusMessage });
         } else {
-            await addTask(`Execute: ${prompt}`, 'pending', 'Awaiting execution');
+            await addTask(`Execute: ${prompt}`, 'pending', 'Awaiting execution', {
+                runId,
+                tabId,
+                order: FIRST_TASK_ORDER,
+                source: 'fallback',
+            });
             setStatusMessage('Task created — awaiting execution');
         }
 

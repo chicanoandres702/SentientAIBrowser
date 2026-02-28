@@ -9,7 +9,7 @@ import { rewriteHtml } from './proxy-html.service';
 import { generateLLMPlanResponse } from './features/llm/llm-mission-planner';
 import { DeepResearchAgent, RunResult } from './features/deep-research/deep-research-agent';
 import { Express } from 'express';
-import { setupActionRoute, setupScreenshotRoute } from './proxy-routes-action';
+import { setupActionRoute, setupDomMapRoute, setupScreenshotRoute, setupScreenshotStreamRoute } from './proxy-routes-action';
 
 // In-memory registry of running deep-research agents (keyed by taskId)
 const activeResearchAgents = new Map<string, DeepResearchAgent>();
@@ -124,4 +124,6 @@ export function setupBrowserRoutes(app: Express) {
   // Delegate action + screenshot routes to extracted module
   setupActionRoute(app);
   setupScreenshotRoute(app);
+  setupDomMapRoute(app);
+  setupScreenshotStreamRoute(app);
 }

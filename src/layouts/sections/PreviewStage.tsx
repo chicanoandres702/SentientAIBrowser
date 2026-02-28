@@ -5,6 +5,7 @@ import * as Animatable from 'react-native-animatable';
 import { BrowserPreview } from '../../components/BrowserPreview';
 import { HeadlessWebView } from '../../components/HeadlessWebView';
 import { VirtualCursor } from '../../components/VirtualCursor';
+import { RemoteMirrorPreview } from '../../components/RemoteMirrorPreview';
 import { uiColors } from '../../features/ui/theme/ui.theme';
 import { styles } from '../../../App.styles';
 
@@ -36,8 +37,10 @@ export const PreviewStage: React.FC<Props> = ({
             style={[styles.webViewWrapper, { flex: 1, minHeight: 400 }]}
             {...responderProps}
         >
-            <BrowserPreview tabId={s.activeTabId} theme={theme} />
-            {s.isAIMode && (
+            {s.isRemoteMirrorEnabled
+                ? <RemoteMirrorPreview screenshot={s.remoteMirror?.screenshot || null} error={s.remoteMirror?.lastError || null} isConnected={!!s.remoteMirror?.isConnected} theme={theme} />
+                : <BrowserPreview tabId={s.activeTabId} theme={theme} />}
+            {s.isAIMode && !s.isRemoteMirrorEnabled && (
                 <HeadlessWebView
                     ref={s.webViewRef}
                     isVisible={false}
@@ -78,6 +81,8 @@ export const PreviewStage: React.FC<Props> = ({
                     }}
                     onNext={() => {}}
                     onPrev={() => {}}
+                    isRemoteMirrorEnabled={s.isRemoteMirrorEnabled}
+                    onToggleRemoteMirror={() => s.setIsRemoteMirrorEnabled(!s.isRemoteMirrorEnabled)}
                     theme={theme}
                 />
             </Suspense>

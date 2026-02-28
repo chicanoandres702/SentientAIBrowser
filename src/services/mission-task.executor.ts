@@ -7,7 +7,9 @@ interface TaskExecutorContext {
     webViewRef: React.RefObject<HeadlessWebViewRef>;
     setStatusMessage: (m: string) => void;
     setActivePrompt: (p: string) => void;
+    setActiveUrl?: (url: string) => void;
     updateTask: (id: string, status: any, details?: string) => Promise<void>;
+    remoteActions?: { executeAction: (action: 'click' | 'type', targetId: string, value?: string) => Promise<void> };
 }
 
 interface MissionTask {
@@ -94,10 +96,20 @@ export class MissionTaskExecutor {
             });
 
             // Execute the action based on task type
-            if (task.action === 'click' && task.targetId) {
-                this.ctx.webViewRef.current?.executeAction('click', task.targetId);
+            if (task.action === 'navigate' && task.value) {
+                this.ctx.setActiveUrl?.(task.value);
+            } else if (task.action === 'click' && task.targetId) {
+                if (this.ctx.remoteActions) {
+                    await this.ctx.remoteActions.executeAction('click', task.targetId);
+                } else {
+                    this.ctx.webViewRef.current?.executeAction('click', task.targetId);
+                }
             } else if (task.action === 'type' && task.targetId && task.value) {
-                this.ctx.webViewRef.current?.executeAction('type', task.targetId, task.value);
+                if (this.ctx.remoteActions) {
+                    await this.ctx.remoteActions.executeAction('type', task.targetId, task.value);
+                } else {
+                    this.ctx.webViewRef.current?.executeAction('type', task.targetId, task.value);
+                }
             } else if (task.action === 'wait') {
                 await new Promise(r => setTimeout(r, 2000));
             } else if (task.action === 'done') {
@@ -135,7 +147,7 @@ export class MissionTaskExecutor {
 
     private async updateTaskStatus(missionId: string, taskId: string, status: string): Promise<MissionTask[]> {
         const missionRef = doc(db, 'missions', missionId);
-        const snap = await missionRef.get();
+        const snap = await getDoc(missionRef);
         if (!snap.exists()) return [];
 
         const tasks = snap.data()?.tasks || [];

@@ -27,9 +27,7 @@ export const HeadlessWebView = React.memo(forwardRef<HeadlessWebViewRef, Props>(
     const webViewRef = useRef<WebView>(null);
     const iframeRef = useRef<HTMLIFrameElement>(null);
 
-    const displayUrl = (Platform.OS === 'web' && useProxy && url)
-        ? `http://localhost:3000/proxy?url=${encodeURIComponent(url)}`
-        : url;
+    const displayUrl = url;
 
     const handleMessage = useCallback((event: MessageEvent) => {
         if (!event.data || event.data.source !== 'sentient-scanner') return;

@@ -13,10 +13,12 @@ interface Props {
     onStop: () => void;
     onNext: () => void;
     onPrev: () => void;
+    isRemoteMirrorEnabled?: boolean;
+    onToggleRemoteMirror?: () => void;
     theme: AppTheme;
 }
 
-export const SentientControlPanel: React.FC<Props> = React.memo(({ isPaused, onTogglePause, onStop, onNext, onPrev, theme }) => {
+export const SentientControlPanel: React.FC<Props> = React.memo(({ isPaused, onTogglePause, onStop, onNext, onPrev, isRemoteMirrorEnabled, onToggleRemoteMirror, theme }) => {
     const colors = uiColors(theme);
     const accent = colors.accent;
     const shockwaveAnim = useRef(new Animated.Value(0)).current;
@@ -91,6 +93,12 @@ export const SentientControlPanel: React.FC<Props> = React.memo(({ isPaused, onT
                 <Text style={[styles.statusLabel, { color: isPaused ? BASE.disabled : accent }]}>
                     {isPaused ? 'PAUSED' : 'LIVE'}
                 </Text>
+
+                {onToggleRemoteMirror && (
+                    <TouchableOpacity style={styles.sideBtn} onPress={() => handlePress(onToggleRemoteMirror)}>
+                        <Text style={[styles.sideIcon, { color: isRemoteMirrorEnabled ? accent : BASE.textFaint }]}>REMOTE</Text>
+                    </TouchableOpacity>
+                )}
             </View>
         </View>
     );

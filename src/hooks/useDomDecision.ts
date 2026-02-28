@@ -5,7 +5,7 @@ import { HeadlessWebViewRef } from '../components/HeadlessWebView';
 import { auth } from '../features/auth/firebase-config';
 import { TaskItem } from '../features/tasks/types';
 import { executeDomAction } from './dom-action.executor';
-import type { CursorActions } from './dom-action.executor';
+import type { CursorActions, RemoteActions } from './dom-action.executor';
 import { assessNavState, buildHeuristicInjection } from '../features/agent/agent-heuristics.service';
 import { shouldConfirm, confirmAction } from '../features/agent/confirmer.service';
 import { HeuristicContext } from './useAgentHeuristics';
@@ -18,6 +18,8 @@ export const useDomDecision = (
     updateTask: (id: string, s: any, d?: string) => void,
     workflowIds: string[],
     webViewRef: React.RefObject<HeadlessWebViewRef>,
+    setActiveUrl: (url: string) => void,
+    navigateActiveTab: (url: string) => Promise<void>,
     setBlockedReason: (r: string) => void,
     setIsBlockedModalVisible: (v: boolean) => void,
     setStatusMessage: (m: string) => void,
@@ -35,6 +37,7 @@ export const useDomDecision = (
     heuristicCtx?: HeuristicContext,
     onStepOutcome?: (success: boolean) => void,
     cursorActions?: CursorActions,
+    remoteActions?: RemoteActions,
 ) => {
     /** Find the current task to execute: first in_progress, or first pending non-mission task */
     const getCurrentTask = useCallback((): TaskItem | null => {
@@ -107,7 +110,7 @@ export const useDomDecision = (
                     }
                 }
 
-                const actionCtx = { activePrompt, activeUrl, webViewRef, setStatusMessage, setIsPaused, setBlockedReason, setIsBlockedModalVisible, setInteractiveRequest, setIsInteractiveModalVisible, cursorActions };
+                const actionCtx = { activePrompt, activeUrl, webViewRef, setActiveUrl, navigateActiveTab, setStatusMessage, setIsPaused, setBlockedReason, setIsBlockedModalVisible, setInteractiveRequest, setIsInteractiveModalVisible, cursorActions, remoteActions };
                 const actionExecuted = await executeDomAction(firstStep, actionCtx);
 
                 if (currentTask && (actionExecuted || firstStep.action === 'done')) {
