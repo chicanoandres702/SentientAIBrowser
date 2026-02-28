@@ -1,12 +1,18 @@
 // Feature: Browser | Why: Core browser proxy routes — health, plan, proxy GET
+import * as path from 'path';
+import * as fs from 'fs';
 import { stripSecurityHeaders } from './proxy-config';
 import { injectScanner } from './proxy-scanner';
 import { isStaticAsset, setupAssetRoute } from './proxy-asset';
 import { getPersistentPage, activePages } from './proxy-page-handler';
 import { rewriteHtml } from './proxy-html.service';
 import { generateLLMPlanResponse } from './features/llm/llm-mission-planner';
+import { DeepResearchAgent, RunResult } from './features/deep-research/deep-research-agent';
 import { Express } from 'express';
 import { setupActionRoute, setupScreenshotRoute } from './proxy-routes-action';
+
+// In-memory registry of running deep-research agents (keyed by taskId)
+const activeResearchAgents = new Map<string, DeepResearchAgent>();
 
 export function setupBrowserRoutes(app: Express) {
   setupAssetRoute(app);
@@ -25,6 +31,72 @@ export function setupBrowserRoutes(app: Express) {
       console.error('Mission planning failed:', e);
       res.status(500).json({ error: 'Mission planning failed: ' + e.message });
     }
+  });
+
+  // --- browser-use/web-ui: deep research agent routes ---
+
+  /**
+   * POST /agent/deep-research/start
+   * Body: { topic: string, taskId?: string, maxParallelSearches?: number }
+   * Starts an async deep-research run (Plan→Execute→Synthesize).
+   * Returns immediately with { taskId, outputDir } so the client can poll for the report.
+   */
+  app.post('/agent/deep-research/start', (req, res): void => {
+    const { topic, taskId, maxParallelSearches = 3 } = req.body;
+    if (!topic) { res.status(400).json({ error: 'topic required' }); return; }
+
+    const id = (taskId as string) || `dr_${Date.now()}`;
+    const outputDir = path.join(process.cwd(), '.research', id);
+    const agent = new DeepResearchAgent(maxParallelSearches);
+    activeResearchAgents.set(id, agent);
+
+    // Fire-and-forget — client polls /status or /report
+    agent.run(topic, id, outputDir)
+      .then((result: RunResult) => {
+        console.log(`[DeepResearch] Task ${id} finished with status: ${result.status}`);
+        activeResearchAgents.delete(id);
+      })
+      .catch((e: Error) => {
+        console.error(`[DeepResearch] Task ${id} threw:`, e.message);
+        activeResearchAgents.delete(id);
+      });
+
+    res.json({ taskId: id, outputDir, message: 'Deep research started' });
+  });
+
+  /**
+   * POST /agent/deep-research/:taskId/stop
+   * Signals the running agent to stop after the current task.
+   */
+  app.post('/agent/deep-research/:taskId/stop', (req, res): void => {
+    const agent = activeResearchAgents.get(req.params.taskId);
+    if (!agent) { res.status(404).json({ error: 'Task not found or already finished' }); return; }
+    agent.stop();
+    res.json({ message: 'Stop signal sent' });
+  });
+
+  /**
+   * GET /agent/deep-research/:taskId/report
+   * Returns the final_report.md contents when available.
+   */
+  app.get('/agent/deep-research/:taskId/report', (req, res): void => {
+    const reportPath = path.join(process.cwd(), '.research', req.params.taskId, 'final_report.md');
+    if (!fs.existsSync(reportPath)) {
+      const running = activeResearchAgents.has(req.params.taskId);
+      res.status(running ? 202 : 404).json({ message: running ? 'Still running' : 'Report not found' });
+      return;
+    }
+    res.type('text/markdown').send(fs.readFileSync(reportPath, 'utf-8'));
+  });
+
+  /**
+   * GET /agent/deep-research/:taskId/plan
+   * Returns the current research_plan.md (useful for progress display).
+   */
+  app.get('/agent/deep-research/:taskId/plan', (req, res): void => {
+    const planPath = path.join(process.cwd(), '.research', req.params.taskId, 'research_plan.md');
+    if (!fs.existsSync(planPath)) { res.status(404).json({ error: 'Plan not found' }); return; }
+    res.type('text/markdown').send(fs.readFileSync(planPath, 'utf-8'));
   });
 
   app.get('/proxy', async (req, res) => {

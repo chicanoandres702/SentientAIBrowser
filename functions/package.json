@@ -23,6 +23,8 @@
         "playwright": "1.58.2"
     },
     "devDependencies": {
+        "@types/cors": "^2.8.19",
+        "@types/express": "^5.0.6",
         "firebase-functions-test": "^3.1.0",
         "rimraf": "^6.0.1",
         "typescript": "^5.9.2"
