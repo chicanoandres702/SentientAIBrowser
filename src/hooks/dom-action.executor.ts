@@ -1,9 +1,8 @@
 // Feature: Core | Why: Strategy-map dispatch for DOM actions — cursor-first execution path
 // Animates virtual cursor to target BEFORE dispatching WebView action
 import { HeadlessWebViewRef } from '../components/HeadlessWebView';
-import { recordAnswer } from '../../shared/survey-memory-db';
-import { saveContextualKnowledge } from '../features/llm/knowledge-hierarchy.service';
-import { auth } from '../features/auth/firebase-config';
+import { normalizeStep } from '../features/dom-actions/dom-action.normalizer';
+import { runSideEffects } from '../features/dom-actions/dom-action.side-effects';
 
 /** Cursor animation callbacks — optional, gracefully degrades without cursor */
 export interface CursorActions {
@@ -12,10 +11,17 @@ export interface CursorActions {
     hideCursor: () => void;
 }
 
+export interface RemoteActions {
+    executeAction: (action: 'click' | 'type', targetId: string, value?: string) => Promise<void>;
+}
+
 interface ActionContext {
     activePrompt: string;
     activeUrl: string;
     webViewRef: React.RefObject<HeadlessWebViewRef>;
+    /** Why: use navigateActiveTab (syncs Firestore) so the tab listener never reverts the URL */
+    navigateActiveTab?: (url: string) => Promise<void>;
+    setActiveUrl?: (url: string) => void;
     setStatusMessage: (m: string) => void;
     setIsPaused: (p: boolean) => void;
     setBlockedReason: (r: string) => void;
@@ -23,46 +29,50 @@ interface ActionContext {
     setInteractiveRequest: (req: { question: string; type: 'confirm' | 'input' } | null) => void;
     setIsInteractiveModalVisible: (v: boolean) => void;
     cursorActions?: CursorActions;
+    remoteActions?: RemoteActions;
 }
 
-/** Pre-action side effects keyed by action type — O(1) lookup replaces if/else chain */
-const SIDE_EFFECTS: Record<string, (s: any, c: ActionContext) => Promise<void>> = {
-    type: async (s, c) => { if (s.value) await recordAnswer(c.activePrompt, s.value); },
-    record_knowledge: async (s, c) => {
-        if (!s.value) return;
-        c.setStatusMessage('Saving Brain Data...');
-        await saveContextualKnowledge(
-            auth.currentUser?.uid || 'anonymous',
-            { contextId: new URL(c.activeUrl).hostname, ...(s.knowledgeContext || {}) },
-            'rule', s.value,
-        );
-    },
-};
-
 /** Execute a single LLM decision step. Returns true if an action ran. */
-export const executeDomAction = async (step: any, ctx: ActionContext): Promise<boolean> => {
+export const executeDomAction = async (rawStep: any, ctx: ActionContext): Promise<boolean> => {
+    const step = normalizeStep(rawStep);
+    const action = step.action;
     // Terminal: interactive prompt pauses execution for user input
-    if (step.action === 'ask_user' && step.value) {
+    if (action === 'ask_user' && step.value) {
         ctx.setInteractiveRequest({ question: step.value, type: step.value.includes('?') ? 'confirm' : 'input' });
         ctx.setIsInteractiveModalVisible(true);
         ctx.setIsPaused(true);
         ctx.setStatusMessage('Awaiting Input');
         return false;
     }
-    if (step.action === 'lookup_documentation' && step.value) {
+    if (action === 'wait_for_user') {
+        ctx.setIsPaused(true);
+        ctx.setStatusMessage('Awaiting User');
+        return false;
+    }
+    if (action === 'navigate' && step.value) {
+        ctx.setStatusMessage('Navigating...');
+        // Sync to Firestore first; plain setActiveUrl would be overwritten by the tab listener
+        if (ctx.navigateActiveTab) { await ctx.navigateActiveTab(step.value); }
+        else { ctx.setActiveUrl?.(step.value); }
+        return true;
+    }
+    if (action === 'scan_dom') {
+        ctx.webViewRef.current?.scanDOM();
+        ctx.setStatusMessage('Scanning DOM...');
+        return true;
+    }
+    if (action === 'lookup_documentation' && step.value) {
         ctx.setStatusMessage('Docs lookup disabled');
         return false;
     }
-
-    // O(1) side-effect lookup before main action
-    await SIDE_EFFECTS[step.action]?.(step, ctx);
+    await runSideEffects(step, ctx);
 
     if (step.targetId) {
-        ctx.setStatusMessage(`Executing: ${step.action}...`);
+        ctx.setStatusMessage(`Executing: ${action}...`);
 
         // Cursor-first: animate pseudo-cursor to target before dispatching action
         if (ctx.cursorActions) {
-            const isTypeAction = step.action === 'type';
+            const isTypeAction = action === 'type';
             const animated = isTypeAction
                 ? await ctx.cursorActions.animateType(step.targetId)
                 : await ctx.cursorActions.animateClick(step.targetId);
@@ -71,16 +81,30 @@ export const executeDomAction = async (step: any, ctx: ActionContext): Promise<b
             }
         }
 
-        ctx.webViewRef.current?.executeAction(step.action as any, step.targetId, step.value);
+        if (ctx.remoteActions) {
+            if (action === 'click' || action === 'type') {
+                await ctx.remoteActions.executeAction(action, step.targetId, step.value);
+            } else {
+                ctx.setStatusMessage(`Remote action unsupported: ${action}`);
+                return false;
+            }
+        } else {
+            ctx.webViewRef.current?.executeAction(action as any, step.targetId, step.value);
+        }
         return true;
     }
-    if (step.action === 'wait') {
+    if (action === 'verify' || action === 'extract_data') {
+        ctx.webViewRef.current?.scanDOM();
+        ctx.setStatusMessage('Verifying...');
+        return true;
+    }
+    if (action === 'wait') {
         ctx.setStatusMessage('Waiting...');
         ctx.cursorActions?.hideCursor();
         await new Promise(r => setTimeout(r, 2000));
         return true;
     }
-    if (step.action === 'done') {
+    if (action === 'done') {
         ctx.setStatusMessage('Task Complete');
         ctx.cursorActions?.hideCursor();
         return true;

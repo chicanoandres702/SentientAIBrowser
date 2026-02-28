@@ -36,4 +36,6 @@ export const missionStyles = StyleSheet.create({
     bar: { height: 4, borderRadius: 2 },
     pct: { fontSize: 9, fontWeight: '700' },
     details: { fontSize: 9, color: 'rgba(255,255,255,0.4)', marginTop: 4 },
+    childList: { marginTop: 10 },
+    childItem: { marginLeft: 12 },
 });

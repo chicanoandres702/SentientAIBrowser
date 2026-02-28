@@ -6,12 +6,15 @@ import { sanitizeForCloud } from '../../shared/safe-cloud.utils';
 
 export const syncTaskToFirestore = async (task: TaskItem, userId: string) => {
     const taskRef = doc(db, 'task_queues', task.id);
-    await setDoc(taskRef, sanitizeForCloud({
+    const payload = sanitizeForCloud({
         ...task,
         user_id: userId,
         server_timestamp: serverTimestamp(),
-        updated_at: serverTimestamp()
-    }));
+        updated_at: serverTimestamp(),
+    });
+    if (payload.startTime === undefined) delete payload.startTime;
+    if (payload.completedTime === undefined) delete payload.completedTime;
+    await setDoc(taskRef, payload);
 };
 
 export const updateTaskInFirestore = async (id: string, updates: Partial<TaskItem>) => {
@@ -47,8 +50,15 @@ export const hydrateTasksFromFirestore = async (userId: string) => {
             category: data.category,
             progress: data.progress,
             missionId: data.missionId,
+            runId: data.runId,
+            tabId: data.tabId,
+            order: data.order,
+            source: data.source,
             isMission: data.isMission,
             subActions: data.subActions,
+            startTime: data.startTime,
+            completedTime: data.completedTime,
+            estimatedDuration: data.estimatedDuration,
         } as TaskItem);
     });
     return loadedTasks.reverse();

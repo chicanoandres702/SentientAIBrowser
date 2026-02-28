@@ -10,6 +10,10 @@ export const APP_SCHEMAS = {
             title: 'string — actionable task name',
             status: "'pending' | 'in_progress' | 'completed' | 'failed' | 'blocked_on_user'" as string,
             missionId: 'string? — parent mission id',
+            runId: 'string? — mission run identifier',
+            tabId: 'string? — active browser tab id',
+            order: 'number? — display order within mission',
+            source: "'planner' | 'manual' | 'fallback'",
             isMission: 'boolean? — true if this is the top-level mission',
             progress: 'number 0-100',
             subActions: '{ action, explanation, status }[] — hidden background steps',
@@ -17,6 +21,25 @@ export const APP_SCHEMAS = {
             startTime: 'number? epoch ms',
             completedTime: 'number? epoch ms',
             estimatedDuration: 'number? ms',
+        },
+    },
+
+    /** Mission — parent record tracking a multi-step run */
+    mission: {
+        collection: 'missions',
+        fields: {
+            id: 'string',
+            userId: 'string',
+            goal: 'string',
+            status: "'active' | 'completed' | 'failed' | 'paused'",
+            progress: 'number 0-100',
+            runId: 'string — mission run identifier',
+            tabId: 'string — browser tab id',
+            taskCount: 'number',
+            lastAction: 'string',
+            startedAt: 'number epoch ms',
+            updatedAt: 'number epoch ms',
+            schemaVersion: 'number',
         },
     },
 
@@ -83,6 +106,6 @@ export const APP_SCHEMAS = {
         'click', 'type', 'wait', 'done',
         'wait_for_user', 'ask_user',
         'record_knowledge', 'lookup_documentation',
-        'scan_dom', 'navigate', 'verify', 'interact', 'extract_data',
+        'scan_dom', 'navigate', 'open_url', 'verify', 'interact', 'extract_data',
     ],
 };

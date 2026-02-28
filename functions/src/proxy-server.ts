@@ -13,6 +13,13 @@ import orchestrator from './backend-ai-orchestrator';
  */
 const app = express();
 app.use(cors());
+app.use((req, res, next) => {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  if (req.method === 'OPTIONS') return res.sendStatus(204);
+  return next();
+});
 app.use(express.json());
 
 // Why: The Puppeteer-based browser proxy is more robust for modern web apps.

@@ -31,6 +31,7 @@ export const useBrowserState = () => {
     const [isThinking, setIsThinking] = useState(false);
     const [isScholarMode, setIsScholarMode] = useState(false);
     const [layoutMode, setLayoutMode] = useState<LayoutMode>('standard');
+    const [isRemoteMirrorEnabled, setIsRemoteMirrorEnabled] = useState(false);
 
     const config = getEnvConfig();
     const PROXY_BASE_URL = config.proxyBaseUrl;
@@ -50,6 +51,7 @@ export const useBrowserState = () => {
         lookedUpDocs, setLookedUpDocs, isScholarMode, setIsScholarMode,
         sessionAnswerIds, setSessionAnswerIds, isThinking, setIsThinking,
         layoutMode, setLayoutMode,
+        isRemoteMirrorEnabled, setIsRemoteMirrorEnabled,
         trackManualInteraction
     };
 };
