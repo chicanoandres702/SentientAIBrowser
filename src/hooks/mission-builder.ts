@@ -65,5 +65,5 @@ export const buildMissionFromSegments = async (
         } catch (e) { console.error('Failed to save mission:', e); }
     }
 
-    deps.setStatusMessage(llmError ? 'Tasks loaded (LLM fallback)' : 'Mission planned — ready for execution');
+    deps.setStatusMessage(llmError ? 'Tasks loaded (LLM fallback) — executing...' : 'Mission active — executing first task');
 };

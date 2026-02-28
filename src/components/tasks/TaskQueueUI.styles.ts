@@ -25,3 +25,15 @@ export const styles = StyleSheet.create({
     closeIcon: { fontSize: 24, fontWeight: '200' },
     emptyText: { textAlign: 'center', marginTop: 14, fontSize: 12, fontWeight: '500' },
 });
+
+/** Mission card styles — extracted from inline objects to avoid per-render allocation */
+export const missionStyles = StyleSheet.create({
+    card: { backgroundColor: 'rgba(0,210,255,0.06)', borderWidth: 1, borderRadius: 12, padding: 12, marginBottom: 12 },
+    label: { fontSize: 8, fontWeight: '900', letterSpacing: 1.2, marginBottom: 4 },
+    title: { fontSize: 12, fontWeight: '800', color: '#fff', letterSpacing: 0.3 },
+    progressRow: { flexDirection: 'row', alignItems: 'center', marginTop: 8, gap: 8 },
+    track: { flex: 1, height: 4, backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 2, overflow: 'hidden' },
+    bar: { height: 4, borderRadius: 2 },
+    pct: { fontSize: 9, fontWeight: '700' },
+    details: { fontSize: 9, color: 'rgba(255,255,255,0.4)', marginTop: 4 },
+});

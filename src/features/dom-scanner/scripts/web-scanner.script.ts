@@ -35,11 +35,20 @@ export const getWebScannerScript = (): string => `
           || el.getAttribute('aria-label') || el.name || '';
         text = text.trim();
         if (text || el.tagName === 'INPUT') {
+          var r = el.getBoundingClientRect();
           elementMap.push({
             id: currentId,
             tag: el.tagName.toLowerCase(),
             type: el.type || undefined,
-            text: text.substring(0, 50)
+            text: text.substring(0, 50),
+            rect: {
+              x: Math.round(r.left),
+              y: Math.round(r.top),
+              w: Math.round(r.width),
+              h: Math.round(r.height)
+            },
+            vw: window.innerWidth,
+            vh: window.innerHeight
           });
           currentId++;
         }

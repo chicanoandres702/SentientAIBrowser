@@ -59,14 +59,21 @@ const base = Object.freeze({
 
 const accents = Object.freeze({ red: '#ff5c8a', blue: '#5aa8ff' });
 
-/** Returns the full color palette for the active theme */
+/** Singleton cache — only 2 possible themes, returns same frozen ref every call */
+const _themeCache = new Map<AppTheme, UiColors>();
+
+/** Returns the full color palette for the active theme — cached per theme key */
 export const uiColors = (theme: AppTheme): UiColors => {
+    const hit = _themeCache.get(theme);
+    if (hit) return hit;
     const accent = theme === 'red' ? accents.red : accents.blue;
-    return {
+    const result: UiColors = Object.freeze({
         ...base,
         accent,
         accentSoft: `${accent}18`,
         accentGlow: `${accent}55`,
         accentMuted: `${accent}88`,
-    } as const;
+    });
+    _themeCache.set(theme, result);
+    return result;
 };

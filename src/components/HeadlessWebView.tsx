@@ -17,6 +17,8 @@ export interface HeadlessWebViewRef {
     scanDOM: () => void;
     executeAction: (action: 'click' | 'type', id: string, value?: string) => void;
     reload: () => void;
+    /** Inject arbitrary JS into the page — used by view-clearing pipeline */
+    injectJavaScript: (script: string) => void;
 }
 
 import { headlessStyles, iframeStyles } from './HeadlessWebView.styles';
@@ -61,7 +63,17 @@ export const HeadlessWebView = React.memo(forwardRef<HeadlessWebViewRef, Props>(
             } else {
                 webViewRef.current?.reload();
             }
-        }
+        },
+        injectJavaScript: (script: string) => {
+            if (Platform.OS === 'web') {
+                // Post to iframe — scanner relay handles execution
+                iframeRef.current?.contentWindow?.postMessage(
+                    { source: 'sentient-parent', type: 'EXEC_SCRIPT', script }, '*',
+                );
+            } else {
+                webViewRef.current?.injectJavaScript(`${script}; true;`);
+            }
+        },
     }));
 
     return (

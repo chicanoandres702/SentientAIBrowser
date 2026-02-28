@@ -72,11 +72,27 @@
             "console": "integratedTerminal"
         },
         {
-            "name": "Firebase: Deploy Functions Only",
+            "name": "☁️ Deploy Functions (Build TS → Deploy)",
             "type": "node",
             "request": "launch",
-            "runtimeExecutable": "firebase",
-            "runtimeArgs": ["deploy", "--only", "functions"],
+            "runtimeExecutable": "cmd",
+            "runtimeArgs": [
+                "/c",
+                "cd functions && npm run build && cd .. && firebase deploy --only functions"
+            ],
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "🖥️ Deploy Frontend (TSX → Hosting)",
+            "type": "node",
+            "request": "launch",
+            "runtimeExecutable": "powershell",
+            "runtimeArgs": [
+                "-ExecutionPolicy", "Bypass",
+                "-File", "./deploy-frontend.ps1"
+            ],
+            "cwd": "${workspaceFolder}",
             "console": "integratedTerminal"
         },
         {

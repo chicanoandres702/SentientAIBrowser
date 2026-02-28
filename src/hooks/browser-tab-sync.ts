@@ -2,7 +2,7 @@
 import { auth } from '../features/auth/firebase-config';
 import { TabItem } from '../features/browser/types';
 import {
-    syncTabToFirestore, updateTabInFirestore, removeTabFromFirestore
+    syncTabToFirestore, updateTabInFirestore, removeTabFromFirestore, batchUpdateTabs
 } from '../utils/browser-sync-service';
 
 /** Sync initial default tab to Firestore on mount */
@@ -34,13 +34,11 @@ export const syncCloseTab = async (id: string) => {
     catch (e) { console.error('Tab close sync failed:', e); }
 };
 
-/** Update isActive for all tabs in Firestore to reflect selection */
+/** Update isActive for all tabs in one Firestore batch (N writes → 1 round-trip) */
 export const syncSelectTab = async (tabs: TabItem[], selectedId: string) => {
     if (!auth.currentUser) return;
     try {
-        for (const t of tabs) {
-            await updateTabInFirestore(t.id, { isActive: t.id === selectedId });
-        }
+        await batchUpdateTabs(tabs.map(t => ({ id: t.id, changes: { isActive: t.id === selectedId } })));
     } catch (e) { console.error('Tab selection sync failed:', e); }
 };
 

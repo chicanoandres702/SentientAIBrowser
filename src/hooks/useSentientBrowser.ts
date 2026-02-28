@@ -1,5 +1,6 @@
 // Feature: Core | Why: Orchestrates all browser hooks into a single composable state object
-import { useRef, useEffect } from 'react';
+import { useRef, useEffect, useCallback } from 'react';
+import { useWindowDimensions } from 'react-native';
 import { HeadlessWebViewRef } from '../components/HeadlessWebView';
 import { useUrlTracker } from './useUrlTracker';
 import { AppTheme } from '../../App';
@@ -13,6 +14,7 @@ import { usePlanReassessment } from './usePlanReassessment';
 import { detectModeFromUrl } from '../utils/mode-detector';
 import { useSessionSync } from '../features/browser/hooks/useSessionSync';
 import { useKnowledgeSync } from '../features/browser/hooks/useKnowledgeSync';
+import { useCursorController } from './useCursorController';
 import { auth } from '../features/auth/firebase-config';
 
 export const useSentientBrowser = (theme: AppTheme) => {
@@ -20,6 +22,12 @@ export const useSentientBrowser = (theme: AppTheme) => {
     const { tabs, setTabs, activeUrl, setActiveUrl, navigateActiveTab, addNewTab, closeTab, selectTab } = useBrowserTabs('https://www.google.com');
     const { tasks, setTasks, addTask, updateTask, removeTask, clearTasks, editTask } = useTaskQueue();
     const webViewRef = useRef<HeadlessWebViewRef>(null!);
+    const { width: winWidth } = useWindowDimensions();
+    // Why: Cursor needs viewport dimensions to scale element rects to container coordinates
+    const previewWidth = Math.min(winWidth * 0.7, 1200);
+    const previewHeight = previewWidth * 0.6;
+    const { cursor, updateDomMap, animateClick, animateType, hideCursor, showAt } = useCursorController(previewWidth, previewHeight);
+    const cursorActions = { animateClick, animateType, hideCursor };
     const { session, persistSession } = useSessionSync();
     const activeHost = activeUrl ? new URL(activeUrl).hostname : '';
     const { entries: knowledgeEntries, addEntry: addKnowledge } = useKnowledgeSync(activeHost);
@@ -38,13 +46,20 @@ export const useSentientBrowser = (theme: AppTheme) => {
         tabId: activeTab?.id || 'default', addTask, updateTask, removeTask, setStatusMessage: s.setStatusMessage,
     });
 
-    const { handleDomMapReceived } = useDomDecision(
+    const { handleDomMapReceived: onDomMap } = useDomDecision(
         s.activePrompt, activeUrl, s.retryCount, s.setRetryCount, updateTask,
         tasks.map(t => t.id), webViewRef, s.setBlockedReason, s.setIsBlockedModalVisible,
         s.setStatusMessage, s.setIsPaused, s.lookedUpDocs, s.setLookedUpDocs,
         s.setInteractiveRequest, s.setIsInteractiveModalVisible,
         s.isThinking, s.setIsThinking, s.PROXY_BASE_URL, s.isScholarMode, tasks, reassess,
+        undefined, undefined, cursorActions,
     );
+
+    // Bridge: feed DOM map to both decision engine AND cursor coordinate resolver
+    const handleDomMapReceived = useCallback((map: any) => {
+        updateDomMap(Array.isArray(map) ? map : []);
+        onDomMap(map);
+    }, [onDomMap, updateDomMap]);
 
     const handleInteractiveResponse = (response: string | boolean) => {
         s.setIsInteractiveModalVisible(false); s.setIsPaused(false); s.setInteractiveRequest(null);
@@ -68,5 +83,6 @@ export const useSentientBrowser = (theme: AppTheme) => {
         session, persistSession, knowledgeEntries, addKnowledge,
         handleExecutePrompt: (p: string) => handleExecutePrompt(p, activeTab?.id || 'default', auth.currentUser?.uid || 'anonymous'),
         toggleDaemon, handleInteractiveResponse, webViewRef, handleDomMapReceived, handleReload,
+        cursor, cursorActions,
     };
 };
