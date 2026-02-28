@@ -2,39 +2,25 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Run Web",
+            "name": "Sync Cloud Logic (Deploy)",
             "type": "node",
             "request": "launch",
-            "preLaunchTask": "Run Web",
-            "cwd": "${workspaceFolder}"
+            "runtimeExecutable": "${workspaceFolder}/deploy-cloud.bat",
+            "console": "integratedTerminal"
         },
         {
-            "name": "Run Android",
+            "name": "Start Local Cloud (Emulator)",
             "type": "node",
             "request": "launch",
-            "preLaunchTask": "Run Android",
-            "cwd": "${workspaceFolder}"
+            "runtimeExecutable": "${workspaceFolder}/debug-local-cloud.bat",
+            "console": "integratedTerminal"
         },
         {
-            "name": "Run Proxy",
-            "type": "node",
+            "name": "Debug Android",
+            "cwd": "${workspaceFolder}",
+            "type": "reactnative",
             "request": "launch",
-            "preLaunchTask": "Run Proxy",
-            "cwd": "${workspaceFolder}"
-        },
-        {
-            "name": "Build Web",
-            "type": "node",
-            "request": "launch",
-            "preLaunchTask": "Build Web",
-            "cwd": "${workspaceFolder}"
-        },
-        {
-            "name": "Sync Credentials",
-            "type": "node",
-            "request": "launch",
-            "preLaunchTask": "Sync Credentials",
-            "cwd": "${workspaceFolder}"
+            "platform": "android"
         }
     ]
 }

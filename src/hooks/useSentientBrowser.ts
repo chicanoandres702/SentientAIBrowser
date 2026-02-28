@@ -66,14 +66,21 @@ export const useSentientBrowser = (theme: AppTheme) => {
 
     const { handleExecutePrompt, toggleDaemon, handleReload } = useBrowserController(
         webViewRef, addTask, s.setActivePrompt, s.setTaskStartTime,
-        s.setStatusMessage, s.setIsPaused, s.isDaemonRunning, s.setIsDaemonRunning
+        s.setStatusMessage, s.setIsPaused, s.isDaemonRunning, s.setIsDaemonRunning,
+        s.PROXY_BASE_URL
     );
 
     const activeTab = tabs.find(t => t.isActive);
 
+    // Construct the Proxy URL if proxy mode is enabled
+    const webViewUrl = (s.useProxy && s.PROXY_BASE_URL)
+        ? `${s.PROXY_BASE_URL}/proxy?url=${encodeURIComponent(activeUrl)}&tabId=${activeTab?.id || 'default'}`
+        : activeUrl;
+
     return {
         ...s, tabs, setTabs, activeUrl, setActiveUrl, addNewTab, closeTab, selectTab,
         activeTabId: activeTab?.id,
+        webViewUrl, // Use this in your MainLayout <WebView source={{ uri: s.webViewUrl }} />
         tasks, addTask, updateTask, removeTask, clearTasks, editTask,
         session, persistSession, knowledgeEntries, addKnowledge,
         handleExecutePrompt: (p: string) => handleExecutePrompt(p, activeTab?.id || 'default', auth.currentUser?.uid || 'anonymous'),

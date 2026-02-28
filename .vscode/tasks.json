@@ -2,79 +2,16 @@
     "version": "2.0.0",
     "tasks": [
         {
-            "label": "Run Web",
+            "label": "Sync Cloud Logic",
             "type": "shell",
-            "command": "powershell -ExecutionPolicy Bypass -File ./run-web.ps1",
-            "group": {
-                "kind": "build",
-                "isDefault": true
+            "command": ".\\deploy-cloud.bat",
+            "windows": {
+                "command": ".\\deploy-cloud.bat"
             },
             "presentation": {
                 "reveal": "always",
-                "panel": "new",
-                "clear": true
-            },
-            "problemMatcher": []
-        },
-        {
-            "label": "Run Android",
-            "type": "shell",
-            "command": "powershell -ExecutionPolicy Bypass -File ./run-android.ps1",
-            "group": "build",
-            "presentation": {
-                "reveal": "always",
-                "panel": "new",
-                "clear": true
-            },
-            "problemMatcher": []
-        },
-        {
-            "label": "Run Proxy",
-            "type": "shell",
-            "command": "powershell -ExecutionPolicy Bypass -File ./run-proxy.ps1",
-            "group": "build",
-            "presentation": {
-                "reveal": "always",
-                "panel": "shared",
-                "clear": true
-            },
-            "problemMatcher": []
-        },
-        {
-            "label": "Build Web",
-            "type": "shell",
-            "command": "powershell -ExecutionPolicy Bypass -File ./build-web.ps1",
-            "group": "build",
-            "presentation": {
-                "reveal": "always",
-                "panel": "new",
-                "clear": true
-            },
-            "problemMatcher": []
-        },
-        {
-            "label": "Deploy Firebase",
-            "type": "shell",
-            "command": "npm run firebase",
-            "group": "build",
-            "presentation": {
-                "reveal": "always",
-                "panel": "new",
-                "clear": true
-            },
-            "problemMatcher": []
-        },
-        {
-            "label": "Sync Credentials",
-            "type": "shell",
-            "command": "npm run sync-credentials",
-            "group": "build",
-            "presentation": {
-                "reveal": "always",
-                "panel": "new",
-                "clear": true
-            },
-            "problemMatcher": []
+                "panel": "dedicated"
+            }
         }
     ]
 }
