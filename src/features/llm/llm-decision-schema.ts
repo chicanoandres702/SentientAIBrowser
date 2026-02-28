@@ -14,7 +14,7 @@ export const MISSION_RESPONSE_SCHEMA = {
     segments: [{
       name: 'string (grouping name)',
       steps: [{
-        action: 'click | type | wait | wait_for_user | ask_user | record_knowledge | lookup_documentation | done',
+        action: 'click | type | wait | wait_for_user | ask_user | record_knowledge | lookup_documentation | upload_file | done',
         targetId: 'string (optional)',
         value: 'string (optional)',
         explanation: 'string',

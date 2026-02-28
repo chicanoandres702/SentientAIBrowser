@@ -1,9 +1,15 @@
 // Feature: Mission Executor | Trace: backend-ai-orchestrator.js
+// Technique: browser-use/web-ui — max_steps guard + consecutive_failures tracking (BrowserUseAgent.run)
 import { db } from './proxy-config';
 import { getPersistentPage } from './proxy-page-handler';
 import { determineNextAction } from './features/llm/llm-decision.engine';
 import { recordActionOutcome } from './features/llm/llm-memory-service';
 import { saveContextualKnowledge } from './features/llm/knowledge-hierarchy.service';
+
+/** Max LLM decision cycles per mission before forcing termination */
+const MAX_STEPS = 50;
+/** Abort mission after this many back-to-back action failures */
+const MAX_CONSECUTIVE_FAILURES = 3;
 
 export async function processMissionStep(missionId: string) {
     try {
@@ -14,6 +20,32 @@ export async function processMissionStep(missionId: string) {
         const tabId = data.tabId || 'default';
         const userId = data.userId;
         const context = { groupId: data.groupId || 'DefaultGroup', contextId: data.contextId || 'DefaultContext', unitId: missionId };
+
+        // Restore step counters persisted in Firestore so re-triggers accumulate correctly
+        const stepCount: number = data.stepCount || 0;
+        const consecutiveFailures: number = data.consecutiveFailures || 0;
+
+        // --- browser-use/web-ui: max_steps guard ---
+        if (stepCount >= MAX_STEPS) {
+            console.warn(`[Executor] Mission ${missionId} reached MAX_STEPS (${MAX_STEPS}). Terminating.`);
+            await missionRef.update({
+                status: 'failed',
+                lastAction: `Exceeded maximum steps (${MAX_STEPS})`,
+                updated_at: new Date().toISOString()
+            });
+            return 'failed';
+        }
+
+        // --- browser-use/web-ui: consecutive failures guard ---
+        if (consecutiveFailures >= MAX_CONSECUTIVE_FAILURES) {
+            console.warn(`[Executor] Mission ${missionId} hit MAX_CONSECUTIVE_FAILURES (${MAX_CONSECUTIVE_FAILURES}). Terminating.`);
+            await missionRef.update({
+                status: 'failed',
+                lastAction: `Too many consecutive failures (${MAX_CONSECUTIVE_FAILURES})`,
+                updated_at: new Date().toISOString()
+            });
+            return 'failed';
+        }
 
         const page = await getPersistentPage(null, tabId, userId);
         if (!page) return;
@@ -56,7 +88,7 @@ export async function processMissionStep(missionId: string) {
 
             if (step.action === 'done') {
                 await saveContextualKnowledge(userId, context, 'breadcrumb', `Completed: ${data.goal}`);
-                await missionRef.update({ status: 'completed', progress: 100, lastAction: 'Mission Completed Successfully' });
+                await missionRef.update({ status: 'completed', progress: 100, stepCount: stepCount + 1, consecutiveFailures: 0, lastAction: 'Mission Completed Successfully' });
                 return 'done';
             }
 
@@ -80,6 +112,13 @@ export async function processMissionStep(missionId: string) {
                     await page.keyboard.press('Enter');
                 }
                 else if (step.action === 'wait') await page.waitForTimeout(2000);
+                // --- browser-use/web-ui: upload_file action (custom_controller.py upload_file) ---
+                else if (step.action === 'upload_file' && step.value) {
+                    const allowed = ['.pdf', '.png', '.jpg', '.jpeg', '.csv', '.txt', '.docx'];
+                    const ext = step.value.substring(step.value.lastIndexOf('.')).toLowerCase();
+                    if (!allowed.includes(ext)) throw new Error(`File type "${ext}" not permitted`);
+                    await page.setInputFiles(sel, step.value);
+                }
             } catch (err: any) {
                 result = 'failure';
                 observation = `Action failed: ${err.message}`;
@@ -87,17 +126,27 @@ export async function processMissionStep(missionId: string) {
             }
 
             await recordActionOutcome(userId, data.goal, step.action, result, observation, new URL(page.url()).hostname);
-            
+
             // Read fresh progress from Firestore to avoid stale accumulation
             const freshSnap = await missionRef.get();
             const currentProgress = freshSnap.data()?.progress || 0;
+
+            // --- browser-use/web-ui: increment stepCount; reset or increment consecutiveFailures ---
+            const nextStep = stepCount + 1;
+            const nextConsecutiveFailures = result === 'failure' ? consecutiveFailures + 1 : 0;
+
             await missionRef.update({
                 lastAction: observation.substring(0, 100) + '...',
                 progress: Math.min(currentProgress + Math.ceil(90 / stepQueue.length), 98),
+                stepCount: nextStep,
+                consecutiveFailures: nextConsecutiveFailures,
                 updated_at: new Date().toISOString()
             });
 
-            if (result === 'failure') break; // Stop chain on failure
+            if (result === 'failure') {
+                console.warn(`[Executor] Consecutive failures: ${nextConsecutiveFailures}/${MAX_CONSECUTIVE_FAILURES}`);
+                break; // Stop chain; next Firestore trigger will hit the guard at the top
+            }
         }
     } catch (e: any) {
         console.error(`[Executor] Fatal in mission ${missionId}:`, e.message);

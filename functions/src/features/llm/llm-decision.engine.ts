@@ -6,7 +6,7 @@ import { getRelevantContext, KnowledgeContext } from './knowledge-hierarchy.serv
 import { DECISION_SYSTEM_INSTRUCTION } from './llm-decision-prompt';
 
 export interface MissionStep {
-  action: 'click' | 'type' | 'wait' | 'done' | 'wait_for_user' | 'ask_user' | 'record_knowledge' | 'lookup_documentation';
+  action: 'click' | 'type' | 'wait' | 'done' | 'wait_for_user' | 'ask_user' | 'record_knowledge' | 'lookup_documentation' | 'upload_file';
   targetId?: string;
   value?: string;
   domContext?: { tagName?: string; text?: string; role?: string; placeholder?: string };

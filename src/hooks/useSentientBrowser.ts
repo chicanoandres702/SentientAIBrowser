@@ -16,6 +16,7 @@ import { useSessionSync } from '../features/browser/hooks/useSessionSync';
 import { useKnowledgeSync } from '../features/browser/hooks/useKnowledgeSync';
 import { useCursorController } from './useCursorController';
 import { auth } from '../features/auth/firebase-config';
+import { missionTaskExecutor } from '../services/mission-task.executor';
 
 export const useSentientBrowser = (theme: AppTheme) => {
     const s = useBrowserState();
@@ -40,6 +41,19 @@ export const useSentientBrowser = (theme: AppTheme) => {
     }, [activeUrl]);
 
     useUrlTracker(activeUrl, tasks.map(t => t.id), s.sessionAnswerIds);
+
+    // Start mission task executor when component mounts
+    useEffect(() => {
+        if (auth.currentUser && webViewRef.current) {
+            missionTaskExecutor.start({
+                webViewRef,
+                setStatusMessage: s.setStatusMessage,
+                setActivePrompt: s.setActivePrompt,
+                updateTask,
+            });
+        }
+        return () => missionTaskExecutor.stop();
+    }, [auth.currentUser, updateTask, s.setStatusMessage, s.setActivePrompt]);
 
     const { reassess } = usePlanReassessment({
         activePrompt: s.activePrompt, activeUrl, tasks, PROXY_BASE_URL: s.PROXY_BASE_URL,
