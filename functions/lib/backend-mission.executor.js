@@ -8,7 +8,7 @@ const llm_decision_engine_1 = require("./features/llm/llm-decision.engine");
 const llm_memory_service_1 = require("./features/llm/llm-memory-service");
 const knowledge_hierarchy_service_1 = require("./features/llm/knowledge-hierarchy.service");
 async function processMissionStep(missionId) {
-    var _a, _b;
+    var _a, _b, _c;
     try {
         const missionRef = proxy_config_1.db.collection('missions').doc(missionId);
         const snap = await missionRef.get();
@@ -84,9 +84,12 @@ async function processMissionStep(missionId) {
                 console.error(`[Executor] Step failed:`, observation);
             }
             await (0, llm_memory_service_1.recordActionOutcome)(userId, data.goal, step.action, result, observation, new URL(page.url()).hostname);
+            // Read fresh progress from Firestore to avoid stale accumulation
+            const freshSnap = await missionRef.get();
+            const currentProgress = ((_c = freshSnap.data()) === null || _c === void 0 ? void 0 : _c.progress) || 0;
             await missionRef.update({
                 lastAction: observation.substring(0, 100) + '...',
-                progress: Math.min((data.progress || 0) + 2, 98), // Incremental progress
+                progress: Math.min(currentProgress + Math.ceil(90 / stepQueue.length), 98),
                 updated_at: new Date().toISOString()
             });
             if (result === 'failure')

@@ -87,9 +87,13 @@ export async function processMissionStep(missionId: string) {
             }
 
             await recordActionOutcome(userId, data.goal, step.action, result, observation, new URL(page.url()).hostname);
+            
+            // Read fresh progress from Firestore to avoid stale accumulation
+            const freshSnap = await missionRef.get();
+            const currentProgress = freshSnap.data()?.progress || 0;
             await missionRef.update({
                 lastAction: observation.substring(0, 100) + '...',
-                progress: Math.min((data.progress || 0) + 2, 98), // Incremental progress
+                progress: Math.min(currentProgress + Math.ceil(90 / stepQueue.length), 98),
                 updated_at: new Date().toISOString()
             });
 

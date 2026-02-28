@@ -1,0 +1,51 @@
+// Feature: Missions | Why: Local styles for mission task list, stats, and selection UI
+import { StyleSheet } from 'react-native';
+
+export const missionLocalStyles = StyleSheet.create({
+    taskStatsContainer: {
+        flexDirection: 'row',
+        justifyContent: 'flex-start',
+        gap: 10,
+        paddingHorizontal: 12,
+        paddingVertical: 8,
+        backgroundColor: 'rgba(255, 255, 255, 0.02)',
+        borderTopWidth: 1,
+        borderTopColor: 'rgba(255, 255, 255, 0.08)',
+    },
+    taskStat: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+    taskStatIcon: { fontSize: 12, fontWeight: 'bold', color: '#00ffaa' },
+    taskStatValue: { fontSize: 11, fontWeight: '600', color: '#00ffaa' },
+    taskListContainer: {
+        borderTopWidth: 1,
+        maxHeight: 250,
+        backgroundColor: 'rgba(0, 0, 0, 0.2)',
+    },
+    taskListHeader: {
+        paddingHorizontal: 12,
+        paddingVertical: 8,
+        borderBottomWidth: 1,
+        borderBottomColor: 'rgba(255, 255, 255, 0.1)',
+    },
+    taskListTitle: { fontSize: 9, fontWeight: '900', letterSpacing: 0.5, opacity: 0.8 },
+    taskListItem: {
+        flexDirection: 'row',
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderBottomWidth: 1,
+        borderBottomColor: 'rgba(255, 255, 255, 0.03)',
+        alignItems: 'center',
+        gap: 8,
+    },
+    taskListIcon: { fontSize: 11, fontWeight: 'bold', minWidth: 14 },
+    taskListContent: { flex: 1 },
+    taskListItemTitle: { color: '#bbb', fontSize: 11, fontWeight: '500', lineHeight: 14 },
+    taskListItemDetails: { color: '#888', fontSize: 9, marginTop: 1 },
+    selectBtn: {
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: 6,
+        borderWidth: 1,
+        borderColor: 'rgba(255, 255, 255, 0.2)',
+    },
+    selectBtnText: { fontSize: 10, fontWeight: '700' },
+});

@@ -5,6 +5,7 @@ import { Page, BrowserContext } from 'playwright';
 export const activeContexts = new Map<string, BrowserContext>();
 export const activePages = new Map<string, Page>();
 let isListening = false;
+let firestoreAvailable = true;
 
 async function setupRequestBlocking(page: Page) {
   await page.route('**/*', (route) => {
@@ -15,6 +16,7 @@ async function setupRequestBlocking(page: Page) {
 }
 
 async function captureAndSync(tabId: string, userId: string, page: Page, context: BrowserContext) {
+  if (!firestoreAvailable) return;
   try {
     const screenshot = (await page.screenshot({ quality: 60, type: 'jpeg' })).toString('base64');
     await db.collection('browser_tabs').doc(tabId).set({
@@ -22,10 +24,11 @@ async function captureAndSync(tabId: string, userId: string, page: Page, context
       url: page.url(), title: (await page.title()) || 'Loading...',
       last_sync: new Date().toISOString()
     }, { merge: true });
-    // Session saving logic removed for local stability if proxy-session.service is missing
-    // await saveSession(userId, context);
   } catch (e: any) { 
-    if (!e.message.includes('Target closed') && !e.message.includes('Execution context was destroyed')) {
+    if (e.message.includes('credentials') || e.message.includes('Could not load the default')) {
+      firestoreAvailable = false;
+      console.warn(`[Proxy] Firestore sync disabled (no credentials). Screenshots available via /screenshot route.`);
+    } else if (!e.message.includes('Target closed') && !e.message.includes('Execution context was destroyed')) {
       console.error(`[Proxy] Sync failed:`, e.message); 
     }
   }
@@ -53,21 +56,31 @@ export async function getPersistentPage(targetUrl: string | null, tabId: string,
 }
 
 export function startFirestoreListener() {
-  if (isListening) return;
+  if (isListening || !firestoreAvailable) return;
   isListening = true;
-  db.collection('browser_tabs').onSnapshot((snapshot) => {
-    snapshot.docChanges().forEach(async (change) => {
-      if (change.type === 'added' || change.type === 'modified') {
-        const data = change.doc.data(), tabId = change.doc.id, page = activePages.get(tabId);
-        const currentUrl = page ? page.url() : 'about:blank';
-        if (data.url && data.url !== currentUrl && !currentUrl.includes(data.url) && !data.url.includes(currentUrl)) {
-          await getPersistentPage(data.url, tabId, data.userId);
+  try {
+    db.collection('browser_tabs').onSnapshot((snapshot) => {
+      snapshot.docChanges().forEach(async (change) => {
+        if (change.type === 'added' || change.type === 'modified') {
+          const data = change.doc.data(), tabId = change.doc.id, page = activePages.get(tabId);
+          const currentUrl = page ? page.url() : 'about:blank';
+          if (data.url && data.url !== currentUrl && !currentUrl.includes(data.url) && !data.url.includes(currentUrl)) {
+            await getPersistentPage(data.url, tabId, data.userId);
+          }
         }
+      });
+    }, (error) => {
+      if (error.message?.includes('credentials') || error.message?.includes('Could not load the default')) {
+        firestoreAvailable = false;
+        console.warn(`[Proxy] Firestore listener disabled (no credentials). Direct routes still work.`);
+      } else {
+        console.error(`[Proxy] Firestore listener error:`, error);
       }
     });
-  }, (error) => {
-    console.error(`[Proxy] Firestore listener error:`, error);
-  });
+  } catch (e: any) {
+    firestoreAvailable = false;
+    console.warn(`[Proxy] Firestore listener could not start (${e.message}). Direct routes still work.`);
+  }
 }
 
 export function closePage(id: string) {
@@ -77,4 +90,9 @@ export function closePage(id: string) {
     }
 }
 
-startFirestoreListener();
+// Start Firestore listener if credentials are available; degrade gracefully otherwise
+try {
+  startFirestoreListener();
+} catch (e: any) {
+  console.warn(`[Proxy] Firestore listener skipped (${e.message}). Direct /screenshot route still works.`);
+}

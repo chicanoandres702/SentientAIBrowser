@@ -1,6 +1,6 @@
 // Feature: UI | Trace: README.md
 import React, { useEffect, useRef } from 'react';
-import { Animated, StyleSheet, View, Dimensions } from 'react-native';
+import { Animated, StyleSheet, View, Dimensions, Platform } from 'react-native';
 
 interface Props {
     color?: string;
@@ -13,7 +13,7 @@ interface Props {
  * A faint horizontal line that sweeps vertically across its parent.
  */
 export const Scanline: React.FC<Props> = ({
-    color = '#ff003c',
+    color = '#ff5c8a',
     duration = 3000,
     opacity = 0.3
 }) => {
@@ -25,12 +25,12 @@ export const Scanline: React.FC<Props> = ({
                 Animated.timing(translateY, {
                     toValue: 200, // Sweep past typical header heights
                     duration,
-                    useNativeDriver: true,
+                    useNativeDriver: Platform.OS !== 'web',
                 }),
                 Animated.timing(translateY, {
                     toValue: -100,
                     duration: 0,
-                    useNativeDriver: true,
+                    useNativeDriver: Platform.OS !== 'web',
                 }),
             ])
         ).start();

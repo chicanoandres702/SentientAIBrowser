@@ -3,6 +3,8 @@ import { useState } from 'react';
 import { Platform, useWindowDimensions } from 'react-native';
 import { getEnvConfig } from '../../shared/env.utils';
 
+export type LayoutMode = 'standard' | 'focus' | 'split' | 'cockpit' | 'stack' | 'zen' | 'dashboard' | 'compact';
+
 export const useBrowserState = () => {
     const { width } = useWindowDimensions();
     const isDesktop = width > 768;
@@ -28,6 +30,7 @@ export const useBrowserState = () => {
     const [lookedUpDocs, setLookedUpDocs] = useState<any[]>([]);
     const [isThinking, setIsThinking] = useState(false);
     const [isScholarMode, setIsScholarMode] = useState(false);
+    const [layoutMode, setLayoutMode] = useState<LayoutMode>('standard');
 
     const config = getEnvConfig();
     const PROXY_BASE_URL = config.proxyBaseUrl;
@@ -46,6 +49,7 @@ export const useBrowserState = () => {
         lastInteractionTime, setLastInteractionTime, PROXY_BASE_URL,
         lookedUpDocs, setLookedUpDocs, isScholarMode, setIsScholarMode,
         sessionAnswerIds, setSessionAnswerIds, isThinking, setIsThinking,
+        layoutMode, setLayoutMode,
         trackManualInteraction
     };
 };

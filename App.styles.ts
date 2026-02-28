@@ -1,22 +1,14 @@
-// Feature: UI | Trace: README.md
-import { Platform } from 'react-native';
-import { layoutStyles } from './App.layout.styles';
-import { overlayStyles } from './App.overlay.styles';
+// Feature: UI | Why: Single re-export facade — actual styles live in src/features/ui/theme/
+import { layoutStyles } from './src/features/ui/theme/layout.styles';
+import { overlayStyles } from './src/features/ui/theme/overlay.styles';
+import { statusStyles } from './src/features/ui/theme/status.styles';
+import { injectWebGlobalStyles } from './src/features/ui/theme/web-globals.service';
 
 export const styles = {
     ...layoutStyles,
-    ...overlayStyles
+    ...overlayStyles,
+    ...statusStyles,
 };
 
-// Cinematic Web Styles (Scrollbars)
-if (Platform.OS === 'web' && typeof document !== 'undefined') {
-    const style = document.createElement('style');
-    style.textContent = `
-    ::-webkit-scrollbar { width: 4px; height: 4px; }
-    ::-webkit-scrollbar-track { background: #000; }
-    ::-webkit-scrollbar-thumb { background: #333; border-radius: 2px; }
-    ::-webkit-scrollbar-thumb:hover { background: #ff003c; }
-    * { scrollbar-width: thin; scrollbar-color: #333 #000; }
-  `;
-    document.head.appendChild(style);
-}
+// Inject scrollbar + selection styles on web
+injectWebGlobalStyles();

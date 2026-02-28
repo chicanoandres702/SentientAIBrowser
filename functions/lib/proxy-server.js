@@ -23,6 +23,11 @@ app.use(express_1.default.json());
 (0, proxy_routes_browser_1.setupBrowserRoutes)(app);
 app.listen(proxy_config_1.PORT, () => {
     console.log(`[Sentient Proxy] Active at http://localhost:${proxy_config_1.PORT}`);
-    backend_ai_orchestrator_1.default.start();
+    try {
+        backend_ai_orchestrator_1.default.start();
+    }
+    catch (e) {
+        console.warn(`[Sentient Proxy] Orchestrator skipped (${e.message}). Proxy routes still available.`);
+    }
 });
 //# sourceMappingURL=proxy-server.js.map

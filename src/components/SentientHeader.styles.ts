@@ -1,80 +1,57 @@
-// Feature: UI | Trace: README.md
+// Feature: UI | Why: Header styles — tokenized via ui.primitives
 import { StyleSheet, Platform } from 'react-native';
+import { BASE, webGlass, webInteractive, webShadow } from '../features/ui/theme/ui.primitives';
 
 export const styles = StyleSheet.create({
-    headerContainer: {
-        height: Platform.OS === 'ios' ? 95 : 70,
-        paddingTop: Platform.OS === 'ios' ? 44 : 20,
-        overflow: 'hidden',
-        borderBottomWidth: 1,
-        borderBottomColor: 'rgba(255, 255, 255, 0.05)',
-    },
-    content: {
-        flex: 1,
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        paddingHorizontal: 20,
-        paddingBottom: 8,
-    },
-    brand: { flexDirection: 'row', alignItems: 'center' },
-    orbStack: {
-        width: 14,
-        height: 14,
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginRight: 14,
-    },
-    brandOrbOuter: {
-        position: 'absolute',
-        width: 14,
-        height: 14,
-        borderRadius: 7,
-        ...Platform.select({
-            web: { boxShadow: '0px 0px 10px rgba(0, 0, 0, 0.8)' },
-            default: {
-                shadowOffset: { width: 0, height: 0 },
-                shadowOpacity: 0.8,
-                shadowRadius: 10,
-            }
-        }),
-    },
-    brandOrbInner: {
-        width: 6,
-        height: 6,
-        borderRadius: 3,
-        ...Platform.select({
-            web: { boxShadow: '0px 0px 4px rgba(0, 0, 0, 1)' },
-            default: {
-                shadowOffset: { width: 0, height: 0 },
-                shadowOpacity: 1,
-                shadowRadius: 4,
-            }
-        }),
-    },
-    brandText: {
-        color: '#fff',
-        fontSize: 14,
-        fontWeight: '900',
-        letterSpacing: 6,
-        ...Platform.select({
-            web: { textShadow: '0px 0px 12px rgba(255, 255, 255, 0.5)' },
-            default: {
-                textShadowOffset: { width: 0, height: 0 },
-                textShadowRadius: 12,
-            }
-        }),
-    },
-    actions: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-    iconBtn: {
-        width: 38,
-        height: 38,
-        borderRadius: 19,
-        backgroundColor: 'rgba(255, 255, 255, 0.03)',
-        borderWidth: 1,
-        borderColor: 'rgba(255, 255, 255, 0.08)',
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    iconText: { color: '#888', fontSize: 18, lineHeight: 24 },
+  headerContainer: {
+    height: Platform.OS === 'ios' ? 92 : 52,
+    paddingTop: Platform.OS === 'ios' ? 44 : 0,
+    overflow: 'hidden',
+    borderBottomWidth: 1,
+    borderBottomColor: BASE.border,
+    ...webGlass(20),
+  },
+  content: {
+    flex: 1, flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center', paddingHorizontal: 14,
+  },
+  brand: { flexDirection: 'row', alignItems: 'center' },
+  orbStack: {
+    width: 12, height: 12,
+    justifyContent: 'center', alignItems: 'center', marginRight: 8,
+  },
+  brandOrbOuter: {
+    position: 'absolute', width: 12, height: 12, borderRadius: 6,
+    ...Platform.select({
+      web: { boxShadow: '0 0 8px rgba(0,0,0,0.7)' } as any,
+      default: { shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.7, shadowRadius: 8 },
+    }),
+  },
+  brandOrbInner: {
+    width: 5, height: 5, borderRadius: 2.5,
+    ...Platform.select({
+      web: { boxShadow: '0 0 4px rgba(0,0,0,1)' } as any,
+      default: { shadowOffset: { width: 0, height: 0 }, shadowOpacity: 1, shadowRadius: 4 },
+    }),
+  },
+  brandText: {
+    color: BASE.text, fontSize: 12, fontWeight: '800', letterSpacing: 2.5,
+    ...Platform.select({
+      web: { textShadow: '0 0 8px rgba(115,165,255,0.20)' } as any,
+      default: { textShadowOffset: { width: 0, height: 0 }, textShadowRadius: 6 },
+    }),
+  },
+  center: {
+    flex: 1, alignItems: 'center', justifyContent: 'center', marginHorizontal: 12,
+  },
+  actions: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  iconBtn: {
+    width: 32, height: 32, borderRadius: 8,
+    backgroundColor: BASE.controlBg,
+    borderWidth: 1, borderColor: BASE.border,
+    justifyContent: 'center', alignItems: 'center',
+    ...webInteractive,
+  },
+  iconText: { color: BASE.textMuted, fontSize: 14, lineHeight: 18 },
 });

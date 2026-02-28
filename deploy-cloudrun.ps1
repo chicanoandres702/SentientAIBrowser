@@ -26,9 +26,11 @@ Write-Host "Deploying to Cloud Run..." -ForegroundColor Yellow
     --region $Region `
     --project $ProjectID `
     --allow-unauthenticated `
-    --memory 4Gi `
-    --cpu 2 `
-    --timeout 3600 `
+    --memory 1Gi `
+    --cpu 1 `
+    --timeout 300 `
+    --min-instances 0 `
+    --max-instances 2 `
     --set-env-vars "NODE_ENV=production"
 
 Write-Host "--- Deployment Complete ---" -ForegroundColor Green

@@ -15,17 +15,22 @@ class BackendAIOrchestrator {
             return;
         this.isListening = true;
         console.log('[Orchestrator] Starting Local AI Listener (Admin SDK Mode)...');
-        proxy_config_1.db.collection('missions').where('status', '==', 'active').onSnapshot((snapshot) => {
-            snapshot.docChanges().forEach(async (change) => {
-                if (change.type === 'added' || change.type === 'modified') {
-                    const missionId = change.doc.id;
-                    const data = change.doc.data();
-                    await this.processMission(missionId, data);
-                }
+        try {
+            proxy_config_1.db.collection('missions').where('status', '==', 'active').onSnapshot((snapshot) => {
+                snapshot.docChanges().forEach(async (change) => {
+                    if (change.type === 'added' || change.type === 'modified') {
+                        const missionId = change.doc.id;
+                        const data = change.doc.data();
+                        await this.processMission(missionId, data);
+                    }
+                });
+            }, (error) => {
+                console.warn('[Orchestrator] Firestore listener error (degrading gracefully):', error.message);
             });
-        }, (error) => {
-            console.error('[Orchestrator] Firestore listener error:', error);
-        });
+        }
+        catch (e) {
+            console.warn('[Orchestrator] Could not start Firestore listener:', e.message);
+        }
     }
     /**
      * processMission: Entry point for both Cloud Triggers and Local Listeners.

@@ -14,8 +14,7 @@ const SENSITIVE_KEYS = [
     'credit_card',
     'cvv',
     'ssn',
-    'credential',
-    'auth'
+    'credential'
 ];
 
 const SENSITIVE_PATTERNS = [

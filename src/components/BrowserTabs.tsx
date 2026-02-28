@@ -2,6 +2,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Platform } from 'react-native';
 import { AppTheme } from '../../App';
+import { uiColors } from '../features/ui/theme/ui.theme';
 
 import { styles } from './BrowserTabs.styles';
 
@@ -20,7 +21,8 @@ interface Props {
 }
 
 export const BrowserTabs: React.FC<Props> = React.memo(({ tabs, onSelectTab, onCloseTab, onNewTab, theme }) => {
-    const accentColor = theme === 'red' ? '#ff003c' : '#00d2ff';
+    const colors = uiColors(theme);
+    const accentColor = colors.accent;
 
     return (
         <View style={styles.container}>
@@ -37,7 +39,7 @@ export const BrowserTabs: React.FC<Props> = React.memo(({ tabs, onSelectTab, onC
                         {tab.isActive && <View style={[styles.activeIndicator, { backgroundColor: accentColor }]} />}
                         <Text style={[
                             styles.tabText,
-                            tab.isActive && { color: '#fff', fontWeight: '900' }
+                            tab.isActive && { color: colors.text, fontWeight: '800' }
                         ]}>
                             {tab.title.toUpperCase()}
                         </Text>

@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, TextInput, TouchableOpacity, Text, StyleSheet, Platform, Animated } from 'react-native';
 import { AppTheme } from '../../App';
+import { uiColors } from '../features/ui/theme/ui.theme';
 
 import { styles } from './BrowserChrome.styles';
 
@@ -33,8 +34,9 @@ export const BrowserChrome: React.FC<Props> = React.memo(({ url, onNavigate, onB
         if (finalUrl !== url && finalUrl !== '') onNavigate(finalUrl);
     };
 
-    const accent = theme === 'red' ? '#ff003c' : '#00d2ff';
-    const borderColor = focusAnim.interpolate({ inputRange: [0, 1], outputRange: ['#1a1a1a', accent] });
+    const colors = uiColors(theme);
+    const accent = colors.accent;
+    const borderColor = focusAnim.interpolate({ inputRange: [0, 1], outputRange: ['rgba(185, 205, 230, 0.12)', accent] });
 
     return (
         <View style={styles.container}>
@@ -55,13 +57,13 @@ export const BrowserChrome: React.FC<Props> = React.memo(({ url, onNavigate, onB
                     onFocus={() => setIsFocused(true)}
                     onBlur={() => setIsFocused(false)}
                     placeholder="Search or enter website..."
-                    placeholderTextColor="#333"
+                    placeholderTextColor={colors.textMuted}
                     autoCapitalize="none"
                     autoCorrect={false}
                     selectTextOnFocus
                 />
                 <TouchableOpacity onPress={onReload} style={styles.reloadBtn}>
-                    <Text style={[styles.reloadIcon, { color: isFocused ? accent : '#444' }]}>↻</Text>
+                    <Text style={[styles.reloadIcon, { color: isFocused ? accent : colors.textMuted }]}>↻</Text>
                 </TouchableOpacity>
             </Animated.View>
 

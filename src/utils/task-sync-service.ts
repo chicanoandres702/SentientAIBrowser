@@ -44,7 +44,11 @@ export const hydrateTasksFromFirestore = async (userId: string) => {
             status: data.status,
             timestamp: data.timestamp,
             details: data.details,
-            category: data.category
+            category: data.category,
+            progress: data.progress,
+            missionId: data.missionId,
+            isMission: data.isMission,
+            subActions: data.subActions,
         } as TaskItem);
     });
     return loadedTasks.reverse();

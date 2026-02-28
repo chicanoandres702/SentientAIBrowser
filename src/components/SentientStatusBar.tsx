@@ -1,7 +1,9 @@
 // Feature: UI | Trace: README.md
 import React, { useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, Animated } from 'react-native';
+import { View, Text, Animated } from 'react-native';
 import * as Animatable from 'react-native-animatable';
+import { uiColors, BASE } from '../features/ui/theme/ui.theme';
+import { resolveDomainAccent } from '../features/ui/theme/domain-accent.utils';
 
 import { styles } from './SentientStatusBar.styles';
 
@@ -16,9 +18,8 @@ interface Props {
 }
 
 export const SentientStatusBar: React.FC<Props> = ({ isAIMode, statusMessage, useProxy, theme, domain, isScholarMode, totalEarnings }) => {
-    let accent = theme === 'red' ? '#ff003c' : '#00d2ff';
-    if (isScholarMode || domain?.includes('capella.edu')) accent = '#bf5af2'; // Purple Scholar Accent
-    if (!isScholarMode && (domain?.includes('swagbucks') || domain?.includes('survey'))) accent = '#00d2ff'; // Survey Blue
+    const colors = uiColors(theme);
+    const accent = resolveDomainAccent({ theme, domain, isScholarMode });
     const isActive = statusMessage !== 'Ready' && statusMessage !== 'Paused';
 
     // Seeker Dot Animation
@@ -56,17 +57,17 @@ export const SentientStatusBar: React.FC<Props> = ({ isAIMode, statusMessage, us
                     iterationCount="infinite"
                     duration={1200}
                     style={[styles.dot, {
-                        backgroundColor: isActive ? accent : '#2a2a2a',
+                        backgroundColor: isActive ? accent : BASE.inactive,
                         shadowColor: accent,
                         shadowOpacity: isActive ? 0.9 : 0,
                         shadowRadius: 6,
                     }]}
                 />
-                <Text style={[styles.modeTag, { color: isActive ? accent : '#444' }]}>
+                <Text style={[styles.modeTag, { color: isActive ? accent : colors.textMuted }]}>
                     {isScholarMode ? 'SCHOLAR' : (domain?.includes('swagbucks') || domain?.includes('survey')) ? 'SURVEY' : isAIMode ? 'SENTIENT' : 'MANUAL'}
                 </Text>
                 <View style={styles.divider} />
-                <Text style={[styles.msg, { color: isActive ? '#fff' : '#666', textShadowColor: accent, textShadowRadius: isActive ? 8 : 0 }]}>
+                <Text style={[styles.msg, { color: isActive ? colors.text : colors.textMuted, textShadowColor: accent, textShadowRadius: isActive ? 8 : 0 }]}>
                     {statusMessage.toUpperCase()}
                 </Text>
             </View>
@@ -86,7 +87,7 @@ export const SentientStatusBar: React.FC<Props> = ({ isAIMode, statusMessage, us
                         </>
                     )}
                 </View>
-                <Text style={[styles.proxy, { color: useProxy ? accent + 'aa' : '#333' }]}>
+                <Text style={[styles.proxy, { color: useProxy ? accent + 'aa' : colors.textMuted }]}>
                     {useProxy ? '⬡ PROXY' : '⬡ DIRECT'}
                 </Text>
             </View>

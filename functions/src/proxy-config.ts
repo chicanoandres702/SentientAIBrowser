@@ -4,17 +4,31 @@ import { db, auth } from './auth/firebase-config';
 
 export { db, auth };
 
-// Why: In the Local-First Hybrid model, the browser proxy runs on localhost:3000.
-export const PORT = 3000;
+// Cloud Run injects PORT env var. Fallback to 3000 for local dev.
+export const PORT = parseInt(process.env.PORT || '3000', 10);
 
 let browserInstance: Browser | null = null;
 
 export async function getBrowser(): Promise<Browser> {
-  if (!browserInstance) {
+  if (!browserInstance || !browserInstance.isConnected()) {
     browserInstance = await chromium.launch({
       headless: true,
-      args: ['--no-sandbox', '--disable-setuid-sandbox']
+      args: [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage',      // use /tmp instead of /dev/shm (small in containers)
+        '--disable-gpu',
+        '--single-process',              // reduce memory footprint
+        '--no-zygote',                   // required with --single-process in containers
+        '--disable-extensions',
+        '--disable-background-networking',
+        '--disable-default-apps',
+        '--disable-sync',
+        '--disable-translate',
+        '--mute-audio',
+      ]
     });
+    console.log('[Proxy] Browser launched successfully');
   }
   return browserInstance;
 }

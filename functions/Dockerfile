@@ -1,28 +1,25 @@
-# Use official Playwright image for pre-installed browser dependencies
-FROM mcr.microsoft.com/playwright:v1.40.0-focal
-
-# Set working directory
+# Stage 1: Build
+FROM node:20-slim AS build
 WORKDIR /app
-
-# Install Node.js (already in the image, but ensuring version compatibility)
-# The playwright image usually includes a compatible node version.
-
-# Copy package files
 COPY package*.json ./
-
-# Install dependencies (ignoring scripts that might try to download browsers again)
-# Playwright browsers are already in the base image.
-RUN npm install
-
-# Copy source code
+RUN npm ci --ignore-scripts
 COPY . .
-
-# Build TypeScript to Javascript
 RUN npm run build
 
-# Cloud Run provides a PORT env var, we must listen on it.
-# We'll ensure proxy-config.ts respects this.
-EXPOSE 3000
+# Stage 2: Runtime — official Playwright image has Chromium + system deps pre-installed
+FROM mcr.microsoft.com/playwright:v1.58.2-noble
+WORKDIR /app
 
-# Start the server using the compiled output
-CMD [ "node", "lib/proxy-server.js" ]
+# Copy built output and deps from build stage
+COPY --from=build /app/lib ./lib
+COPY --from=build /app/node_modules ./node_modules
+COPY --from=build /app/package.json ./
+
+# Ensure Chromium is installed for the exact Playwright version
+RUN npx playwright install chromium
+
+# Cloud Run injects PORT (default 8080)
+ENV PORT=8080
+EXPOSE 8080
+
+CMD ["node", "lib/proxy-server.js"]

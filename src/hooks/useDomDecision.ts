@@ -1,10 +1,9 @@
-// Feature: Core | Trace: README.md
-import React, { useState, useRef, useCallback } from 'react';
+// Feature: Core | Why: Handles DOM map analysis — picks current task, calls cloud, executes actions
+import React, { useCallback } from 'react';
 import { HeadlessWebViewRef } from '../components/HeadlessWebView';
 import { auth } from '../features/auth/firebase-config';
-import { recordAnswer } from '../../shared/survey-memory-db';
-import { saveContextualKnowledge } from '../features/llm/knowledge-hierarchy.service';
-import * as Haptics from 'expo-haptics';
+import { TaskItem } from '../features/tasks/types';
+import { executeDomAction } from './dom-action.executor';
 
 export const useDomDecision = (
     activePrompt: string,
@@ -20,35 +19,42 @@ export const useDomDecision = (
     setIsPaused: (p: boolean) => void,
     lookedUpDocs: any[],
     setLookedUpDocs: (docs: any[]) => void,
-    setInteractiveRequest: (req: { question: string, type: 'confirm' | 'input' } | null) => void,
+    setInteractiveRequest: (req: { question: string; type: 'confirm' | 'input' } | null) => void,
     setIsInteractiveModalVisible: (v: boolean) => void,
     isThinking: boolean,
     setIsThinking: (t: boolean) => void,
     PROXY_BASE_URL: string,
-    isScholarMode: boolean = false
+    isScholarMode: boolean = false,
+    tasks: TaskItem[] = [],
+    onScanComplete?: () => void
 ) => {
+    /** Find the current task to execute: first in_progress, or first pending non-mission task */
+    const getCurrentTask = useCallback((): TaskItem | null => {
+        const inProgress = tasks.find(t => !t.isMission && t.status === 'in_progress');
+        if (inProgress) return inProgress;
+        return tasks.find(t => !t.isMission && t.status === 'pending') || null;
+    }, [tasks]);
+
     const handleDomMapReceived = useCallback(async (map: any) => {
         if (!activePrompt || isThinking) return;
         setIsThinking(true);
-        setStatusMessage('Thinking (Cloud)...');
+
+        const currentTask = getCurrentTask();
+        if (currentTask && currentTask.status === 'pending') {
+            updateTask(currentTask.id, 'in_progress', `Executing: ${currentTask.title}`);
+        }
+
+        const taskContext = currentTask
+            ? { taskId: currentTask.id, taskTitle: currentTask.title, subActions: currentTask.subActions }
+            : undefined;
+        setStatusMessage(currentTask ? `Working: ${currentTask.title}` : 'Thinking (Cloud)...');
+
         try {
-            // 100% Cloud: Offload analysis to server
             const token = await auth.currentUser?.getIdToken();
             const cloudResponse = await fetch(`${PROXY_BASE_URL}/agent/analyze`, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token || 'anonymous'}`
-                },
-                body: JSON.stringify({
-                    prompt: activePrompt,
-                    url: activeUrl,
-                    domMap: map,
-                    retryCount,
-                    lookedUpDocs,
-                    isScholarMode,
-                    workflowIds
-                })
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token || 'anonymous'}` },
+                body: JSON.stringify({ prompt: activePrompt, url: activeUrl, domMap: map, retryCount, lookedUpDocs, isScholarMode, workflowIds, currentTask: taskContext }),
             });
 
             if (!cloudResponse.ok) throw new Error(`Cloud Analysis Failed: ${cloudResponse.status}`);
@@ -65,57 +71,29 @@ export const useDomDecision = (
 
             if (decision.execution) {
                 const firstStep = decision.execution.segments?.[0]?.steps?.[0];
-                if (!firstStep) return;
-
-                if (firstStep.action === 'ask_user' && firstStep.value) {
-                    setInteractiveRequest({ question: firstStep.value, type: firstStep.value.includes('?') ? 'confirm' : 'input' });
-                    setIsInteractiveModalVisible(true);
-                    setIsPaused(true);
-                    setStatusMessage('Awaiting Input');
-                    setIsThinking(false);
+                if (!firstStep) {
+                    if (currentTask) updateTask(currentTask.id, 'completed', 'Completed — no actions needed');
                     return;
                 }
 
-                if (firstStep.action === 'lookup_documentation' && firstStep.value) {
-                    setStatusMessage('Docs lookup disabled');
-                }
+                const actionCtx = { activePrompt, activeUrl, webViewRef, setStatusMessage, setIsPaused, setBlockedReason, setIsBlockedModalVisible, setInteractiveRequest, setIsInteractiveModalVisible };
+                const actionExecuted = await executeDomAction(firstStep, actionCtx);
 
-                if (firstStep.action === 'type' && firstStep.value) {
-                    await recordAnswer(activePrompt, firstStep.value);
+                if (currentTask && (actionExecuted || firstStep.action === 'done')) {
+                    updateTask(currentTask.id, 'completed', `Done: ${firstStep.action}${firstStep.targetId ? ` → ${firstStep.targetId}` : ''}`);
                 }
-
-                if (firstStep.action === 'record_knowledge' && firstStep.value) {
-                    setStatusMessage('Saving Brain Data...');
-                    const targetContext = {
-                        contextId: new URL(activeUrl).hostname,
-                        ...(firstStep.knowledgeContext || {})
-                    };
-                    await saveContextualKnowledge(
-                        auth.currentUser?.uid || 'anonymous',
-                        targetContext,
-                        'rule',
-                        firstStep.value
-                    );
-                    // After recording, we still want to proceed to the next available action if any
-                }
-
-                if (firstStep.targetId) {
-                    setStatusMessage(`Executing: ${firstStep.action}...`);
-                    webViewRef.current?.executeAction(firstStep.action as any, firstStep.targetId, firstStep.value);
-                } else if (firstStep.action === 'wait') {
-                    setStatusMessage('Waiting...');
-                    await new Promise(r => setTimeout(r, 2000));
-                } else if (firstStep.action === 'done') {
-                    setStatusMessage('Task Complete');
-                }
+            } else {
+                if (currentTask) updateTask(currentTask.id, 'completed', 'Completed — analyzed page');
             }
         } catch (e) {
-            console.error("Decision failure", e);
+            console.error('Decision failure', e);
             setStatusMessage('Retry required');
+            if (currentTask) updateTask(currentTask.id, 'failed', `Error: ${e instanceof Error ? e.message : String(e)}`);
         } finally {
             setIsThinking(false);
+            onScanComplete?.();
         }
-    }, [activePrompt, activeUrl, retryCount, setStatusMessage, setIsPaused, setBlockedReason, setIsBlockedModalVisible, PROXY_BASE_URL, lookedUpDocs, isScholarMode, setLookedUpDocs, webViewRef, isThinking, setIsThinking, workflowIds]);
+    }, [activePrompt, activeUrl, retryCount, setStatusMessage, setIsPaused, setBlockedReason, setIsBlockedModalVisible, PROXY_BASE_URL, lookedUpDocs, isScholarMode, webViewRef, isThinking, setIsThinking, workflowIds, tasks, getCurrentTask, updateTask, onScanComplete]);
 
     return { handleDomMapReceived };
 };
