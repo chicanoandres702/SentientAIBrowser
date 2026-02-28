@@ -2,10 +2,105 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Sync Cloud Logic (Deploy)",
+            "name": "Web (Development)",
+            "type": "node",
+            "request": "launch",
+            "runtimeExecutable": "npm",
+            "runtimeArgs": ["run", "web"],
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}",
+            "stopOnEntry": false,
+            "preLaunchTask": "npm: web"
+        },
+        {
+            "name": "Web with Debug",
+            "type": "chrome",
+            "request": "attach",
+            "port": 9222,
+            "pathMapping": {
+                "/": "${workspaceFolder}",
+                "/static": "${workspaceFolder}"
+            },
+            "webRoot": "${workspaceFolder}"
+        },
+        {
+            "name": "Expo (Managed)",
+            "type": "node",
+            "request": "launch",
+            "runtimeExecutable": "npm",
+            "runtimeArgs": ["run", "start"],
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "name": "Run Android",
+            "type": "node",
+            "request": "launch",
+            "runtimeExecutable": "npm",
+            "runtimeArgs": ["run", "android"],
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "name": "Debug Android",
+            "cwd": "${workspaceFolder}",
+            "type": "reactnative",
+            "request": "launch",
+            "platform": "android"
+        },
+        {
+            "name": "Sync Cloud Logic (Deploy All)",
             "type": "node",
             "request": "launch",
             "runtimeExecutable": "${workspaceFolder}/deploy-cloud.bat",
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "Firestore: Deploy Rules Only",
+            "type": "node",
+            "request": "launch",
+            "runtimeExecutable": "firebase",
+            "runtimeArgs": ["deploy", "--only", "firestore:rules"],
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "Firestore: Deploy Indexes Only",
+            "type": "node",
+            "request": "launch",
+            "runtimeExecutable": "firebase",
+            "runtimeArgs": ["deploy", "--only", "firestore:indexes"],
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "Firebase: Deploy Functions Only",
+            "type": "node",
+            "request": "launch",
+            "runtimeExecutable": "firebase",
+            "runtimeArgs": ["deploy", "--only", "functions"],
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "Proxy: Build & Deploy All",
+            "type": "node",
+            "request": "launch",
+            "runtimeExecutable": "${workspaceFolder}/deploy-cloudrun.bat",
+            "runtimeArgs": ["all"],
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "Proxy: Manual Build (Docker)",
+            "type": "node",
+            "request": "launch",
+            "runtimeExecutable": "${workspaceFolder}/deploy-cloudrun.bat",
+            "runtimeArgs": ["build"],
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "Proxy: Manual Deploy (GCR)",
+            "type": "node",
+            "request": "launch",
+            "runtimeExecutable": "${workspaceFolder}/deploy-cloudrun.bat",
+            "runtimeArgs": ["deploy"],
             "console": "integratedTerminal"
         },
         {
@@ -14,13 +109,13 @@
             "request": "launch",
             "runtimeExecutable": "${workspaceFolder}/debug-local-cloud.bat",
             "console": "integratedTerminal"
-        },
+        }
+    ],
+    "compounds": [
         {
-            "name": "Debug Android",
-            "cwd": "${workspaceFolder}",
-            "type": "reactnative",
-            "request": "launch",
-            "platform": "android"
+            "name": "Web + Chrome Debug",
+            "configurations": ["Web (Development)", "Web with Debug"],
+            "stopOnEntry": false
         }
     ]
 }

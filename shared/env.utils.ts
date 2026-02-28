@@ -13,9 +13,8 @@ export const getEnvConfig = () => {
     // Local dev proxy defaults
     const localProxy = Platform.OS === 'android' ? 'http://10.0.2.2:3000' : 'http://localhost:3000';
     
-    // In production, the proxy can be a dedicated service or a Cloud Function.
-    // Assuming for now a standard sub-domain or relative path if hosted together.
-    const productionProxy = 'https://proxy.sentient-ai-browser.web.app'; 
+    // Production proxy on Cloud Run (Playwright + Chromium)
+    const productionProxy = 'https://sentient-proxy-184717935920.us-central1.run.app'; 
 
     return {
         isProduction,

@@ -1,6 +1,8 @@
-// Feature: UI | Trace: README.md
+// Feature: UI | Why: Modal for blocked user intervention — uses theme tokens
 import React from 'react';
-import { View, Text, Modal, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, Modal, TouchableOpacity } from 'react-native';
+import { uiColors } from '../features/ui/theme/ui.theme';
+import { overlayStyles as s } from '../features/ui/theme/overlay.styles';
 
 interface Props {
     visible: boolean;
@@ -10,66 +12,22 @@ interface Props {
 }
 
 export const BlockedUserModal: React.FC<Props> = ({ visible, reason, theme, onClose }) => {
-    const accentColor = theme === 'red' ? '#ff003c' : '#00d2ff';
+    const colors = uiColors(theme);
 
     return (
         <Modal visible={visible} transparent animationType="fade">
-            <View style={styles.modalOverlay}>
-                <View style={[styles.modalContent, { borderColor: accentColor }]}>
-                    <Text style={styles.modalTitle}>INTERVENTION REQUIRED</Text>
-                    <Text style={styles.modalText}>{reason}</Text>
+            <View style={s.modalOverlay}>
+                <View style={[s.modalContent, { borderColor: colors.accent }]}>
+                    <Text style={s.modalTitle}>INTERVENTION REQUIRED</Text>
+                    <Text style={s.modalText}>{reason}</Text>
                     <TouchableOpacity
-                        style={[styles.modalButton, { backgroundColor: accentColor }]}
+                        style={[s.modalButton, { backgroundColor: colors.accent }]}
                         onPress={onClose}
                     >
-                        <Text style={styles.modalButtonText}>CONTINUE AUTOMATION</Text>
+                        <Text style={s.modalButtonText}>CONTINUE AUTOMATION</Text>
                     </TouchableOpacity>
                 </View>
             </View>
         </Modal>
     );
 };
-
-const styles = StyleSheet.create({
-    modalOverlay: {
-        flex: 1,
-        backgroundColor: 'rgba(0,0,0,0.9)',
-        justifyContent: 'center',
-        alignItems: 'center',
-        padding: 30,
-    },
-    modalContent: {
-        backgroundColor: '#0a0a0a',
-        padding: 30,
-        borderRadius: 2,
-        width: '100%',
-        maxWidth: 450,
-        borderWidth: 1,
-        alignItems: 'center',
-    },
-    modalTitle: {
-        fontSize: 16,
-        fontWeight: '900',
-        color: '#fff',
-        marginBottom: 20,
-        letterSpacing: 2,
-    },
-    modalText: {
-        color: '#888',
-        fontSize: 14,
-        lineHeight: 22,
-        textAlign: 'center',
-        marginBottom: 30,
-    },
-    modalButton: {
-        paddingHorizontal: 40,
-        paddingVertical: 15,
-        borderRadius: 0,
-    },
-    modalButtonText: {
-        color: '#000',
-        fontWeight: '900',
-        fontSize: 12,
-        letterSpacing: 1,
-    }
-});

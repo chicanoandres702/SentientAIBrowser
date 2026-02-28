@@ -29,8 +29,8 @@ service cloud.firestore {
 
     // Task Queue rules: Strictly user-scoped
     match /task_queues/{document} {
-      allow read: if isAuthenticated() && isOwner(resource.data.user_id);
-      allow write: if isAuthenticated() && (resource == null || isOwner(resource.data.user_id)) && isOwner(request.resource.data.user_id);
+      allow read: if isAuthenticated() && (resource == null || isOwner(resource.data.user_id));
+      allow write, delete: if isAuthenticated() && (resource == null || isOwner(resource.data.user_id));
     }
 
     // Browser Tabs: Sync across devices

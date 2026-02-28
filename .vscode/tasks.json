@@ -2,6 +2,63 @@
     "version": "2.0.0",
     "tasks": [
         {
+            "label": "npm: web",
+            "type": "shell",
+            "command": "npm",
+            "args": ["run", "web"],
+            "windows": {
+                "command": "npm",
+                "args": ["run", "web"]
+            },
+            "isBackground": true,
+            "problemMatcher": {
+                "pattern": {
+                    "regexp": "^.*$",
+                    "file": 1,
+                    "location": 2,
+                    "message": 3
+                },
+                "background": {
+                    "activeOnStart": true,
+                    "beginsPattern": ".*Expo.*",
+                    "endsPattern": ".*on the web.*"
+                }
+            },
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated",
+                "focus": true
+            }
+        },
+        {
+            "label": "npm: start",
+            "type": "shell",
+            "command": "npm",
+            "args": ["run", "start"],
+            "windows": {
+                "command": "npm",
+                "args": ["run", "start"]
+            },
+            "isBackground": true,
+            "problemMatcher": {
+                "pattern": {
+                    "regexp": "^.*$",
+                    "file": 1,
+                    "location": 2,
+                    "message": 3
+                },
+                "background": {
+                    "activeOnStart": true,
+                    "beginsPattern": ".*Expo.*",
+                    "endsPattern": ".*Press.*"
+                }
+            },
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated"
+            }
+        },
+        {
             "label": "Sync Cloud Logic",
             "type": "shell",
             "command": ".\\deploy-cloud.bat",
@@ -11,6 +68,125 @@
             "presentation": {
                 "reveal": "always",
                 "panel": "dedicated"
+            }
+        },
+        {
+            "label": "Clear Cache & Rebuild Web",
+            "type": "shell",
+            "command": "powershell",
+            "args": [
+                "-NoProfile",
+                "-ExecutionPolicy",
+                "Bypass",
+                "-Command",
+                "rm -Force -Recurse ./node_modules/.cache -ErrorAction SilentlyContinue; rm -Force -Recurse ./.expo -ErrorAction SilentlyContinue; npm run build:web"
+            ],
+            "windows": {
+                "command": "powershell",
+                "args": [
+                    "-NoProfile",
+                    "-ExecutionPolicy",
+                    "Bypass",
+                    "-Command",
+                    "rm -Force -Recurse ./node_modules/.cache -ErrorAction SilentlyContinue; rm -Force -Recurse ./.expo -ErrorAction SilentlyContinue; npm run build:web"
+                ]
+            },
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated"
+            }
+        },
+        {
+            "label": "🔍 Validate Sentient Code (Watch)",
+            "type": "shell",
+            "command": "node",
+            "args": ["validate-sentient-code.js"],
+            "windows": {
+                "command": "node",
+                "args": ["validate-sentient-code.js"]
+            },
+            "isBackground": true,
+            "runOptions": {
+                "runOn": "folderOpen"
+            },
+            "problemMatcher": {
+                "pattern": {
+                    "regexp": "^\\[(.*)\\](.*)$",
+                    "severity": 1,
+                    "message": 2
+                },
+                "background": {
+                    "activeOnStart": true,
+                    "beginsPattern": ".*VALIDATION.*",
+                    "endsPattern": ".*PASSED.*|.*FAILED.*"
+                }
+            },
+            "presentation": {
+                "reveal": "silent",
+                "panel": "shared",
+                "focus": false
+            }
+        },
+        {
+            "label": "🔄 Sync GitHub Tree (Watch)",
+            "type": "shell",
+            "command": "node",
+            "args": ["sync-gh-tree.js"],
+            "windows": {
+                "command": "node",
+                "args": ["sync-gh-tree.js"]
+            },
+            "isBackground": true,
+            "runOptions": {
+                "runOn": "folderOpen"
+            },
+            "problemMatcher": {
+                "pattern": {
+                    "regexp": "^\\[(.*?)\\](.*)$",
+                    "severity": 1,
+                    "message": 2
+                },
+                "background": {
+                    "activeOnStart": true,
+                    "beginsPattern": ".*GH-Sync.*",
+                    "endsPattern": ".*sync.*"
+                }
+            },
+            "presentation": {
+                "reveal": "silent",
+                "panel": "shared",
+                "focus": false
+            }
+        },
+        {
+            "label": "🎼 Orchestrator Service (Watch)",
+            "type": "shell",
+            "command": "node",
+            "args": ["orchestrator.service.js"],
+            "windows": {
+                "command": "node",
+                "args": ["orchestrator.service.js"]
+            },
+            "isBackground": true,
+            "runOptions": {
+                "runOn": "folderOpen"
+            },
+            "problemMatcher": {
+                "pattern": {
+                    "regexp": "^\\[(.*?)\\](.*)$",
+                    "severity": 1,
+                    "message": 2
+                },
+                "background": {
+                    "activeOnStart": true,
+                    "beginsPattern": ".*Orchestrator.*",
+                    "endsPattern": ".*failed.*|.*Active.*"
+                }
+            },
+            "presentation": {
+                "reveal": "silent",
+                "panel": "shared",
+                "focus": false
             }
         }
     ]

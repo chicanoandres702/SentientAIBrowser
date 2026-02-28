@@ -1,9 +1,11 @@
-// Feature: Tasks | Trace: src/features/tasks/trace.md
+// Feature: Tasks | Why: Renders a single task card with status, progress, and expandable sub-actions
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity } from 'react-native';
 import * as Animatable from 'react-native-animatable';
-import { TaskItem, TaskStatus } from '../../features/tasks/types';
+import { TaskItem, TaskStatus, SubAction } from '../../features/tasks/types';
 import { styles } from './TaskQueueUI.styles';
+import { TaskProgressBar } from './TaskProgressBar';
+import { getElapsedTime, getStatusBadge, taskItemLocalStyles as ls, subStyles } from './TaskItemView.styles';
 
 interface Props {
     item: TaskItem; accentColor: string;
@@ -11,30 +13,58 @@ interface Props {
     editTask: (id: string, title: string) => void;
 }
 
+const SubActionIcon = ({ action }: { action: string }) => {
+    const icon = action === 'click' ? '🖱' : action === 'type' ? '⌨' : action === 'wait' ? '⏳'
+        : action === 'navigate' ? '🧭' : action === 'scan_dom' ? '🔍' : action === 'verify' ? '✅'
+        : action === 'interact' ? '👆' : action === 'done' ? '🏁' : '▸';
+    return <Text style={subStyles.actionIcon}>{icon}</Text>;
+};
+
 export const TaskItemView = React.memo(({ item, accentColor, removeTask, editTask }: Props) => {
     const [isEditing, setIsEditing] = useState(false);
     const [editValue, setEditValue] = useState(item.title);
+    const [expanded, setExpanded] = useState(false);
 
-    const getStatusColor = (s: TaskStatus) => {
-        if (s === 'completed') return '#4caf50';
-        if (s === 'failed') return '#f44336';
-        if (s === 'in_progress') return accentColor;
-        return '#333';
-    };
-
+    const getStatusColor = (s: TaskStatus) => s === 'completed' ? '#00ffaa' : s === 'failed' ? '#ff4444' : s === 'in_progress' ? accentColor : '#333';
     const save = () => { editTask(item.id, editValue); setIsEditing(false); };
+    const statusBadge = getStatusBadge(item.status);
+    const elapsedTime = getElapsedTime(item.startTime);
+    const showProgress = (item.status === 'in_progress' || item.isMission) && item.progress !== undefined;
+    const hasSubActions = item.subActions && item.subActions.length > 0;
 
     return (
-        <Animatable.View animation="fadeInRight" duration={400} style={[styles.taskCard, item.status === 'in_progress' && { borderColor: accentColor, shadowColor: accentColor, shadowOpacity: 0.3, shadowRadius: 15 }]}>
+        <Animatable.View animation="fadeInRight" duration={400} style={[
+            styles.taskCard,
+            item.status === 'in_progress' && { borderColor: accentColor, shadowColor: accentColor, shadowOpacity: 0.3, shadowRadius: 15 },
+            item.isMission && subStyles.missionCard,
+            item.isMission && { borderColor: accentColor + '88' },
+        ]}>
             <View style={[styles.statusVertical, { backgroundColor: getStatusColor(item.status) }]} />
             <View style={styles.cardInfo}>
                 {isEditing ? (
                     <TextInput autoFocus style={styles.editInput} value={editValue} onChangeText={setEditValue} onBlur={save} onSubmitEditing={save} />
                 ) : (
-                    <TouchableOpacity onLongPress={() => setIsEditing(true)}>
+                    <TouchableOpacity onLongPress={() => setIsEditing(true)} onPress={hasSubActions ? () => setExpanded(!expanded) : undefined}>
+                        {item.isMission && <Text style={[subStyles.missionLabel, { color: accentColor }]}>📋 MISSION</Text>}
                         <Text style={[styles.taskTitle, item.status === 'completed' && { color: 'rgba(255,255,255,0.3)' }]}>{item.title.toUpperCase()}</Text>
+                        <View style={ls.metaRow}>
+                            <Text style={[ls.badge, { color: statusBadge.color }]}>{statusBadge.text}</Text>
+                            {elapsedTime && <Text style={[ls.timeText, { color: accentColor }]}>⏱ {elapsedTime}</Text>}
+                            {hasSubActions && <Text style={[subStyles.expandHint, { color: accentColor }]}>{expanded ? '▼' : '▶'} {item.subActions!.length} action{item.subActions!.length !== 1 ? 's' : ''}</Text>}
+                        </View>
                         {item.details && <Text style={styles.taskDetails} numberOfLines={2}>{item.details}</Text>}
                     </TouchableOpacity>
+                )}
+                {showProgress && <View style={ls.progressContainer}><TaskProgressBar progress={item.progress} accentColor={accentColor} showPercentage height={item.isMission ? 4 : 2} /></View>}
+                {expanded && hasSubActions && (
+                    <View style={subStyles.subActionsContainer}>
+                        {item.subActions!.map((sa: SubAction, idx: number) => (
+                            <View key={idx} style={subStyles.subActionRow}>
+                                <SubActionIcon action={sa.action} />
+                                <Text style={subStyles.subActionText} numberOfLines={1}>{sa.explanation}</Text>
+                            </View>
+                        ))}
+                    </View>
                 )}
             </View>
             <TouchableOpacity onPress={() => removeTask(item.id)} style={styles.cardAction}><Text style={[styles.closeIcon, { color: 'rgba(255,255,255,0.2)' }]}>×</Text></TouchableOpacity>

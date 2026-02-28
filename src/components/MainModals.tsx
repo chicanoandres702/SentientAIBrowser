@@ -21,6 +21,8 @@ export const MainModals = ({ s, theme, setTheme }: any) => (
             setIsScholarMode={s.setIsScholarMode} 
             isDaemonRunning={s.isDaemonRunning} 
             onToggleDaemon={s.toggleDaemon} 
+            layoutMode={s.layoutMode}
+            setLayoutMode={s.setLayoutMode}
         />
         <SentinelInteractiveModal 
             visible={s.isInteractiveModalVisible} 

@@ -1,8 +1,9 @@
 // Feature: UI | Trace: README.md
 import React, { useRef } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Platform, Animated } from 'react-native';
+import { View, Text, TouchableOpacity, Platform, Animated } from 'react-native';
 import * as Animatable from 'react-native-animatable';
 import { AppTheme } from '../../App';
+import { uiColors, BASE } from '../features/ui/theme/ui.theme';
 
 import { styles } from './SentientControlPanel.styles';
 
@@ -16,7 +17,8 @@ interface Props {
 }
 
 export const SentientControlPanel: React.FC<Props> = React.memo(({ isPaused, onTogglePause, onStop, onNext, onPrev, theme }) => {
-    const accent = theme === 'red' ? '#ff003c' : '#00d2ff';
+    const colors = uiColors(theme);
+    const accent = colors.accent;
     const shockwaveAnim = useRef(new Animated.Value(0)).current;
 
     const triggerShockwave = () => {
@@ -24,7 +26,7 @@ export const SentientControlPanel: React.FC<Props> = React.memo(({ isPaused, onT
         Animated.timing(shockwaveAnim, {
             toValue: 1,
             duration: 500,
-            useNativeDriver: true,
+            useNativeDriver: Platform.OS !== 'web',
         }).start(() => shockwaveAnim.setValue(0));
     };
 
@@ -68,7 +70,7 @@ export const SentientControlPanel: React.FC<Props> = React.memo(({ isPaused, onT
                             }
                         ]} />
                         <View style={[styles.mainBtnInner, { backgroundColor: isPaused ? 'transparent' : accent }]}>
-                            <Text style={[styles.mainBtnText, { color: isPaused ? accent : '#000' }]}>
+                            <Text style={[styles.mainBtnText, { color: isPaused ? accent : BASE.onAccent }]}>
                                 {isPaused ? '▶' : '⏸'}
                             </Text>
                         </View>
@@ -85,8 +87,8 @@ export const SentientControlPanel: React.FC<Props> = React.memo(({ isPaused, onT
                     <Text style={styles.stopIcon}>⏹</Text>
                 </TouchableOpacity>
 
-                <View style={[styles.statusDot, { backgroundColor: isPaused ? '#555' : accent, boxShadow: `0 0 8px ${accent}` }]} />
-                <Text style={[styles.statusLabel, { color: isPaused ? '#555' : accent }]}>
+                <View style={[styles.statusDot, { backgroundColor: isPaused ? BASE.disabled : accent, boxShadow: `0 0 8px ${accent}` }]} />
+                <Text style={[styles.statusLabel, { color: isPaused ? BASE.disabled : accent }]}>
                     {isPaused ? 'PAUSED' : 'LIVE'}
                 </Text>
             </View>

@@ -1,6 +1,6 @@
 // Feature: Settings | Trace: README.md
 import React from 'react';
-import { View, Text, Switch, StyleSheet } from 'react-native';
+import { View, Text, Switch, StyleSheet, Platform } from 'react-native';
 
 interface Props {
     label: string;
@@ -11,23 +11,34 @@ interface Props {
 }
 
 export const ConfigRow = ({ label, sub, value, onToggle, accent }: Props) => (
-    <View style={styles.row}>
-        <View style={styles.rowInfo}>
-            <Text style={styles.rowLabel}>{label}</Text>
-            <Text style={styles.rowSub}>{sub}</Text>
+    <View style={cr.row}>
+        <View style={cr.rowInfo}>
+            <Text style={cr.rowLabel}>{label}</Text>
+            <Text style={cr.rowSub}>{sub}</Text>
         </View>
         <Switch
             value={value}
             onValueChange={onToggle}
-            trackColor={{ false: '#1a1a1a', true: accent }}
-            thumbColor="#fff"
+            trackColor={{ false: 'rgba(140, 160, 200, 0.10)', true: `${accent}88` }}
+            thumbColor={value ? accent : '#6b7a96'}
+            {...Platform.select({
+                web: { activeThumbColor: accent } as any,
+                default: {},
+            })}
         />
     </View>
 );
 
-const styles = StyleSheet.create({
-    row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
+const cr = StyleSheet.create({
+    row: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        paddingVertical: 10,
+        borderBottomWidth: 1,
+        borderBottomColor: 'rgba(140, 160, 200, 0.06)',
+    },
     rowInfo: { flex: 1, marginRight: 16 },
-    rowLabel: { color: '#ccc', fontSize: 15, fontWeight: '600' },
-    rowSub: { color: '#333', fontSize: 11, marginTop: 2 },
+    rowLabel: { color: '#b8c8e4', fontSize: 13, fontWeight: '600' },
+    rowSub: { color: '#4d5b75', fontSize: 11, marginTop: 2 },
 });

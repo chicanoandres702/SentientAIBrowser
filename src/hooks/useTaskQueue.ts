@@ -18,9 +18,44 @@ export const useTaskQueue = () => {
         hydrate();
     }, [auth.currentUser]);
 
-    const addTask = useCallback(async (title: string, status: TaskStatus = 'pending', details?: string) => {
-        const id = Date.now().toString() + Math.random().toString();
-        const newTask: TaskItem = { id, title, status, timestamp: Date.now(), details: details || "" };
+    /** Recalculate a mission task's progress from its child tasks */
+    const recalcMissionProgress = useCallback((allTasks: TaskItem[], missionId: string): TaskItem[] => {
+        const children = allTasks.filter(t => t.missionId === missionId && !t.isMission);
+        if (children.length === 0) return allTasks;
+
+        const completed = children.filter(t => t.status === 'completed').length;
+        const failed = children.filter(t => t.status === 'failed').length;
+        const total = children.length;
+        const progress = Math.round((completed / total) * 100);
+
+        // Determine mission status from children
+        let missionStatus: TaskStatus = 'in_progress';
+        if (completed === total) missionStatus = 'completed';
+        else if (failed === total) missionStatus = 'failed';
+        else if (children.some(t => t.status === 'in_progress')) missionStatus = 'in_progress';
+
+        return allTasks.map(t => {
+            if (t.id === missionId && t.isMission) {
+                return { ...t, progress, status: missionStatus, completedTime: missionStatus === 'completed' ? Date.now() : t.completedTime };
+            }
+            return t;
+        });
+    }, []);
+
+    const addTask = useCallback(async (title: string, status: TaskStatus = 'pending', details?: string, extra?: Partial<TaskItem>) => {
+        const id = extra?.id || (Date.now().toString() + Math.random().toString());
+        const now = Date.now();
+        const newTask: TaskItem = { 
+            id, 
+            title, 
+            status, 
+            timestamp: now, 
+            details: details || "",
+            progress: status === 'completed' ? 100 : status === 'in_progress' ? 0 : 0,
+            startTime: status === 'pending' ? undefined : now,
+            estimatedDuration: 60000,
+            ...extra,
+        };
         setTasks(prev => [...prev, newTask]);
         try {
             await syncTaskToFirestore(newTask, auth.currentUser?.uid || 'anonymous');
@@ -29,14 +64,31 @@ export const useTaskQueue = () => {
     }, []);
 
     const updateTask = useCallback(async (id: string, status: TaskStatus, details?: string) => {
-        setTasks(prev => prev.map(t => t.id === id ? { ...t, status, details: details || t.details } : t));
-        if (status === 'completed' || status === 'failed') {
-            // Task status change telemetry or local cleanup could go here
-        }
+        setTasks(prev => {
+            let updated = prev.map(t => {
+                if (t.id !== id) return t;
+                const completedTime = status === 'completed' ? Date.now() : t.completedTime;
+                const progress = status === 'completed' ? 100 : status === 'failed' ? 0 : t.progress;
+                return { ...t, status, details: details || t.details, completedTime, progress };
+            });
+
+            // If this task belongs to a mission, recalculate the mission's progress
+            const task = updated.find(t => t.id === id);
+            if (task?.missionId) {
+                updated = recalcMissionProgress(updated, task.missionId);
+                // Fire async Firestore update for the mission task too
+                const mission = updated.find(t => t.id === task.missionId);
+                if (mission) {
+                    updateTaskInFirestore(mission.id, { status: mission.status, progress: mission.progress, details: `${updated.filter(t => t.missionId === mission.id && !t.isMission && t.status === 'completed').length}/${updated.filter(t => t.missionId === mission.id && !t.isMission).length} tasks done` }).catch(() => {});
+                }
+            }
+
+            return updated;
+        });
         try {
             await updateTaskInFirestore(id, { status, details: details || "" });
         } catch (e) { console.error("Task update sync failed:", e); }
-    }, []);
+    }, [recalcMissionProgress]);
 
     const removeTask = useCallback(async (id: string) => {
         setTasks(prev => prev.filter(t => t.id !== id));

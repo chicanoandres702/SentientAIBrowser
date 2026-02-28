@@ -1,4 +1,4 @@
-// Feature: Core | Trace: README.md
+// Feature: Core | Why: Orchestrates all browser hooks into a single composable state object
 import { useRef, useEffect } from 'react';
 import { HeadlessWebViewRef } from '../components/HeadlessWebView';
 import { useUrlTracker } from './useUrlTracker';
@@ -9,82 +9,64 @@ import { useTaskQueue } from './useTaskQueue';
 import { useDomDecision } from './useDomDecision';
 import { useDomAutoScanner } from './useDomAutoScanner';
 import { useBrowserController } from './useBrowserController';
+import { usePlanReassessment } from './usePlanReassessment';
 import { detectModeFromUrl } from '../utils/mode-detector';
 import { useSessionSync } from '../features/browser/hooks/useSessionSync';
 import { useKnowledgeSync } from '../features/browser/hooks/useKnowledgeSync';
-
 import { auth } from '../features/auth/firebase-config';
 
 export const useSentientBrowser = (theme: AppTheme) => {
     const s = useBrowserState();
-    const { tabs, setTabs, activeUrl, setActiveUrl, addNewTab, closeTab, selectTab } = useBrowserTabs('https://www.google.com');
+    const { tabs, setTabs, activeUrl, setActiveUrl, navigateActiveTab, addNewTab, closeTab, selectTab } = useBrowserTabs('https://www.google.com');
     const { tasks, setTasks, addTask, updateTask, removeTask, clearTasks, editTask } = useTaskQueue();
-    const webViewRef = useRef<HeadlessWebViewRef>(null);
-
-    // Firestore-synced session and contextual knowledge
+    const webViewRef = useRef<HeadlessWebViewRef>(null!);
     const { session, persistSession } = useSessionSync();
     const activeHost = activeUrl ? new URL(activeUrl).hostname : '';
     const { entries: knowledgeEntries, addEntry: addKnowledge } = useKnowledgeSync(activeHost);
+    const activeTab = tabs.find(t => t.isActive);
 
-    // Auto-Mode Detection
     useEffect(() => {
         const mode = detectModeFromUrl(activeUrl);
-        if (mode === 'scholar') {
-            s.setIsScholarMode(true);
-        } else if (mode === 'survey') {
-            s.setIsScholarMode(false);
-        }
+        if (mode === 'scholar') s.setIsScholarMode(true);
+        else if (mode === 'survey') s.setIsScholarMode(false);
     }, [activeUrl]);
 
-    // Unified Task Tracking (No longer syncing to local file or GitHub)
-
-
     useUrlTracker(activeUrl, tasks.map(t => t.id), s.sessionAnswerIds);
+
+    const { reassess } = usePlanReassessment({
+        activePrompt: s.activePrompt, activeUrl, tasks, PROXY_BASE_URL: s.PROXY_BASE_URL,
+        tabId: activeTab?.id || 'default', addTask, updateTask, removeTask, setStatusMessage: s.setStatusMessage,
+    });
 
     const { handleDomMapReceived } = useDomDecision(
         s.activePrompt, activeUrl, s.retryCount, s.setRetryCount, updateTask,
         tasks.map(t => t.id), webViewRef, s.setBlockedReason, s.setIsBlockedModalVisible,
         s.setStatusMessage, s.setIsPaused, s.lookedUpDocs, s.setLookedUpDocs,
         s.setInteractiveRequest, s.setIsInteractiveModalVisible,
-        s.isThinking, s.setIsThinking,
-        s.PROXY_BASE_URL, s.isScholarMode
+        s.isThinking, s.setIsThinking, s.PROXY_BASE_URL, s.isScholarMode, tasks, reassess,
     );
 
     const handleInteractiveResponse = (response: string | boolean) => {
-        s.setIsInteractiveModalVisible(false);
-        s.setIsPaused(false);
-        s.setInteractiveRequest(null);
-        if (response) {
-            s.setActivePrompt(prev => `${prev}\n\n[USER RESPONSE]: ${response}`);
-            s.setStatusMessage('Resuming with info...');
-        } else {
-            s.setStatusMessage('Permission Denied');
-        }
+        s.setIsInteractiveModalVisible(false); s.setIsPaused(false); s.setInteractiveRequest(null);
+        if (response) { s.setActivePrompt(prev => `${prev}\n\n[USER RESPONSE]: ${response}`); s.setStatusMessage('Resuming...'); }
+        else { s.setStatusMessage('Permission Denied'); }
     };
 
     useDomAutoScanner(webViewRef, s.isAIMode, s.isPaused, s.activePrompt, s.setStatusMessage, s.isThinking);
 
     const { handleExecutePrompt, toggleDaemon, handleReload } = useBrowserController(
         webViewRef, addTask, s.setActivePrompt, s.setTaskStartTime,
-        s.setStatusMessage, s.setIsPaused, s.isDaemonRunning, s.setIsDaemonRunning,
-        s.PROXY_BASE_URL
+        s.setStatusMessage, s.setIsPaused, s.isDaemonRunning, s.setIsDaemonRunning, s.PROXY_BASE_URL,
     );
 
-    const activeTab = tabs.find(t => t.isActive);
-
-    // Construct the Proxy URL if proxy mode is enabled
     const webViewUrl = (s.useProxy && s.PROXY_BASE_URL)
-        ? `${s.PROXY_BASE_URL}/proxy?url=${encodeURIComponent(activeUrl)}&tabId=${activeTab?.id || 'default'}`
-        : activeUrl;
+        ? `${s.PROXY_BASE_URL}/proxy?url=${encodeURIComponent(activeUrl)}&tabId=${activeTab?.id || 'default'}` : activeUrl;
 
     return {
-        ...s, tabs, setTabs, activeUrl, setActiveUrl, addNewTab, closeTab, selectTab,
-        activeTabId: activeTab?.id,
-        webViewUrl, // Use this in your MainLayout <WebView source={{ uri: s.webViewUrl }} />
-        tasks, addTask, updateTask, removeTask, clearTasks, editTask,
+        ...s, tabs, setTabs, activeUrl, setActiveUrl, navigateActiveTab, addNewTab, closeTab, selectTab,
+        activeTabId: activeTab?.id, webViewUrl, tasks, addTask, updateTask, removeTask, clearTasks, editTask,
         session, persistSession, knowledgeEntries, addKnowledge,
         handleExecutePrompt: (p: string) => handleExecutePrompt(p, activeTab?.id || 'default', auth.currentUser?.uid || 'anonymous'),
-        toggleDaemon, handleInteractiveResponse,
-        webViewRef, handleDomMapReceived, handleReload
+        toggleDaemon, handleInteractiveResponse, webViewRef, handleDomMapReceived, handleReload,
     };
 };

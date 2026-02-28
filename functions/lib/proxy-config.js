@@ -8,15 +8,29 @@ const playwright_1 = require("playwright");
 const firebase_config_1 = require("./auth/firebase-config");
 Object.defineProperty(exports, "db", { enumerable: true, get: function () { return firebase_config_1.db; } });
 Object.defineProperty(exports, "auth", { enumerable: true, get: function () { return firebase_config_1.auth; } });
-// Why: In the Local-First Hybrid model, the browser proxy runs on localhost:3000.
-exports.PORT = 3000;
+// Cloud Run injects PORT env var. Fallback to 3000 for local dev.
+exports.PORT = parseInt(process.env.PORT || '3000', 10);
 let browserInstance = null;
 async function getBrowser() {
-    if (!browserInstance) {
+    if (!browserInstance || !browserInstance.isConnected()) {
         browserInstance = await playwright_1.chromium.launch({
             headless: true,
-            args: ['--no-sandbox', '--disable-setuid-sandbox']
+            args: [
+                '--no-sandbox',
+                '--disable-setuid-sandbox',
+                '--disable-dev-shm-usage', // use /tmp instead of /dev/shm (small in containers)
+                '--disable-gpu',
+                '--single-process', // reduce memory footprint
+                '--no-zygote', // required with --single-process in containers
+                '--disable-extensions',
+                '--disable-background-networking',
+                '--disable-default-apps',
+                '--disable-sync',
+                '--disable-translate',
+                '--mute-audio',
+            ]
         });
+        console.log('[Proxy] Browser launched successfully');
     }
     return browserInstance;
 }

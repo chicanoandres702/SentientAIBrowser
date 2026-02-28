@@ -21,5 +21,9 @@ setupBrowserRoutes(app);
 
 app.listen(PORT, () => {
   console.log(`[Sentient Proxy] Active at http://localhost:${PORT}`);
-  orchestrator.start();
+  try {
+    orchestrator.start();
+  } catch (e: any) {
+    console.warn(`[Sentient Proxy] Orchestrator skipped (${e.message}). Proxy routes still available.`);
+  }
 });
