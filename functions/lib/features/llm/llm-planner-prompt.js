@@ -29,6 +29,7 @@ Your response MUST be a valid JSON object matching this exact structure:
         "steps": [
           {
             "action": "click | type | wait | done | wait_for_user | ask_user | record_knowledge | lookup_documentation | scan_dom | navigate | verify | interact | extract_data",
+            "goal": "string - short user-facing intent for THIS action",
             "explanation": "string - technical description of the sub-action",
             "targetId": "string (optional)",
             "value": "string (optional)",
@@ -43,6 +44,7 @@ Your response MUST be a valid JSON object matching this exact structure:
 
 RULES:
 - Segment names: 2-6 word actionable phrases (verb + object)
+- Every step MUST include a concise "goal" (3-10 words)
 - 1-4 related steps per segment, 3-6 segments total
 - action must be EXACTLY one of the allowed values
 - End with a "done" action segment

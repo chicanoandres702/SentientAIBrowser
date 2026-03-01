@@ -34,6 +34,7 @@ var __importStar = (this && this.__importStar) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.FieldValue = exports.auth = exports.db = void 0;
+// Feature: Auth Config | Trace: README.md
 const admin = __importStar(require("firebase-admin"));
 // Initialize Firebase Admin for the backend
 // Why: Standardizing on Admin SDK for all functions/proxy logic to bypass rules.

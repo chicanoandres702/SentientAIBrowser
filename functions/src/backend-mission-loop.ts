@@ -7,14 +7,12 @@ import { db } from './proxy-config';
 import { processMissionStep } from './backend-mission.executor';
 import { openMissionIssue, openStepIssue, closeMissionIssue } from './features/github/github-tracer.service';
 
-/** Pause between consecutive LLM decision cycles — prevents rate-limit exhaustion.
+/** Pause between consecutive LLM cycles — short enough to feel live, long enough to avoid rate-limit.
  *  Override with ORCHESTRATOR_STEP_DELAY_MS env var (milliseconds). */
-export const STEP_DELAY_MS = parseInt(process.env.ORCHESTRATOR_STEP_DELAY_MS || '2000', 10);
+export const STEP_DELAY_MS = parseInt(process.env.ORCHESTRATOR_STEP_DELAY_MS || '500', 10);
 
-/** Hard cap on outer-loop iterations per mission (belt-and-suspenders on top of
- *  MAX_STEPS inside processMissionStep — guards against a hypothetical bug that
- *  keeps returning 'pending' without ever incrementing the internal step counter). */
-export const MAX_LOOP_ITERATIONS = 200;
+// Why: No iteration cap — the mission runs indefinitely until the user stops it
+// (by setting status ≠ 'active' in Firestore) or the LLM emits action 'done'.
 
 const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 
@@ -44,45 +42,29 @@ export async function runMissionLoop(
 
     try {
         let iterations = 0;
-        let hitLimit = true;
-        while (iterations < MAX_LOOP_ITERATIONS) {
+        // Why: Infinite loop — only exits when the user stops the mission (status ≠ 'active')
+        // or the LLM emits 'done'. No time/iteration cap by design.
+        while (true) {
             iterations++;
             const res = await processMissionStep(missionId);
 
             if (res === 'done') {
-                console.log(`[MissionLoop] Mission ${missionId} completed.`);
+                console.log(`[MissionLoop] ✅ Mission ${missionId} completed after ${iterations} cycles.`);
                 if (epicNum) await closeMissionIssue(epicNum, 'completed');
-                hitLimit = false; break;
-            }
-            if (res === 'failed') {
-                console.warn(`[MissionLoop] Mission ${missionId} failed.`);
-                if (epicNum) await closeMissionIssue(epicNum, 'failed');
-                hitLimit = false; break;
+                break;
             }
 
-            // Why: Step issues are only created for 'pending' cycles — avoids orphaned
-            // open issues when a cycle immediately reaches done/failed.
+            // Why: Step issues track progress in GitHub — only on 'pending' cycles.
             if (epicNum) await openStepIssue(missionId, iterations, `Decision cycle ${iterations}: ${goal.slice(0, 50)}`, epicNum);
 
-            // 'pending' — verify the mission is still active before continuing
+            // Check if user manually stopped the mission between cycles
             const snap = await db.collection('missions').doc(missionId).get();
             if (!snap.exists || snap.data()?.status !== 'active') {
-                console.log(`[MissionLoop] Mission ${missionId} no longer active — stopping.`);
-                hitLimit = false; break;
+                console.log(`[MissionLoop] ⏹ Mission ${missionId} stopped by user (status: ${snap.data()?.status}).`);
+                break;
             }
 
             await sleep(STEP_DELAY_MS);
-        }
-
-        // Why: Only fires when the hard cap is reached, never on a normal exit via break.
-        if (hitLimit) {
-            console.warn(`[MissionLoop] Mission ${missionId} hit MAX_LOOP_ITERATIONS (${MAX_LOOP_ITERATIONS}).`);
-            await db.collection('missions').doc(missionId).update({
-                status: 'failed',
-                lastAction: `Orchestrator iteration limit reached (${MAX_LOOP_ITERATIONS})`,
-                updated_at: new Date().toISOString(),
-            });
-            if (epicNum) await closeMissionIssue(epicNum, 'failed');
         }
     } finally {
         processingMissions.delete(missionId);

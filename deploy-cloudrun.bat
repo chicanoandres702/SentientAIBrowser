@@ -16,15 +16,18 @@ set CONDA_SHLVL=
 set _CE_M=
 set _CE_CONDA=
 
+:: Why: Windows shell sessions don't inherit .env — load it explicitly so API keys
+:: are never deployed as empty strings which causes silent 403 failures in Cloud Run.
+for /f "tokens=*" %%i in ('powershell -NoProfile -Command "Get-Content .env | Where-Object { $_ -match '^EXPO_PUBLIC_GEMINI_API_KEY=' } | ForEach-Object { ($_ -split '=', 2)[1] }"') do set EXPO_PUBLIC_GEMINI_API_KEY=%%i
+for /f "tokens=*" %%i in ('powershell -NoProfile -Command "Get-Content .env | Where-Object { $_ -match '^GOOGLE_API_KEY=' } | ForEach-Object { ($_ -split '=', 2)[1] }"') do set GOOGLE_API_KEY=%%i
+for /f "tokens=*" %%i in ('powershell -NoProfile -Command "Get-Content .env | Where-Object { $_ -match '^PROXY_API_KEY=' } | ForEach-Object { ($_ -split '=', 2)[1] }"') do set PROXY_API_KEY=%%i
+
 set GCLOUD="C:\Program Files (x86)\Google\Cloud SDK\google-cloud-sdk\bin\gcloud.cmd"
 set PROJECT=sentient-ai-browser
 set REGION=us-central1
 set SERVICE=sentient-proxy
 set IMAGE=gcr.io/%PROJECT%/%SERVICE%
 set FUNCS_DIR=%~dp0functions
-
-:: Why: never hardcode API keys in source; fall back GOOGLE_API_KEY from EXPO key if needed
-if "%GOOGLE_API_KEY%"=="" set GOOGLE_API_KEY=%EXPO_PUBLIC_GEMINI_API_KEY%
 
 if "%1"=="" goto all
 if "%1"=="build"  goto build

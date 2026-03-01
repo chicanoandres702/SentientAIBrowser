@@ -4,8 +4,8 @@ import { db } from './firebase.utils';
 import { sanitizeForCloud } from './safe-cloud.utils';
 
 export interface MissionItem {
-    id: string; goal: string; status: 'active' | 'paused' | 'completed' | 'failed';
-    tabId: string; progress: number; lastAction: string; timestamp: number; userId: string;
+    id: string; goal: string; status: 'active' | 'paused' | 'completed' | 'failed' | 'waiting';
+    tabId: string; progress: number; lastAction: string; lastReasoning?: string; timestamp: number; userId: string;
 }
 
 export const syncMissionToFirestore = async (mission: MissionItem) => {

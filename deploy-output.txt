@@ -2,22 +2,22 @@
 === Full Deploy: Build + Deploy ===
 Image: gcr.io/sentient-ai-browser/sentient-proxy
 
-Creating temporary archive of 54 file(s) totalling 486.8 KiB before compression.
-Uploading tarball of [C:\Users\Andrew\OneDrive\Documents\Coding\AntiGravity\Swagbucks\SentientAIBrowser\functions] to [gs://sentient-ai-browser_cloudbuild/source/1772338985.230617-7a2c146e36e2421db7e6d3085c1f73a0.tgz]
-Created [https://cloudbuild.googleapis.com/v1/projects/sentient-ai-browser/locations/global/builds/fe237d21-19b2-47c9-a688-3b105bf0ebeb].
-Logs are available at [ https://console.cloud.google.com/cloud-build/builds/fe237d21-19b2-47c9-a688-3b105bf0ebeb?project=184717935920 ].
+Creating temporary archive of 61 file(s) totalling 507.0 KiB before compression.
+Uploading tarball of [C:\Users\Andrew\OneDrive\Documents\Coding\AntiGravity\Swagbucks\SentientAIBrowser\functions] to [gs://sentient-ai-browser_cloudbuild/source/1772352673.271293-58d8e3ddb6264621a3c21457fc3a083c.tgz]
+Created [https://cloudbuild.googleapis.com/v1/projects/sentient-ai-browser/locations/global/builds/0da4dfbc-5f06-4a82-b080-4308855c8721].
+Logs are available at [ https://console.cloud.google.com/cloud-build/builds/0da4dfbc-5f06-4a82-b080-4308855c8721?project=184717935920 ].
 Waiting for build to complete. Polling interval: 1 second(s).
 ----------------------------- REMOTE BUILD OUTPUT ------------------------------
-starting build "fe237d21-19b2-47c9-a688-3b105bf0ebeb"
+starting build "0da4dfbc-5f06-4a82-b080-4308855c8721"
 
 FETCHSOURCE
-Fetching storage object: gs://sentient-ai-browser_cloudbuild/source/1772338985.230617-7a2c146e36e2421db7e6d3085c1f73a0.tgz#1772338986470978
-Copying gs://sentient-ai-browser_cloudbuild/source/1772338985.230617-7a2c146e36e2421db7e6d3085c1f73a0.tgz#1772338986470978...
-/ [0 files][    0.0 B/112.1 KiB]                                                / [1 files][112.1 KiB/112.1 KiB]                                                
-Operation completed over 1 objects/112.1 KiB.
+Fetching storage object: gs://sentient-ai-browser_cloudbuild/source/1772352673.271293-58d8e3ddb6264621a3c21457fc3a083c.tgz#1772352674116632
+Copying gs://sentient-ai-browser_cloudbuild/source/1772352673.271293-58d8e3ddb6264621a3c21457fc3a083c.tgz#1772352674116632...
+/ [0 files][    0.0 B/116.5 KiB]                                                / [1 files][116.5 KiB/116.5 KiB]                                                
+Operation completed over 1 objects/116.5 KiB.
 BUILD
 Already have image (with digest): gcr.io/cloud-builders/gcb-internal
-Sending build context to Docker daemon  544.3kB
+Sending build context to Docker daemon  570.4kB
 Step 1/15 : FROM node:20-slim AS build
 20-slim: Pulling from library/node
 84a2afebaf4d: Pulling fs layer
@@ -25,12 +25,10 @@ Step 1/15 : FROM node:20-slim AS build
 a0655704972f: Pulling fs layer
 2664cf4489e5: Pulling fs layer
 c2b9c0e674a1: Pulling fs layer
-c2b9c0e674a1: Verifying Checksum
-c2b9c0e674a1: Download complete
-2664cf4489e5: Verifying Checksum
 2664cf4489e5: Download complete
 05988a666f72: Verifying Checksum
 05988a666f72: Download complete
+c2b9c0e674a1: Download complete
 84a2afebaf4d: Verifying Checksum
 84a2afebaf4d: Download complete
 a0655704972f: Verifying Checksum
@@ -44,13 +42,13 @@ Digest: sha256:d8a35d586fad3af7abb6fdb9ba972388395405f4d462da9e4a4ddcde67b5e0fb
 Status: Downloaded newer image for node:20-slim
  ---> b810c2b3e7cc
 Step 2/15 : WORKDIR /app
- ---> Running in d163b379c519
-Removing intermediate container d163b379c519
- ---> dc15d200b4a6
+ ---> Running in 742cb65e5379
+Removing intermediate container 742cb65e5379
+ ---> 7c21c594cba2
 Step 3/15 : COPY package*.json ./
- ---> 8f8989517973
+ ---> 80eeb71cc2e3
 Step 4/15 : RUN npm ci --ignore-scripts
- ---> Running in 39d958908877
+ ---> Running in f5125deccbf1
 [91mnpm warn deprecated inflight@1.0.6: This module is not supported, and leaks memory. Do not use it. Check out lru-cache if you want a good and tested way to coalesce async requests by a key value, which is much more comprehensive and powerful.
 [0m[91mnpm warn deprecated glob@7.2.3: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
 [0m[91mnpm warn deprecated glob@10.5.0: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
@@ -71,107 +69,108 @@ npm notice New major version of npm available! 10.8.2 -> 11.11.0
 npm notice Changelog: https://github.com/npm/cli/releases/tag/v11.11.0
 npm notice To update run: npm install -g npm@11.11.0
 npm notice
-[0mRemoving intermediate container 39d958908877
- ---> 986d91e78289
+[0mRemoving intermediate container f5125deccbf1
+ ---> cc51bd718253
 Step 5/15 : COPY . .
- ---> 5b1b01ef79b4
+ ---> 853079490f2a
 Step 6/15 : RUN npm run build
- ---> Running in 040cb1638d95
+ ---> Running in e95db2253225
 
 > build
 > rimraf lib && tsc
-Removing intermediate container 040cb1638d95
- ---> 65ecf6273119
+Removing intermediate container e95db2253225
+ ---> 614c987fec37
 Step 7/15 : FROM mcr.microsoft.com/playwright:v1.58.2-noble
 v1.58.2-noble: Pulling from playwright
 e93fce65fb9f: Pulling fs layer
 2f544baf4e5f: Pulling fs layer
 a9f762cbf2c0: Pulling fs layer
 ca6ba77a7dd1: Pulling fs layer
+a9f762cbf2c0: Verifying Checksum
 a9f762cbf2c0: Download complete
 e93fce65fb9f: Verifying Checksum
 e93fce65fb9f: Download complete
 2f544baf4e5f: Verifying Checksum
 2f544baf4e5f: Download complete
 e93fce65fb9f: Pull complete
-2f544baf4e5f: Pull complete
-a9f762cbf2c0: Pull complete
 ca6ba77a7dd1: Verifying Checksum
 ca6ba77a7dd1: Download complete
+2f544baf4e5f: Pull complete
+a9f762cbf2c0: Pull complete
 ca6ba77a7dd1: Pull complete
 Digest: sha256:6446946a1d9fd62d9ae501312a2d76a43ee688542b21622056a372959b65d63d
 Status: Downloaded newer image for mcr.microsoft.com/playwright:v1.58.2-noble
  ---> 35524db2ea7f
 Step 8/15 : WORKDIR /app
- ---> Running in 5fbafd32aa58
-Removing intermediate container 5fbafd32aa58
- ---> 0f67879fb141
+ ---> Running in 648d580ca014
+Removing intermediate container 648d580ca014
+ ---> d1b6f040e61b
 Step 9/15 : COPY --from=build /app/lib ./lib
- ---> 85d45e363fbe
+ ---> 5a8baccc8908
 Step 10/15 : COPY --from=build /app/node_modules ./node_modules
- ---> 37731188430a
+ ---> 1035d67fbffc
 Step 11/15 : COPY --from=build /app/package.json ./
- ---> dd79cfaa3e97
+ ---> afbf69d15a38
 Step 12/15 : RUN npx playwright install chromium
- ---> Running in 03a081141ebc
+ ---> Running in f03f6b4cf7d8
 [91mnpm notice
 npm notice New minor version of npm available! 11.6.2 -> 11.11.0
 npm notice Changelog: https://github.com/npm/cli/releases/tag/v11.11.0
 npm notice To update run: npm install -g npm@11.11.0
 npm notice
-[0mRemoving intermediate container 03a081141ebc
- ---> 36842ec1e44a
+[0mRemoving intermediate container f03f6b4cf7d8
+ ---> e652006ebfe9
 Step 13/15 : ENV PORT=8080
- ---> Running in f35df426ce0b
-Removing intermediate container f35df426ce0b
- ---> d4b58929db06
+ ---> Running in 597a9673ba48
+Removing intermediate container 597a9673ba48
+ ---> 82df50ccb462
 Step 14/15 : EXPOSE 8080
- ---> Running in ea0b8dcd6e50
-Removing intermediate container ea0b8dcd6e50
- ---> 8dc450d819b6
+ ---> Running in 8bd4f2880f45
+Removing intermediate container 8bd4f2880f45
+ ---> 9372423812b8
 Step 15/15 : CMD ["node", "lib/proxy-server.js"]
- ---> Running in 0794fdc7da91
-Removing intermediate container 0794fdc7da91
- ---> 93df0861df84
-Successfully built 93df0861df84
+ ---> Running in 44fe6b5770c4
+Removing intermediate container 44fe6b5770c4
+ ---> 09d662c06854
+Successfully built 09d662c06854
 Successfully tagged gcr.io/sentient-ai-browser/sentient-proxy:latest
 PUSH
 Pushing gcr.io/sentient-ai-browser/sentient-proxy
 The push refers to repository [gcr.io/sentient-ai-browser/sentient-proxy]
-eecd6f4f023e: Preparing
-697f9f4f0a6d: Preparing
-79ac1ee8a880: Preparing
-644826c2abc2: Preparing
-dd1c50b63882: Preparing
+0c978a7a0e29: Preparing
+a4a5315be66a: Preparing
+6547bdc8ae32: Preparing
+b4dc87e65733: Preparing
+083f0fc73921: Preparing
 e06d8390ec01: Preparing
 a3ff443d928e: Preparing
 456f57dbeea9: Preparing
 123a078714d5: Preparing
-e06d8390ec01: Layer already exists
-123a078714d5: Layer already exists
 456f57dbeea9: Layer already exists
+e06d8390ec01: Layer already exists
 a3ff443d928e: Layer already exists
-dd1c50b63882: Pushed
-644826c2abc2: Pushed
-eecd6f4f023e: Pushed
-697f9f4f0a6d: Pushed
-79ac1ee8a880: Pushed
-latest: digest: sha256:966b9da7f80894c501826d5c6904986264efcd7797349369700dac0055908a30 size: 2208
+123a078714d5: Layer already exists
+083f0fc73921: Pushed
+b4dc87e65733: Pushed
+0c978a7a0e29: Pushed
+a4a5315be66a: Pushed
+6547bdc8ae32: Pushed
+latest: digest: sha256:8d29f39aceae71cf12d639713eebf0abedcf9c955fba00d6e3b227223ed4448a size: 2208
 DONE
 --------------------------------------------------------------------------------
 ID                                    CREATE_TIME                DURATION  SOURCE                                                                                             IMAGES                                               STATUS
-fe237d21-19b2-47c9-a688-3b105bf0ebeb  2026-03-01T04:23:06+00:00  3M36S     gs://sentient-ai-browser_cloudbuild/source/1772338985.230617-7a2c146e36e2421db7e6d3085c1f73a0.tgz  gcr.io/sentient-ai-browser/sentient-proxy (+1 more)  SUCCESS
+0da4dfbc-5f06-4a82-b080-4308855c8721  2026-03-01T08:11:14+00:00  3M57S     gs://sentient-ai-browser_cloudbuild/source/1772352673.271293-58d8e3ddb6264621a3c21457fc3a083c.tgz  gcr.io/sentient-ai-browser/sentient-proxy (+1 more)  SUCCESS
 
 Build succeeded. Deploying...
 
 === [2/2] Deploying sentient-proxy to Cloud Run ===
 Deploying container to Cloud Run service [sentient-proxy] in project [sentient-ai-browser] region [us-central1]
 Deploying...
-Setting IAM Policy............done
+Setting IAM Policy...............done
 Creating Revision..........................................................................................................................done
 Routing traffic.....done
 Done.
-Service [sentient-proxy] revision [sentient-proxy-00027-4h2] has been deployed and is serving 100 percent of traffic.
+Service [sentient-proxy] revision [sentient-proxy-00035-vxj] has been deployed and is serving 100 percent of traffic.
 Service URL: https://sentient-proxy-184717935920.us-central1.run.app
 
 === Getting service URL ===

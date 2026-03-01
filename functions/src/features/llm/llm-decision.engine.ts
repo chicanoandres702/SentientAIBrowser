@@ -53,9 +53,10 @@ ${pageContext}
 `;
 
   try {
-    // Why: Cloud Run may provide either GOOGLE_API_KEY (server-side) or EXPO_PUBLIC_GEMINI_API_KEY.
-    // Prefer server key, then fall back for backwards compatibility.
+    // Why: prefer GOOGLE_API_KEY (Cloud Run server-side), fall back to EXPO_ for compatibility.
     const geminiKey = apiKeyOverride || process.env.GOOGLE_API_KEY || process.env.EXPO_PUBLIC_GEMINI_API_KEY || '';
+    if (!geminiKey) { console.error('[LLM] ❌ STAGE 3 FAIL — no API key in env (GOOGLE_API_KEY / EXPO_PUBLIC_GEMINI_API_KEY)'); return null; }
+    console.log(`[LLM] ✅ STAGE 3 — key present (${geminiKey.substring(0, 8)}...), calling gemini-2.5-flash`);
     const genAI = new GoogleGenerativeAI(geminiKey);
     const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
     const parts: any[] = [{ text: DECISION_SYSTEM_INSTRUCTION + '\n\n' + userPayload }];
@@ -67,7 +68,7 @@ ${pageContext}
 
     const result = await model.generateContent(parts);
     const llmResponseText = result.response.text();
-    if (!llmResponseText) return null;
+    if (!llmResponseText) { console.error('[LLM] ❌ STAGE 3 FAIL — empty response from Gemini'); return null; }
 
     const cleanedText = llmResponseText.replace(/```json|```/g, '').trim();
     const parsed: MissionResponse = JSON.parse(cleanedText);
@@ -75,10 +76,10 @@ ${pageContext}
     parsed.meta.memoryUsed = cleanedText.toLowerCase().includes('memory') || cleanedText.toLowerCase().includes('historical');
     parsed.meta.intelligenceRating = parsed.meta.memoryUsed ? 95 : 65;
 
-    console.log('Atomic Chain Received:', parsed.execution.plan);
+    console.log(`[LLM] ✅ STAGE 3 DONE — plan: "${parsed.execution.plan}" | steps: ${parsed.execution.segments.flatMap(s=>s.steps).length}`);
     return parsed;
-  } catch (error) {
-    console.error('Failed to communicate with LLM:', error);
+  } catch (error: any) {
+    console.error(`[LLM] ❌ STAGE 3 FAIL — Gemini error: ${error?.status ?? ''} ${error?.message ?? error}`);
     return null;
   }
 };

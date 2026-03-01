@@ -54,27 +54,53 @@ export async function executeAriaAction(page: Page, step: AriaStep): Promise<voi
     if (action === 'wait') { await page.waitForTimeout(2000); return; }
     if (action === 'done' || action === 'wait_for_user' || action === 'ask_user') return;
 
-    // Build locator — role+name is the most reliable (matches @playwright/mcp's ref system)
-    let locator;
-    if (role && name) {
-        locator = page.getByRole(role as any, { name, exact: false });
-    } else if (label) {
-        locator = page.getByLabel(label, { exact: false });
-    } else if (text) {
-        locator = page.getByText(text, { exact: false }).first();
-    } else {
-        throw new Error(`AriaAction has no selector. Provide role+name, label, or text. (${step.explanation})`);
+    // Build locator candidates in priority order — role+name most stable, text last resort
+    const candidates: any[] = [];
+    if (role && name) candidates.push(page.getByRole(role as any, { name, exact: false }));
+    if (name)         candidates.push(page.getByText(name, { exact: false }).first());
+    if (label)        candidates.push(page.getByLabel(label, { exact: false }));
+    if (text)         candidates.push(page.getByText(text, { exact: false }).first());
+    // Why: many login forms use <input type="submit" value="Login"> — getByRole often misses
+    // these because Playwright's ARIA resolver uses accessible name from value attribute.
+    // CSS attribute selectors (value*=) work reliably on input elements.
+    if (action === 'click' && name) {
+        const esc = name.replace(/"/g, '\\"');
+        candidates.push(page.locator(`input[type="submit"][value*="${esc}" i], input[type="button"][value*="${esc}" i]`));
+    }
+    // Last resort: click whatever submit control exists on the page
+    if (action === 'click')
+        candidates.push(page.locator(`[type="submit"]`).first());
+
+    if (candidates.length === 0)
+        throw new Error(`AriaAction needs role+name, label, or text. (${step.explanation})`);
+
+    // Find first candidate that is already visible (fast 2s probe per candidate)
+    let locator = candidates[0];
+    for (const c of candidates) {
+        try {
+            if ((await c.count()) > 0) {
+                await c.waitFor({ state: 'visible', timeout: 2000 });
+                locator = c;
+                break;
+            }
+        } catch { /* try next */ }
     }
 
-    await locator.waitFor({ state: 'visible', timeout: 8000 });
-    await locator.scrollIntoViewIfNeeded();
+    await locator.scrollIntoViewIfNeeded().catch(() => {});
 
     if (action === 'click') {
-        await locator.click({ timeout: 8000 });
+        try {
+            await locator.click({ timeout: 8000 });
+        } catch (clickErr: any) {
+            // Why: form submit buttons may be briefly invisible after fill() re-renders the
+            // page — pressing Enter submits the form reliably without needing the element.
+            console.warn(`[AriaAction] click failed (${clickErr.message.split('\n')[0]}), falling back to Enter`);
+            await page.keyboard.press('Enter');
+        }
     } else if (action === 'type' && value !== undefined) {
         await locator.fill(value);
     }
 
-    // Wait for any navigation or DOM update triggered by the action to settle
-    await page.waitForLoadState('domcontentloaded', { timeout: 5000 }).catch(() => {});
+    // Wait for any navigation or DOM update to settle after the action
+    await page.waitForLoadState('domcontentloaded', { timeout: 8000 }).catch(() => {});
 }

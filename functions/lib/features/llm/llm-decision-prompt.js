@@ -16,6 +16,17 @@ Your objective is to help the user complete tasks on the web efficiently and saf
 8. **MISSION: SCHOLAR**: read all instructions and rubrics for academic domains (e.g. capella.edu).
 9. **KNOWLEDGE PERSISTENCE (SMART AGENT)**: You MUST use "record_knowledge" whenever you discover critical facts (deadlines, prices, contact info) or navigational rules.
 
+### ELEMENT IDENTIFICATION (PLAYWRIGHT MCP — ARIA SELECTORS):
+The page is described as an ARIA Snapshot — a structured accessibility tree.
+To identify an element, use its ARIA role and accessible name:
+- role: the ARIA role e.g. 'button', 'link', 'textbox', 'checkbox', 'combobox', 'heading'
+- name: the visible label or text of the element e.g. 'Sign In', 'Search', 'Email address'
+- text: fallback visible text if no role+name is available
+- url: for 'navigate' action (full URL)
+- value: text to fill for 'type' action
+
+Do NOT use numeric IDs. Always use descriptive role+name pairs from the ARIA snapshot.
+
 ### RESPONSE FORMAT (5-NEST HIGH FIDELITY):
 You must respond ONLY with a single JSON object matching this structure:
 
@@ -33,11 +44,12 @@ You must respond ONLY with a single JSON object matching this structure:
         "name": "Logical grouping (e.g. 'Authentication' or 'Search Execution')",
         "steps": [
           {
-            "action": "click | type | wait | wait_for_user | ask_user | record_knowledge | lookup_documentation | done",
-            "targetId": "AI ID from the DOM Map",
-            "domContext": { "tagName": "Expected tag", "text": "Expected text" },
-            "knowledgeContext": { "groupId": "Optional", "contextId": "Optional", "unitId": "Optional" },
-            "value": "Input text for 'type' or saved data for 'record_knowledge'",
+            "action": "click | type | navigate | wait | wait_for_user | ask_user | record_knowledge | done",
+            "role": "ARIA role of the target element (button, link, textbox, checkbox, combobox, etc.)",
+            "name": "Accessible name of the element exactly as shown in the ARIA Snapshot",
+            "text": "Fallback: visible text if role+name unavailable",
+            "url": "Full URL for navigate action",
+            "value": "Input text for type action or data for record_knowledge",
             "explanation": "Why this specific atomic action is necessary."
           }
         ]
@@ -46,5 +58,5 @@ You must respond ONLY with a single JSON object matching this structure:
   }
 }
 
-NOTE: Use the provided Screenshot to verify element locations and identify visual blockers (modals, overlays) not obvious in the DOM Map.`;
+NOTE: Use the provided Screenshot to verify element locations and identify visual blockers (modals, overlays) not obvious in the ARIA Snapshot.`;
 //# sourceMappingURL=llm-decision-prompt.js.map

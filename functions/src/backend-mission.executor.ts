@@ -8,52 +8,96 @@ import { recordActionOutcome } from './features/llm/llm-memory-service';
 import { saveContextualKnowledge } from './features/llm/knowledge-hierarchy.service';
 import { getAriaSnapshot, executeAriaAction, AriaStep } from './playwright-mcp-adapter';
 
-/** Max LLM decision cycles per mission before forcing termination */
-const MAX_STEPS = 50;
-/** Abort mission after this many back-to-back action failures */
-const MAX_CONSECUTIVE_FAILURES = 3;
-
-const updateFailed = async (missionRef: any, msg: string) => {
-    await missionRef.update({ status: 'failed', lastAction: msg, updated_at: new Date().toISOString() });
-    return 'failed';
-};
+// Why: No automatic stop conditions — the mission runs until:
+//   (a) The LLM emits action 'done'  →  status set to 'completed'
+//   (b) The user manually sets status ≠ 'active' in Firestore
+// Step failures are logged and skipped so the LLM can retry on the next cycle.
 
 export async function processMissionStep(missionId: string) {
     try {
+        // ── STAGE 1: Load mission from Firestore ─────────────────────────────────
+        console.log(`[Executor] ▶ STAGE 1 — loading mission ${missionId}`);
         const missionRef = db.collection('missions').doc(missionId);
-        const snap = await missionRef.get(); if (!snap.exists || snap.data()?.status !== 'active') return;
+        const snap = await missionRef.get();
+        if (!snap.exists || snap.data()?.status !== 'active') {
+            console.log(`[Executor] ⏹ STAGE 1 — mission not found or not active (status: ${snap.data()?.status})`);
+            return;
+        }
         const data = snap.data()!, tabId = data.tabId || 'default', userId = data.userId;
         const context = { groupId: data.groupId || 'DefaultGroup', contextId: data.contextId || 'DefaultContext', unitId: missionId };
-        const stepCount: number = data.stepCount || 0, consecutiveFailures: number = data.consecutiveFailures || 0;
-        if (stepCount >= MAX_STEPS) return updateFailed(missionRef, `Exceeded maximum steps (${MAX_STEPS})`);
-        if (consecutiveFailures >= MAX_CONSECUTIVE_FAILURES) return updateFailed(missionRef, `Too many consecutive failures (${MAX_CONSECUTIVE_FAILURES})`);
+        const stepCount: number = data.stepCount || 0;
+        console.log(`[Executor] ✅ STAGE 1 — goal: "${data.goal}" | tab: ${tabId} | total steps so far: ${stepCount}`);
 
-        const page = await getPersistentPage(null, tabId, userId); if (!page) return;
+        // ── STAGE 2: Get browser page + ARIA snapshot + screenshot ────────────────
+        console.log(`[Executor] ▶ STAGE 2 — getting page for tab: ${tabId}`);
+        const page = await getPersistentPage(null, tabId, userId);
+        if (!page) { console.error('[Executor] ❌ STAGE 2 FAIL — getPersistentPage returned null'); return; }
+        const currentUrl = page.url();
+        console.log(`[Executor] ✅ STAGE 2 — page at: ${currentUrl}`);
 
-        // Why: ARIA snapshot = @playwright/mcp's browser_snapshot tool output.
-        // Gives the LLM stable role+name refs that survive any DOM mutation.
         const ariaSnapshot = await getAriaSnapshot(page);
-        const screenshot = (await page.screenshot({ quality: 50, type: 'jpeg' })).toString('base64');
-        const response = await determineNextAction(userId, data.goal, domMap, screenshot, new URL(page.url()).hostname, [], true, context); if (!response) return;
+        console.log(`[Executor] ✅ STAGE 2 — ARIA snapshot: ${ariaSnapshot ? ariaSnapshot.length + ' chars' : 'EMPTY'}`);
+        // Why: quality 30 reduces base64 payload ~40% vs 50, speeds up LLM round-trip
+        const screenshot = (await page.screenshot({ quality: 30, type: 'jpeg' })).toString('base64');
+        console.log(`[Executor] ✅ STAGE 2 — screenshot captured (${screenshot.length} b64 chars)`);
+        // Write current URL so UI address bar + lastAction stay live
+        await missionRef.update({ lastAction: `📍 On: ${currentUrl}`, currentUrl, updated_at: new Date().toISOString() });
+
+        // ── STAGE 3: LLM decision ─────────────────────────────────────────────────
+        console.log(`[Executor] ▶ STAGE 3 — calling LLM for: "${data.goal}"`);
+        await missionRef.update({ lastAction: '🧠 Thinking...', updated_at: new Date().toISOString() });
+        const response = await determineNextAction(userId, data.goal, [], screenshot, new URL(currentUrl || 'http://blank').hostname, [], true, context, ariaSnapshot);
+        if (!response) {
+            console.error('[Executor] ❌ STAGE 3 FAIL — LLM returned null (see LLM logs above)');
+            await missionRef.update({ lastAction: '❌ LLM returned no response — check API key', updated_at: new Date().toISOString() });
+            return;
+        }
 
         await missionRef.update({ intelligenceSignals: response.meta.intelligenceSignals || [], lastReasoning: response.meta.reasoning, updated_at: new Date().toISOString() });
 
+        // ── STAGE 4: Execute step queue ───────────────────────────────────────────
         const stepQueue = response.execution.segments.flatMap(s => s.steps);
+        console.log(`[Executor] ✅ STAGE 3 DONE — ${stepQueue.length} steps planned. ▶ STAGE 4 executing...`);
 
-        for (const step of stepQueue) {
-            console.log(`[Executor] Executing Step: ${step.action} on ${step.targetId} (${step.explanation})`);
+        // Why: persist the full step list to Firestore BEFORE executing so the frontend
+        // MissionCard shows the real task list immediately.
+        // We KEEP previously completed/failed tasks and APPEND the new planned ones so the
+        // user sees cumulative progress across LLM cycles, not a reset-to-pending on each cycle.
+        const existingTasks: any[] = (data.tasks || []).filter((t: any) =>
+            t.status === 'completed' || t.status === 'failed'
+        );
+        const taskDocs: any[] = stepQueue.map((step, i) => ({
+            id: `step-${Date.now()}-${i}`,
+            title: `${step.action}: ${step.explanation}`.substring(0, 80),
+            action: step.action,
+            status: 'pending',
+        }));
+        // Why: helper returns a fresh merged snapshot — avoids stale spread capturing old refs
+        const liveTasks = () => [...existingTasks, ...taskDocs];
+        await missionRef.update({ tasks: liveTasks(), updated_at: new Date().toISOString() });
+
+        for (let idx = 0; idx < stepQueue.length; idx++) {
+            const step = stepQueue[idx];
+            console.log(`[Executor] ▶ STAGE 4 step — action:${step.action} role:${step.role || '-'} name:${step.name || '-'} | ${step.explanation}`);
+            // Mark this task in_progress before running it
+            taskDocs[idx].status = 'in_progress';
+            await missionRef.update({ tasks: liveTasks(), lastAction: `⚙️ ${step.action}: ${step.explanation}`.substring(0, 120), updated_at: new Date().toISOString() });
+
             if (step.action === 'wait_for_user' || step.action === 'ask_user') {
-                await missionRef.update({ status: 'waiting', lastAction: `Waiting: ${step.explanation}` });
+                await missionRef.update({ status: 'waiting', lastAction: `Waiting: ${step.explanation}`, tasks: liveTasks() });
                 return 'pending';
             }
             if (step.action === 'record_knowledge' && step.value) {
                 const targetContext = { ...context, ...(step.knowledgeContext || {}) };
                 await saveContextualKnowledge(userId, targetContext, 'rule', step.value);
-                await missionRef.update({ lastAction: `Stored knowledge: ${step.value.substring(0, 30)}...` });
+                taskDocs[idx].status = 'completed';
+                await missionRef.update({ tasks: liveTasks(), lastAction: `💾 Stored: ${step.value.substring(0, 50)}`, updated_at: new Date().toISOString() });
+                continue; // Why: fully handled — skip executeAriaAction path below
             }
             if (step.action === 'done') {
                 await saveContextualKnowledge(userId, context, 'breadcrumb', `Completed: ${data.goal}`);
-                await missionRef.update({ status: 'completed', progress: 100, stepCount: stepCount + 1, consecutiveFailures: 0, lastAction: 'Mission Completed Successfully' });
+                taskDocs[idx].status = 'completed';
+                await missionRef.update({ status: 'completed', progress: 100, stepCount: stepCount + idx + 1, lastAction: '✅ Mission Completed Successfully', tasks: liveTasks() });
                 return 'done';
             }
 
@@ -61,56 +105,48 @@ export async function processMissionStep(missionId: string) {
             let observation = step.explanation;
 
             try {
-                const sel = `[data-ai-id="${step.targetId}"]`;
-                if (step.domContext?.tagName) {
-                    const isCorrect = await page.evaluate(({ sel, tag }) => {
-                        const el = document.querySelector(sel);
-                        return el?.tagName === tag;
-                    }, { sel, tag: step.domContext.tagName });
-                    if (!isCorrect) console.warn(`[Executor] Warning: DOM Context mismatch for ${sel}`);
-                }
-                if (step.action === 'click') await page.click(sel, { timeout: 8000 });
-                else if (step.action === 'type' && step.value) {
-                    await page.fill(sel, step.value);
-                    await page.keyboard.press('Enter');
-                }
-                else if (step.action === 'wait') await page.waitForTimeout(2000);
-                else if (step.action === 'upload_file' && step.value) {
+                // Why: LLM now returns ARIA role+name selectors (not numeric data-ai-id).
+                // Route ALL actions through executeAriaAction which uses page.getByRole/getByText —
+                // the same mechanism @playwright/mcp uses. Selectors resolve fresh at call time.
+                const actionStr = step.action as string;
+                if (actionStr === 'done' || actionStr === 'wait_for_user' || actionStr === 'ask_user' || actionStr === 'record_knowledge') {
+                    // handled above — skip executeAriaAction
+                } else if (step.action === 'upload_file' && step.value) {
                     const allowed = ['.pdf', '.png', '.jpg', '.jpeg', '.csv', '.txt', '.docx'];
                     const ext = step.value.substring(step.value.lastIndexOf('.')).toLowerCase();
                     if (!allowed.includes(ext)) throw new Error(`File type "${ext}" not permitted`);
                     await page.locator('input[type="file"]').first().setInputFiles(step.value);
                 } else {
-                    // Why: executeAriaAction uses page.getByRole / getByLabel / getByText —
-                    // the same mechanism @playwright/mcp uses. Selectors resolve fresh at
-                    // call time so they survive any DOM change from previous steps.
                     await executeAriaAction(page, step as AriaStep);
                 }
             } catch (err: any) {
                 result = 'failure';
                 observation = `Action failed: ${err.message}`;
-                console.error(`[Executor] Step failed:`, observation);
+                console.error(`[Executor] ❌ STAGE 4 step FAIL — action:${step.action} | ${err.message}`);
             }
 
-            await recordActionOutcome(userId, data.goal, step.action, result, observation, new URL(page.url()).hostname);
-            const freshSnap = await missionRef.get();
-            const currentProgress = freshSnap.data()?.progress || 0;
-            const nextStep = stepCount + 1;
-            const nextConsecutiveFailures = result === 'failure' ? consecutiveFailures + 1 : 0;
+            // Update this task's live status in Firestore
+            taskDocs[idx].status = result === 'success' ? 'completed' : 'failed';
+            console.log(`[Executor] ${result === 'success' ? '✅' : '❌'} STAGE 4 result — ${result} | ${observation.substring(0, 80)}`);
+            // Why: page.url() can throw mid-navigation — safe fallback so a crash here can never
+            // skip the Firestore status write that marks this task completed/failed.
+            const pageUrlNow = await Promise.resolve().then(() => page.url()).catch(() => currentUrl || 'unknown');
+            await recordActionOutcome(userId, data.goal, step.action, result, observation, new URL(pageUrlNow || 'http://unknown').hostname).catch(() => {});
+            const nextStepCount = stepCount + idx + 1;
+            const nextProgress = Math.min(99, Math.round((nextStepCount / (nextStepCount + 8)) * 100));
             await missionRef.update({
-                lastAction: observation.substring(0, 100) + '...',
-                progress: Math.min(currentProgress + Math.ceil(90 / stepQueue.length), 98),
-                stepCount: nextStep,
-                consecutiveFailures: nextConsecutiveFailures,
+                tasks: liveTasks(),
+                lastAction: `${result === 'success' ? '✅' : '❌'} ${observation}`.substring(0, 120),
+                progress: nextProgress,
+                stepCount: nextStepCount,
                 updated_at: new Date().toISOString()
             });
-            if (result === 'failure') {
-                console.warn(`[Executor] Consecutive failures: ${nextConsecutiveFailures}/${MAX_CONSECUTIVE_FAILURES}`);
-                break;
-            }
+            if (result === 'failure') console.warn(`[Executor] ⚠️ step failed but continuing: ${observation}`);
         }
     } catch (e: any) {
-        console.error(`[Executor] Fatal in mission ${missionId}:`, e.message);
+        console.error(`[Executor] 🔥 FATAL in mission ${missionId}: ${e.message}\n${e.stack?.split('\n').slice(0,4).join('\n')}`);
+        try { await db.collection('missions').doc(missionId).update({ lastAction: `🔥 Fatal error: ${e.message}`.substring(0, 120), updated_at: new Date().toISOString() }); } catch {}
     }
+    console.log(`[Executor] ↺ STAGE 4 DONE — returning 'pending' for next loop iteration`);
     return 'pending';
 }

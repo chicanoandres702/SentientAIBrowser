@@ -7,21 +7,16 @@ import { PORT, REMOTE_DEBUGGING_PORT } from './proxy-config';
 import { setupBrowserRoutes } from './proxy-routes-browser';
 import orchestrator from './backend-ai-orchestrator';
 
-/**
- * Sentinel AI Browser Proxy Server
- * Note: The cluster module was removed for local development stability.
- */
 const app = express();
-app.use(cors());
-app.use((req, res, next) => {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,DELETE,OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-  if (req.method === 'OPTIONS') return res.sendStatus(204);
-  return next();
-});
-app.use(express.json());
 
+// ── Middleware ───────────────────────────────────────────────────────────────
+app.use(cors({ origin: '*', methods: ['GET', 'POST', 'DELETE', 'OPTIONS'], allowedHeaders: ['Content-Type', 'Authorization'] }));
+app.options('*', (_req, res) => res.sendStatus(204));
+app.use(express.json());
+// Why: urlencoded body parsing is required for HTML form POST submissions proxied via /:url(*)
+app.use(express.urlencoded({ extended: true }));
+
+// ── Routes ───────────────────────────────────────────────────────────────────
 setupBrowserRoutes(app);
 
 // Why: use http.createServer so we can intercept WebSocket upgrade events.

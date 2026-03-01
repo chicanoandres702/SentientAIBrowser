@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.initSurveyDB = exports.recordDisqualificationPenalty = exports.recordSuccessWeight = exports.getHighlyRatedAnswers = exports.recordAnswer = void 0;
+// Feature: Survey Memory | Trace: README.md
 const firebase_utils_1 = require("./firebase.utils");
 const COLLECTION_NAME = 'survey_memory';
 const recordAnswer = async (question, answer, userId = 'anonymous') => {
