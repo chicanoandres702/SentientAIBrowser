@@ -30,25 +30,29 @@ export const styles = StyleSheet.create({
         width: 14,
         height: 14,
         borderRadius: 7,
-        shadowOffset: { width: 0, height: 0 },
-        shadowOpacity: 0.8,
-        shadowRadius: 10,
+        ...Platform.select({
+            web: { boxShadow: '0 0 10px rgba(255,255,255,0.8)' } as any,
+            default: { shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.8, shadowRadius: 10 }
+        })
     },
     brandOrbInner: {
         width: 6,
         height: 6,
         borderRadius: 3,
-        shadowOffset: { width: 0, height: 0 },
-        shadowOpacity: 1,
-        shadowRadius: 4,
+        ...Platform.select({
+            web: { boxShadow: '0 0 4px rgba(255,255,255,1)' } as any,
+            default: { shadowOffset: { width: 0, height: 0 }, shadowOpacity: 1, shadowRadius: 4 }
+        })
     },
     brandText: {
         color: '#fff',
         fontSize: 14,
         fontWeight: '900',
         letterSpacing: 6,
-        textShadowOffset: { width: 0, height: 0 },
-        textShadowRadius: 12,
+        ...Platform.select({
+            web: { textShadow: '0 0 12px rgba(255,255,255,0.5)' } as any,
+            default: { textShadowOffset: { width: 0, height: 0 }, textShadowRadius: 12 }
+        })
     },
     actions: { flexDirection: 'row', alignItems: 'center', gap: 10 },
     iconBtn: {

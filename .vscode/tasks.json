@@ -75,6 +75,42 @@
                 "clear": true
             },
             "problemMatcher": []
+        },
+        {
+            "label": "Antigravity Watch",
+            "type": "shell",
+            "command": "node .antigravity/scripts/orchestrator.service.js",
+            "isBackground": true,
+            "group": "build",
+            "presentation": {
+                "reveal": "always",
+                "panel": "new",
+                "clear": true
+            },
+            "problemMatcher": [
+                {
+                    "pattern": {
+                        "regexp": "^.*$"
+                    },
+                    "background": {
+                        "activeOnStart": true,
+                        "beginsPattern": "--- Orchestrator: Syncing ---",
+                        "endsPattern": "--- Orchestrator: Ready ---"
+                    }
+                }
+            ]
+        },
+        {
+            "label": "Stop Antigravity",
+            "type": "shell",
+            "command": "npm run stop-antigravity",
+            "group": "build",
+            "presentation": {
+                "reveal": "always",
+                "panel": "new",
+                "clear": true
+            },
+            "problemMatcher": []
         }
     ]
 }

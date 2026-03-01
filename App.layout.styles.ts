@@ -30,9 +30,9 @@ export const layoutStyles = {
             fontSize: 20,
             fontWeight: '900',
             color: '#fff',
-            textShadowColor: 'rgba(255, 255, 255, 0.5)',
-            textShadowOffset: { width: 0, height: 0 },
-            textShadowRadius: 10,
+            ...Platform.select({
+                native: { textShadowColor: 'rgba(255, 255, 255, 0.5)', textShadowOffset: { width: 0, height: 0 }, textShadowRadius: 10 },
+            }),
             marginBottom: 0,
         },
         headerButtons: {

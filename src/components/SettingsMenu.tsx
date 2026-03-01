@@ -5,6 +5,7 @@ import { AppTheme } from '../../App';
 import { ConfigRow } from './settings/ConfigRow';
 import { ThemeSelector } from './settings/ThemeSelector';
 import { GitHubConfig } from './settings/GitHubConfig';
+import { GeminiAPIKeyConfig } from './settings/GeminiAPIKeyConfig';
 
 interface Props {
     visible: boolean; onClose: () => void; theme: AppTheme; setTheme: (theme: AppTheme) => void;
@@ -13,6 +14,7 @@ interface Props {
     isScholarMode: boolean; setIsScholarMode: (val: boolean) => void;
     isDaemonRunning: boolean; onToggleDaemon: () => void;
     github: { token: string; setToken: (v: string) => void; owner: string; setOwner: (v: string) => void; repo: string; setRepo: (v: string) => void; };
+    geminiApiKey: string; setGeminiApiKey: (v: string) => void;
 }
 
 export const SettingsMenu: React.FC<Props> = (p) => {
@@ -30,10 +32,10 @@ export const SettingsMenu: React.FC<Props> = (p) => {
                     <ScrollView style={styles.body} showsVerticalScrollIndicator={false}>
                         <Text style={styles.section}>CORE ENGINE</Text>
                         <ConfigRow label="Sentient AI Mode" sub="Enable autonomous navigation" value={p.isAIMode} onToggle={p.setIsAIMode} accent={accent} />
-                        <ConfigRow label="CORS Proxy" sub="Bypass security restrictions" value={p.useProxy} onToggle={p.setUseProxy} accent={accent} />
                         <ConfigRow label="Scholar Mode" sub="MISSION: SCHOLAR (Capella.edu)" value={p.isScholarMode} onToggle={p.setIsScholarMode} accent={scholarAccent} />
 
-                        <GitHubConfig token={p.github.token} setToken={p.github.setToken} owner={p.github.owner} setOwner={p.github.setOwner} repo={p.github.repo} setRepo={p.github.setRepo} />
+                        <GeminiAPIKeyConfig geminiApiKey={p.geminiApiKey} setGeminiApiKey={p.setGeminiApiKey} />
+                        {__DEV__ && <GitHubConfig token={p.github.token} setToken={p.github.setToken} owner={p.github.owner} setOwner={p.github.setOwner} repo={p.github.repo} setRepo={p.github.setRepo} />}
 
                         <Text style={styles.section}>APPEARANCE</Text>
                         <ThemeSelector current={p.theme} onSelect={p.setTheme} />

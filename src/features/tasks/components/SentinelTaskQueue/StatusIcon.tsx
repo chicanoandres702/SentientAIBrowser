@@ -2,7 +2,7 @@
 import React from 'react';
 import { Text } from 'react-native';
 import * as Animatable from 'react-native-animatable';
-import { TaskStatus } from '../types';
+import { TaskStatus } from '../../types';
 
 export const StatusIcon = ({ status, color }: { status: TaskStatus; color: string }) => {
     switch (status) {

@@ -11,6 +11,7 @@ interface Props {
     useProxy?: boolean;
     onDomMapReceived: (map: any) => void;
     onNewTabRequested: (url: string) => void;
+    tabId?: string;
 }
 
 export interface HeadlessWebViewRef {
@@ -18,13 +19,14 @@ export interface HeadlessWebViewRef {
     executeAction: (action: 'click' | 'type', id: string, value?: string) => void;
 }
 
-export const HeadlessWebView = React.memo(forwardRef<HeadlessWebViewRef, Props>(({ isVisible, url, useProxy, onDomMapReceived, onNewTabRequested }, ref) => {
+export const HeadlessWebView = React.memo(forwardRef<HeadlessWebViewRef, Props>(({ isVisible, url, useProxy, onDomMapReceived, onNewTabRequested, tabId }, ref) => {
     const webViewRef = useRef<WebView>(null);
     const iframeRef = useRef<HTMLIFrameElement>(null);
 
-    const displayUrl = (Platform.OS === 'web' && useProxy && url)
-        ? `http://localhost:3000/proxy?url=${encodeURIComponent(url)}`
-        : url;
+    const proxyUrl = (rawUrl: string) => {
+        return `http://localhost:3000/proxy?tabId=${tabId || 'default'}&url=${encodeURIComponent(rawUrl)}`;
+    };
+    const displayUrl = Platform.OS === 'web' && useProxy && url ? proxyUrl(url) : url;
 
     // Listen for postMessage from iframe (web only)
     const handleMessage = useCallback((event: MessageEvent) => {
@@ -36,8 +38,14 @@ export const HeadlessWebView = React.memo(forwardRef<HeadlessWebViewRef, Props>(
             console.log('[HeadlessWebView] Native popup intercepted => routing to tab system:', event.data.payload);
             const targetUrl = event.data.payload;
             // Unpack proxied URLs if necessary so the tab bar shows the real destination
-            const cleanUrl = targetUrl.startsWith('http://localhost:3000/proxy?url=') 
-                ? decodeURIComponent(targetUrl.split('url=')[1]) 
+            const cleanUrl = targetUrl.startsWith('http://localhost:3000/')
+                ? (() => { try {
+                    const after = targetUrl.slice('http://localhost:3000/'.length);
+                    const slash = after.indexOf('/');
+                    const host = slash >= 0 ? after.slice(0, slash) : after;
+                    const rest = slash >= 0 ? after.slice(slash) : '/';
+                    return `https://${host}${rest}`;
+                  } catch { return targetUrl; } })()
                 : targetUrl;
             onNewTabRequested(cleanUrl);
         } else if (event.data.type === 'ERROR') {

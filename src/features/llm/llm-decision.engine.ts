@@ -12,7 +12,7 @@ import { getGenerativeModel } from 'firebase/ai';
 // No hardcoded keys. Firebase AI Logic handles authentication and quota via the project backend.
 
 export interface LLMAction {
-  action: 'click' | 'type' | 'wait' | 'done' | 'wait_for_user' | 'ask_user' | 'record_knowledge' | 'lookup_documentation' | 'create_github_issue';
+  action: 'click' | 'type' | 'wait' | 'navigate' | 'done' | 'wait_for_user' | 'ask_user' | 'record_knowledge' | 'lookup_documentation' | 'create_github_issue' | 'reassess_plan';
   targetId?: string;
   value?: string;
   reasoning: string;
@@ -28,9 +28,11 @@ export const determineNextAction = async (
   screenshotBase64?: string,
   domain?: string,
   lookedUpDocs: any[] = [],
-  isScholarMode: boolean = false
+  isScholarMode: boolean = false,
+  geminiApiKey?: string
 ): Promise<LLMAction | null> => {
-  console.log('Sending DOM map to LLM. Domain:', domain, 'Scholar Mode:', isScholarMode, 'Node Count:', domMap.length);
+  // Why: dev-only log — avoids console spam every 10s in production
+  if (__DEV__) console.log('[LLM] Scanning. Domain:', domain, 'Nodes:', domMap.length);
 
   // Construct the strictly formatted prompt for the LLM
   const systemInstruction = `You are an advanced autonomous AI web browser agent.
@@ -53,15 +55,16 @@ Your objective is to help the user complete tasks on the web efficiently and saf
     - If Microsoft Word Online is used and you encounter issues, suggest looking up documentation for integration.
 11. **KNOWLEDGE PERSISTENCE**: If you find critical data (Reading Lists, Quiz Instructions, Course Rubrics, Etiquette rules), use action "record_knowledge" with the data in the "value" field. This data will be available to you in future sessions on this domain.
 12. **AUTONOMOUS BUG TRACKING**: If you identify a persistent technical issue, a broken selector, or a bug in the browser's own logic that prevents progress across multiple retries, use action "create_github_issue" with a detailed title and body in the "value" field.
+13. **DYNAMIC REASSESSMENT**: If the current sub-task is impossible to complete because the page state changed unexpectedly, return action "reassess_plan" with a reasoning outlining the failure, so the strategic planner can step in and generate a new task list.
 
 ### RESPONSE FORMAT:
 You must respond ONLY with a single JSON object.
 
 {
   "reasoning": "A step-by-step logical breakdown following the Medic/Diagnostic/Memory archetypes.",
-  "action": "click | type | wait | wait_for_user | ask_user | record_knowledge | lookup_documentation | create_github_issue | done",
+  "action": "click | type | wait | navigate | wait_for_user | ask_user | record_knowledge | lookup_documentation | create_github_issue | done | reassess_plan",
   "targetId": "The string ID of the element to interact with (optional)",
-  "value": "The text to type OR the knowledge to record (required for 'type' or 'record_knowledge')",
+  "value": "The text to type, the URL to navigate to, OR the knowledge to record (required for 'type', 'navigate' or 'record_knowledge')",
   "question": "The question/prompt for the user (required if action is 'ask_user')",
   "requestType": "confirm | input (required if action is 'ask_user')"
 }
@@ -74,17 +77,16 @@ User Objective: ${resolvedPrompt}
 Current Domain: ${domain || 'General Navigation'}
 
 DOM Map:
-${JSON.stringify(domMap, null, 2)}
-`;
+${JSON.stringify(domMap)}
+`; // Why: compact JSON — pretty-print adds 3-5x token bloat with zero LLM benefit
 
   try {
-    const model = getGenerativeModel(ai, { model: 'gemini-2.5-flash' });
+    let llmResponseText = '';
 
-    const parts: any[] = [{ text: systemInstruction + '\n\n' + userPayload }];
-
+    const userParts: any[] = [{ text: userPayload }];
     if (screenshotBase64) {
       const base64Data = screenshotBase64.split(',')[1] || screenshotBase64;
-      parts.push({
+      userParts.push({
         inlineData: {
           data: base64Data,
           mimeType: 'image/png'
@@ -92,9 +94,34 @@ ${JSON.stringify(domMap, null, 2)}
       });
     }
 
-    // To generate text output, call generateContent with the system + user instruction
-    const result = await model.generateContent(parts);
-    const llmResponseText = result.response.text();
+    if (geminiApiKey) {
+      // Use Gemini API directly
+      const payload = {
+        systemInstruction: { parts: [{ text: systemInstruction }] },
+        contents: [{ role: 'user', parts: userParts }],
+        generationConfig: { temperature: 0.2 }
+      };
+
+      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiApiKey}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(payload)
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        console.error("Gemini API Error:", data);
+        return null;
+      }
+      llmResponseText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+    } else {
+      // Fallback to Firebase SDK default quota
+      const model = getGenerativeModel(ai, { model: 'gemini-2.5-flash' });
+      const result = await model.generateContent([{ text: systemInstruction }, ...userParts]);
+      llmResponseText = result.response.text();
+    }
 
     if (!llmResponseText) {
       console.error('Empty response from GenAI');
@@ -112,7 +139,7 @@ ${JSON.stringify(domMap, null, 2)}
       cleanedText.toLowerCase().includes('historical');
     parsedAction.intelligenceRating = parsedAction.memoryUsed ? 85 : 45; // Base AI intelligence vs learning loop intelligence
 
-    console.log('LLM Decision Received:', parsedAction);
+    if (__DEV__) console.log('[LLM] Decision:', parsedAction);
 
     return parsedAction;
 

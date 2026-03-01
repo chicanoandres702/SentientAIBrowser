@@ -1,7 +1,7 @@
 // Feature: Settings | Trace: README.md
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { AppTheme } from '../../App';
+import { AppTheme } from '../../../App';
 
 export const ThemeSelector = ({ current, onSelect }: { current: AppTheme; onSelect: (t: AppTheme) => void }) => {
     return (

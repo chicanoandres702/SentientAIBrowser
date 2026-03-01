@@ -1,102 +1,117 @@
 // Feature: DOM Scanner | Trace: README.md
-/**
- * Web-compatible scanner for iframe injection via proxy.
- * Uses window.parent.postMessage instead of ReactNativeWebView.
- * Also listens for commands (SCAN, ACTION) from the parent.
- */
+// Why: iframe/web version — same aria-hidden + shadow DOM logic as native scanner.
 export const getWebScannerScript = (): string => `
 <script>
 (function() {
-  let elementMap = [];
-  let currentId = 1;
+  var ATTR = 'data-ai-id';
+  var SELECTOR = [
+    'button:not([disabled])','a[href]',
+    'input:not([type="hidden"]):not([disabled])',
+    'select:not([disabled])','textarea:not([disabled])',
+    '[role="button"]:not([aria-disabled="true"])',
+    '[role="link"]','[role="checkbox"]','[role="radio"]',
+    '[role="menuitem"]','[role="tab"]','[role="combobox"]',
+    '[contenteditable="true"]'
+  ].join(',');
 
-  function isVisible(el) {
-    if (!el || el.nodeType !== 1) return false;
-    const rect = el.getBoundingClientRect();
-    const style = window.getComputedStyle(el);
-    return (
-      rect.width > 0 && rect.height > 0 &&
-      style.visibility !== 'hidden' &&
-      style.display !== 'none' &&
-      style.opacity !== '0'
-    );
+  function isAriaHidden(el) {
+    var node = el;
+    while (node && node !== document.body) {
+      if (node.getAttribute && node.getAttribute('aria-hidden') === 'true') return true;
+      node = node.parentElement;
+    }
+    return false;
   }
 
-  function scanDOM() {
-    elementMap = [];
-    currentId = 1;
-    const elements = document.querySelectorAll(
-      'button, a, input, select, textarea, [role="button"]'
-    );
-    elements.forEach(function(el) {
-      if (isVisible(el)) {
-        el.setAttribute('data-ai-id', currentId.toString());
-        var text = el.innerText || el.placeholder || el.value
-          || el.getAttribute('aria-label') || el.name || '';
-        text = text.trim();
-        if (text || el.tagName === 'INPUT') {
-          elementMap.push({
-            id: currentId,
-            tag: el.tagName.toLowerCase(),
-            type: el.type || undefined,
-            text: text.substring(0, 50)
-          });
-          currentId++;
-        }
-      }
+  function isVisible(el) {
+    var r = el.getBoundingClientRect(), s = window.getComputedStyle(el);
+    return r.width > 0 && r.height > 0 &&
+      s.visibility !== 'hidden' && s.display !== 'none' && s.opacity !== '0';
+  }
+
+  function collectFromRoot(root, out) {
+    root.querySelectorAll(SELECTOR).forEach(function(el) { out.push(el); });
+    root.querySelectorAll('*').forEach(function(el) {
+      if (el.shadowRoot) collectFromRoot(el.shadowRoot, out);
     });
-    window.parent.postMessage({
-      type: 'DOM_MAP',
-      url: window.location.href,
-      payload: elementMap
-    }, '*');
+  }
+
+  function getLabel(el) {
+    var lblId = el.getAttribute('aria-labelledby');
+    var lblEl  = lblId && document.getElementById(lblId);
+    return ((el.getAttribute('aria-label') || (lblEl && lblEl.innerText) ||
+      el.getAttribute('title') || el.getAttribute('placeholder') ||
+      (el.innerText || '').trim() || el.value || el.getAttribute('name')) || '')
+      .trim().substring(0, 80);
+  }
+
+  function getRole(el) {
+    var r = el.getAttribute('role'); if (r) return r;
+    var tag = el.tagName.toLowerCase(), t = (el.type || '').toLowerCase();
+    if (tag === 'button') return 'button';
+    if (tag === 'a') return 'link';
+    if (tag === 'select') return 'combobox';
+    if (tag === 'textarea' || el.isContentEditable) return 'textbox';
+    if (tag === 'input') {
+      if (t === 'checkbox') return 'checkbox';
+      if (t === 'radio') return 'radio';
+      if (t === 'submit' || t === 'button') return 'button';
+      return 'textbox';
+    }
+    return tag;
+  }
+
+  function post(obj) { window.parent.postMessage(Object.assign({ source: 'sentient-scanner' }, obj), '*'); }
+
+  function scanDOM() {
+    document.querySelectorAll('['+ATTR+']').forEach(function(el){ el.removeAttribute(ATTR); });
+    var all = []; collectFromRoot(document, all);
+    var map = [], id = 1, viewH = window.innerHeight;
+    all.forEach(function(el) {
+      if (!isVisible(el) || isAriaHidden(el)) return;
+      var label = getLabel(el), role = getRole(el);
+      if (!label && role !== 'textbox' && role !== 'combobox') return;
+      el.setAttribute(ATTR, String(id));
+      var rect = el.getBoundingClientRect();
+      var node = { id: id, role: role, label: label,
+        inViewport: rect.top < viewH && rect.bottom > 0,
+        focused: el === document.activeElement };
+      if (el.checked !== undefined) node.checked = el.checked;
+      if (el.value && role === 'textbox') node.value = el.value.substring(0, 60);
+      if (role === 'combobox' && el.selectedOptions && el.selectedOptions[0])
+        node.selectedOption = el.selectedOptions[0].text.trim().substring(0, 40);
+      map.push(node); id++;
+    });
+    post({ type: 'DOM_MAP', url: window.location.href, payload: map });
   }
 
   function executeAction(action, targetId, value) {
-    var el = document.querySelector('[data-ai-id="' + targetId + '"]');
-    if (!el) {
-      window.parent.postMessage({ type: 'ERROR', payload: 'Element not found' }, '*');
-      return;
-    }
+    var el = document.querySelector('['+ATTR+'="'+targetId+'"]');
+    if (!el) { post({ type: 'ERROR', payload: 'Element not found: '+targetId }); return; }
     if (action === 'click') {
-      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      el.click();
-      window.parent.postMessage({ type: 'SUCCESS', payload: 'Clicked ' + targetId }, '*');
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' }); el.focus(); el.click();
+      post({ type: 'SUCCESS', payload: 'Clicked '+targetId });
     } else if (action === 'type') {
-      el.value = value || '';
+      el.focus(); el.value = value || '';
       el.dispatchEvent(new Event('input', { bubbles: true }));
       el.dispatchEvent(new Event('change', { bubbles: true }));
-      window.parent.postMessage({ type: 'SUCCESS', payload: 'Typed ' + targetId }, '*');
+      post({ type: 'SUCCESS', payload: 'Typed into '+targetId });
     }
-    // Re-scan after action to get updated DOM
     setTimeout(scanDOM, 500);
   }
 
-  // Listen for commands from parent app
-  window.addEventListener('message', function(event) {
-    if (!event.data || !event.data.type) return;
-    if (event.data.type === 'SCAN') scanDOM();
-    if (event.data.type === 'ACTION') {
-      executeAction(event.data.action, event.data.id, event.data.value);
-    }
+  window.addEventListener('message', function(e) {
+    if (!e.data || e.data.source !== 'sentient-parent') return;
+    if (e.data.type === 'SCAN') scanDOM();
+    if (e.data.type === 'ACTION') executeAction(e.data.action, e.data.id, e.data.value);
   });
 
-  // MutationObserver for real-time DOM change detection
-  var observer = new MutationObserver(function() {
-    if (window._scanTimeout) clearTimeout(window._scanTimeout);
-    window._scanTimeout = setTimeout(function() {
-      console.log('DOM Watcher: Change detected, re-scanning...');
-      scanDOM();
-    }, 1000);
-  });
-
-  if (document.body) {
-    observer.observe(document.body, { childList: true, subtree: true });
-  }
+  new MutationObserver(function() {
+    clearTimeout(window._scanTimeout);
+    window._scanTimeout = setTimeout(scanDOM, 800);
+  }).observe(document.body, { childList: true, subtree: true });
 
   window._runAIScan = scanDOM;
-
-  // Initial scan after short delay to let page settle
-  setTimeout(scanDOM, 1500);
+  setTimeout(scanDOM, 1200);
 })();
 </script>`;

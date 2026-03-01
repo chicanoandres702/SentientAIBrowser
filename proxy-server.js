@@ -1,6 +1,6 @@
 // Feature: System Utilities | Trace: README.md
-const cluster = require('cluster');
-const os = require('os');
+// Why: PM2 manages process lifecycle; internal cluster forking creates
+// unwanted visible Node windows on Windows. Single-process is correct here.
 const express = require('express');
 const cors = require('cors');
 const { PORT } = require('./proxy-config');
@@ -8,32 +8,22 @@ const { setupTaskRoutes } = require('./proxy-routes-tasks');
 const { setupGitRoutes } = require('./proxy-routes-git');
 const { setupBrowserRoutes } = require('./proxy-routes-browser');
 
-/**
- * Sentinel AI Browser Proxy Server
- * Multithreaded Cluster Architecture for Horizontal Scaling.
- */
-if (cluster.isMaster) {
-  const numCPUs = os.cpus().length;
-  console.log(`[Sentient Master] Forking ${numCPUs} proxy workers...`);
+const app = express();
+app.use(cors());
 
-  for (let i = 0; i < numCPUs; i++) {
-    cluster.fork();
-  }
+// Why: Capture rawBody for structured types
+app.use(express.json({ limit: '50mb', verify: (req, buf) => { req.rawBody = buf; } }));
+app.use(express.urlencoded({ extended: true, limit: '50mb', verify: (req, buf) => { req.rawBody = buf; } }));
 
-  cluster.on('exit', (worker) => {
-    console.log(`[Sentient Master] Worker ${worker.process.pid} died. Respawning...`);
-    cluster.fork();
-  });
-} else {
-  const app = express();
-  app.use(cors());
-  app.use(express.json());
+// Why: Catch-all raw parser for binary (protobuf), XML, or weird Google-encoded JSON
+// This runs if the content-type was NOT handled by the above parsers.
+app.use(express.raw({ type: '*/*', limit: '50mb', verify: (req, buf) => { req.rawBody = buf; } }));
 
-  setupTaskRoutes(app);
-  setupGitRoutes(app);
-  setupBrowserRoutes(app);
+setupTaskRoutes(app);
+setupGitRoutes(app);
+setupBrowserRoutes(app);
 
-  app.listen(PORT, () => {
-    console.log(`[Worker ${process.pid}] Sentient Proxy active at http://localhost:${PORT}`);
-  });
-}
+app.listen(PORT, () => {
+
+  console.log(`[Sentient Proxy] Active at http://localhost:${PORT}`);
+});

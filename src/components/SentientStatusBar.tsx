@@ -1,6 +1,6 @@
 // Feature: UI | Trace: README.md
 import React, { useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, Animated } from 'react-native';
+import { View, Text, StyleSheet, Animated, Platform } from 'react-native';
 import * as Animatable from 'react-native-animatable';
 
 import { styles } from './SentientStatusBar.styles';
@@ -15,7 +15,7 @@ interface Props {
     totalEarnings?: number;
 }
 
-export const SentientStatusBar: React.FC<Props> = ({ isAIMode, statusMessage, useProxy, theme, domain, isScholarMode, totalEarnings }) => {
+export const SentientStatusBar: React.FC<Props> = React.memo(({ isAIMode, statusMessage, useProxy, theme, domain, isScholarMode, totalEarnings }) => {
     let accent = theme === 'red' ? '#ff003c' : '#00d2ff';
     if (isScholarMode || domain?.includes('capella.edu')) accent = '#bf5af2'; // Purple Scholar Accent
     if (!isScholarMode && (domain?.includes('swagbucks') || domain?.includes('survey'))) accent = '#00d2ff'; // Survey Blue
@@ -48,25 +48,22 @@ export const SentientStatusBar: React.FC<Props> = ({ isAIMode, statusMessage, us
     return (
         <View style={[styles.bar, { borderTopColor: accent + '18' }]}>
             {/* Seeker Dot */}
-            <Animated.View style={[styles.seeker, { left, backgroundColor: accent, shadowColor: accent }]} />
+            <Animated.View style={[styles.seeker, { left, backgroundColor: accent, ...Platform.select({ web: { boxShadow: `0 0 8px ${accent}` } as any, default: { shadowColor: accent, shadowOpacity: 0.8, shadowRadius: 6 } }) }]} />
 
             <View style={styles.left}>
-                <Animatable.View
-                    animation={isActive ? 'pulse' : undefined}
-                    iterationCount="infinite"
-                    duration={1200}
-                    style={[styles.dot, {
-                        backgroundColor: isActive ? accent : '#2a2a2a',
-                        shadowColor: accent,
-                        shadowOpacity: isActive ? 0.9 : 0,
-                        shadowRadius: 6,
-                    }]}
-                />
+                {/* Why: static dot — no infinite animation to prevent status bar blinking */}
+                <View style={[styles.dot, {
+                    backgroundColor: isActive ? accent : '#2a2a2a',
+                    ...Platform.select({
+                        web: { boxShadow: isActive ? `0 0 8px ${accent}` : 'none' } as any,
+                        default: { shadowColor: accent, shadowOpacity: isActive ? 0.9 : 0, shadowRadius: 6 }
+                    })
+                }]} />
                 <Text style={[styles.modeTag, { color: isActive ? accent : '#444' }]}>
                     {isScholarMode ? 'SCHOLAR' : (domain?.includes('swagbucks') || domain?.includes('survey')) ? 'SURVEY' : isAIMode ? 'SENTIENT' : 'MANUAL'}
                 </Text>
                 <View style={styles.divider} />
-                <Text style={[styles.msg, { color: isActive ? '#fff' : '#666', textShadowColor: accent, textShadowRadius: isActive ? 8 : 0 }]}>
+                <Text style={[styles.msg, { color: isActive ? '#fff' : '#666', ...Platform.select({ web: { textShadow: isActive ? `0 0 8px ${accent}` : 'none' } as any, default: { textShadowColor: accent, textShadowRadius: isActive ? 8 : 0 } }) }]}>
                     {statusMessage.toUpperCase()}
                 </Text>
             </View>
@@ -92,5 +89,5 @@ export const SentientStatusBar: React.FC<Props> = ({ isAIMode, statusMessage, us
             </View>
         </View>
     );
-};
+});
 

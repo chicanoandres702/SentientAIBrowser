@@ -26,11 +26,11 @@ export const styles = StyleSheet.create({
     pulse: {
         width: 8, height: 8, borderRadius: 4,
         backgroundColor: '#a064ff', marginRight: 10,
-        shadowColor: '#a064ff', shadowOpacity: 1, shadowRadius: 6,
+        ...Platform.select({ native: { shadowColor: '#a064ff', shadowOpacity: 1, shadowRadius: 6 } }),
     },
     headerText: {
         color: '#a064ff', fontSize: 10, fontWeight: '900', letterSpacing: 3,
-        textShadowColor: 'rgba(160, 100, 255, 0.5)', textShadowRadius: 8,
+        ...Platform.select({ native: { textShadowColor: 'rgba(160, 100, 255, 0.5)', textShadowRadius: 8 } }),
     },
     scroll: { flex: 1 },
     scrollContent: { paddingVertical: 4 },

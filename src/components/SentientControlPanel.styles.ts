@@ -38,11 +38,12 @@ export const styles = StyleSheet.create({
         borderWidth: 1.5,
         justifyContent: 'center',
         alignItems: 'center',
-        shadowOffset: { width: 0, height: 0 },
-        shadowOpacity: 0.5,
-        shadowRadius: 12,
         marginHorizontal: 8,
         overflow: 'hidden',
+        ...Platform.select({
+            web: { boxShadow: '0 0 12px rgba(0,0,0,0.5)' } as any,
+            default: { shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.5, shadowRadius: 12 }
+        }),
     },
     shockwave: {
         position: 'absolute',
@@ -67,10 +68,12 @@ export const styles = StyleSheet.create({
         height: 8,
         borderRadius: 4,
         marginLeft: 12,
-        shadowOffset: { width: 0, height: 0 },
-        shadowOpacity: 1,
-        shadowRadius: 8,
-        elevation: 4,
+        borderRadius: 4,
+        marginLeft: 12,
+        ...Platform.select({
+            web: { boxShadow: '0 0 8px rgba(0,0,0,1)' } as any,
+            default: { shadowOffset: { width: 0, height: 0 }, shadowOpacity: 1, shadowRadius: 8, elevation: 4 }
+        }),
     },
     statusLabel: { fontSize: 10, fontWeight: '900', letterSpacing: 2.5 },
 });

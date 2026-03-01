@@ -1,5 +1,22 @@
 // Feature: UI | Trace: README.md
-import { StyleSheet } from 'react-native';
+// Why: shadow* and textShadow* props inside StyleSheet.create fire at module
+// load on web. Wrapped in Platform.select so they're native-only.
+import { StyleSheet, Platform } from 'react-native';
+
+const nativeShadowDot = Platform.select({
+    web: { boxShadow: '0 0 4px rgba(255,255,255,0.8)' } as any,
+    native: { shadowOffset: { width: 0, height: 0 }, shadowOpacity: 1, shadowRadius: 4 },
+}) ?? {};
+
+const nativeShadowSeeker = Platform.select({
+    web: { boxShadow: '0 0 4px rgba(255,255,255,0.8)' } as any,
+    native: { shadowOffset: { width: 0, height: 0 }, shadowOpacity: 1, shadowRadius: 4 },
+}) ?? {};
+
+const nativeTextShadow = Platform.select({
+    web: { textShadow: '0 0 4px rgba(255,255,255,0.5)' } as any,
+    native: { textShadowOffset: { width: 0, height: 0 }, textShadowRadius: 4 },
+}) ?? {};
 
 export const styles = StyleSheet.create({
     bar: {
@@ -18,9 +35,7 @@ export const styles = StyleSheet.create({
         top: -1,
         width: 40,
         height: 1,
-        shadowOffset: { width: 0, height: 0 },
-        shadowOpacity: 1,
-        shadowRadius: 4,
+        ...nativeShadowSeeker,
     },
     left: { flexDirection: 'row', alignItems: 'center' },
     dot: {
@@ -28,11 +43,11 @@ export const styles = StyleSheet.create({
         height: 6,
         borderRadius: 3,
         marginRight: 10,
-        shadowOffset: { width: 0, height: 0 },
+        ...nativeShadowDot,
     },
     modeTag: { fontSize: 8, fontWeight: '900', letterSpacing: 2 },
     divider: { width: 1, height: 10, backgroundColor: 'rgba(255, 255, 255, 0.05)', marginHorizontal: 12 },
-    msg: { fontSize: 8, fontWeight: 'bold', letterSpacing: 1.5, textShadowOffset: { width: 0, height: 0 } },
+    msg: { fontSize: 8, fontWeight: 'bold', letterSpacing: 1.5, ...nativeTextShadow },
     right: { flexDirection: 'row', alignItems: 'center' },
     telemetry: { flexDirection: 'row', marginRight: 20, alignItems: 'center' },
     telLabel: { color: '#333', fontSize: 7, fontWeight: 'bold' },

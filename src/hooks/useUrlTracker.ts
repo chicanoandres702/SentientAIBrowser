@@ -10,7 +10,7 @@ import { recordSuccessWeight, recordDisqualificationPenalty } from '../features/
 export const useUrlTracker = (activeUrl: string, workflowIds: string[], sessionAnswerIds: string[]) => {
     useEffect(() => {
         const checkUrlPatterns = async () => {
-            if (sessionAnswerIds.length === 0) return;
+            if (!sessionAnswerIds || sessionAnswerIds.length === 0) return;
 
             // Swagbucks patterns (examples based on typical behavior)
             const isSuccess = activeUrl.includes('survey/complete') ||

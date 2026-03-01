@@ -1,6 +1,6 @@
 // Feature: Tasks | Trace: src/features/tasks/trace.md
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, Platform } from 'react-native';
 import * as Animatable from 'react-native-animatable';
 import { TaskItem, TaskStatus } from '../../features/tasks/types';
 import { styles } from './TaskQueueUI.styles';
@@ -25,7 +25,7 @@ export const TaskItemView = React.memo(({ item, accentColor, removeTask, editTas
     const save = () => { editTask(item.id, editValue); setIsEditing(false); };
 
     return (
-        <Animatable.View animation="fadeInRight" duration={400} style={[styles.taskCard, item.status === 'in_progress' && { borderColor: accentColor, shadowColor: accentColor, shadowOpacity: 0.3, shadowRadius: 15 }]}>
+        <Animatable.View animation="fadeInRight" duration={400} style={[styles.taskCard, item.status === 'in_progress' && { borderColor: accentColor, ...Platform.select({ native: { shadowColor: accentColor, shadowOpacity: 0.3, shadowRadius: 15 } }) }]}>
             <View style={[styles.statusVertical, { backgroundColor: getStatusColor(item.status) }]} />
             <View style={styles.cardInfo}>
                 {isEditing ? (
@@ -33,7 +33,7 @@ export const TaskItemView = React.memo(({ item, accentColor, removeTask, editTas
                 ) : (
                     <TouchableOpacity onLongPress={() => setIsEditing(true)}>
                         <Text style={[styles.taskTitle, item.status === 'completed' && { color: 'rgba(255,255,255,0.3)' }]}>{item.title.toUpperCase()}</Text>
-                        {item.details && <Text style={styles.taskDetails} numberOfLines={2}>{item.details}</Text>}
+                        {Boolean(item.details) && <Text style={styles.taskDetails} numberOfLines={2}>{item.details}</Text>}
                     </TouchableOpacity>
                 )}
             </View>
