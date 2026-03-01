@@ -32,11 +32,23 @@ export const useBrowserState = () => {
     const [isScholarMode, setIsScholarMode] = useState(false);
     const [layoutMode, setLayoutMode] = useState<LayoutMode>('standard');
     const [isRemoteMirrorEnabled, setIsRemoteMirrorEnabled] = useState(false);
+    const [runtimeGeminiApiKeyState, setRuntimeGeminiApiKeyState] = useState(() => {
+        if (Platform.OS !== 'web' || typeof window === 'undefined') return '';
+        return window.localStorage.getItem('sentient.runtimeGeminiApiKey') || '';
+    });
 
     const config = getEnvConfig();
     const PROXY_BASE_URL = config.proxyBaseUrl;
 
     const trackManualInteraction = () => setLastInteractionTime(Date.now());
+    const setRuntimeGeminiApiKey = (key: string) => {
+        const normalized = key.trim();
+        setRuntimeGeminiApiKeyState(normalized);
+        if (Platform.OS === 'web' && typeof window !== 'undefined') {
+            if (normalized) window.localStorage.setItem('sentient.runtimeGeminiApiKey', normalized);
+            else window.localStorage.removeItem('sentient.runtimeGeminiApiKey');
+        }
+    };
 
     return {
         isDesktop, showWebView, setShowWebView, isAIMode, setIsAIMode,
@@ -52,6 +64,8 @@ export const useBrowserState = () => {
         sessionAnswerIds, setSessionAnswerIds, isThinking, setIsThinking,
         layoutMode, setLayoutMode,
         isRemoteMirrorEnabled, setIsRemoteMirrorEnabled,
+        runtimeGeminiApiKey: runtimeGeminiApiKeyState,
+        setRuntimeGeminiApiKey,
         trackManualInteraction
     };
 };

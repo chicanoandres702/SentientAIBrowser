@@ -3,10 +3,13 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 import { buildMissionPlannerPrompt } from './llm-planner-prompt';
 import { buildFallbackMissionResponse } from './llm-planner-fallback';
 
-const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY || '');
+// Why: support both server and legacy env names so planner keeps working across deploy scripts.
+const geminiKey = process.env.GOOGLE_API_KEY || process.env.EXPO_PUBLIC_GEMINI_API_KEY || '';
+const genAI = new GoogleGenerativeAI(geminiKey);
 
 export interface MissionStep {
     action: 'click' | 'type' | 'wait' | 'done' | 'wait_for_user' | 'ask_user' | 'record_knowledge' | 'lookup_documentation' | 'scan_dom' | 'navigate' | 'verify' | 'interact' | 'extract_data';
+    goal?: string;
     targetId?: string;
     value?: string;
     domContext?: { tagName?: string; text?: string; role?: string; placeholder?: string };
@@ -21,7 +24,7 @@ export interface MissionResponse { meta: MissionMeta; execution: MissionExecutio
 
 export const planMissionWithLLM = async (prompt: string, schemaPrompt?: string): Promise<MissionResponse> => {
     try {
-        const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+        const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
         const systemPrompt = buildMissionPlannerPrompt(schemaPrompt);
 
         const response = await model.generateContent({

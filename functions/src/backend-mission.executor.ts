@@ -1,10 +1,12 @@
 // Feature: Mission Executor | Trace: backend-ai-orchestrator.js
-// Technique: browser-use/web-ui — max_steps guard + consecutive_failures tracking (BrowserUseAgent.run)
+// Technique: Playwright MCP — ARIA snapshots replace data-ai-id indices; role+name selectors
+// are stable across DOM mutations. Technique sourced from @playwright/mcp architecture.
 import { db } from './proxy-config';
 import { getPersistentPage } from './proxy-page-handler';
 import { determineNextAction } from './features/llm/llm-decision.engine';
 import { recordActionOutcome } from './features/llm/llm-memory-service';
 import { saveContextualKnowledge } from './features/llm/knowledge-hierarchy.service';
+import { getAriaSnapshot, executeAriaAction, AriaStep } from './playwright-mcp-adapter';
 
 /** Max LLM decision cycles per mission before forcing termination */
 const MAX_STEPS = 50;
@@ -28,13 +30,9 @@ export async function processMissionStep(missionId: string) {
 
         const page = await getPersistentPage(null, tabId, userId); if (!page) return;
 
-        const domMap = await page.evaluate(() => {
-            return Array.from(document.querySelectorAll('button, a, input, [role="button"]')).map((el: any, i) => {
-                el.setAttribute('data-ai-id', i);
-                return { id: i, tagName: el.tagName, text: el.innerText || el.value || el.placeholder, type: (el as any).type };
-            });
-        });
-
+        // Why: ARIA snapshot = @playwright/mcp's browser_snapshot tool output.
+        // Gives the LLM stable role+name refs that survive any DOM mutation.
+        const ariaSnapshot = await getAriaSnapshot(page);
         const screenshot = (await page.screenshot({ quality: 50, type: 'jpeg' })).toString('base64');
         const response = await determineNextAction(userId, data.goal, domMap, screenshot, new URL(page.url()).hostname, [], true, context); if (!response) return;
 
@@ -81,7 +79,12 @@ export async function processMissionStep(missionId: string) {
                     const allowed = ['.pdf', '.png', '.jpg', '.jpeg', '.csv', '.txt', '.docx'];
                     const ext = step.value.substring(step.value.lastIndexOf('.')).toLowerCase();
                     if (!allowed.includes(ext)) throw new Error(`File type "${ext}" not permitted`);
-                    await page.setInputFiles(sel, step.value);
+                    await page.locator('input[type="file"]').first().setInputFiles(step.value);
+                } else {
+                    // Why: executeAriaAction uses page.getByRole / getByLabel / getByText —
+                    // the same mechanism @playwright/mcp uses. Selectors resolve fresh at
+                    // call time so they survive any DOM change from previous steps.
+                    await executeAriaAction(page, step as AriaStep);
                 }
             } catch (err: any) {
                 result = 'failure';

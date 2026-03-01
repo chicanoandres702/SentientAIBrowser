@@ -24,6 +24,7 @@ export const useSentientBrowser = (_theme?: unknown) => {
     const s = useBrowserState();
     const { tabs, setTabs, activeUrl, setActiveUrl, navigateActiveTab, addNewTab, closeTab, selectTab } = useBrowserTabs('https://www.google.com');
     const { tasks, setTasks, addTask, updateTask, removeTask, clearTasks, editTask } = useTaskQueue();
+    const { preStepCheck, postStepRecord, resetHeuristics } = useAgentHeuristics();
     const webViewRef = useRef<HeadlessWebViewRef>(null!);
     const { width: winWidth } = useWindowDimensions();
     // Why: Cursor needs viewport dimensions to scale element rects to container coordinates
@@ -37,6 +38,11 @@ export const useSentientBrowser = (_theme?: unknown) => {
     const activeTab = tabs.find(t => t.isActive);
 
     useBrowserModeSync(activeUrl, s.isRemoteMirrorEnabled, s.setIsScholarMode, navigateActiveTab);
+
+    useEffect(() => {
+        if (!s.activePrompt) return;
+        resetHeuristics();
+    }, [s.activePrompt, resetHeuristics]);
 
     useUrlTracker(activeUrl, tasks.map(t => t.id), s.sessionAnswerIds);
 
@@ -70,7 +76,7 @@ export const useSentientBrowser = (_theme?: unknown) => {
         s.setStatusMessage, s.setIsPaused, s.lookedUpDocs,
         s.setInteractiveRequest, s.setIsInteractiveModalVisible,
         s.isThinking, s.setIsThinking, s.PROXY_BASE_URL, s.isScholarMode, tasks, reassess,
-        undefined, undefined, cursorActions, remoteActions,
+        preStepCheck, postStepRecord, cursorActions, remoteActions, s.runtimeGeminiApiKey,
     );
 
     // Bridge: feed DOM map to both decision engine AND cursor coordinate resolver
@@ -93,11 +99,11 @@ export const useSentientBrowser = (_theme?: unknown) => {
     const webViewUrl = buildWebViewUrl(s.useProxy, s.PROXY_BASE_URL, activeUrl, activeTab?.id);
 
     return {
-        ...s, tabs, setTabs, activeUrl, setActiveUrl, navigateActiveTab, addNewTab, closeTab, selectTab,
+        ...s, tabs, setTabs, activeUrl, setActiveUrl, navigateActiveTab, navigateWithGuard, addNewTab, closeTab: closeTabWithCleanup, selectTab,
         activeTabId: activeTab?.id, webViewUrl, tasks, addTask, updateTask, removeTask, clearTasks, editTask,
         session, persistSession, knowledgeEntries, addKnowledge,
         handleExecutePrompt: (p: string) => handleExecutePrompt(p, activeTab?.id || 'default', auth.currentUser?.uid || 'anonymous'),
         toggleDaemon, handleInteractiveResponse, webViewRef, handleDomMapReceived, handleReload,
-        cursor, cursorActions, remoteMirror,
+        cursor, cursorActions, remoteMirror, handleManualClick, handleManualType, handleManualKeyPress,
     };
 };

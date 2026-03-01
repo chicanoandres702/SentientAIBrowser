@@ -1,8 +1,17 @@
 // Feature: Browser | Trace: proxy-routes-browser.js
 import { URL } from 'url';
-import { PORT } from './proxy-config';
 
-export function rewriteHtml(html: string, targetUrl: string, tabId: string): string {
+/**
+ * Rewrites <a href> links so they route back through the proxy.
+ * @param proxyBase  Public proxy origin — e.g. https://sentient-proxy-....run.app
+ *                   Derive from req: process.env.PUBLIC_PROXY_URL || `${req.protocol}://${req.get('host')}`
+ */
+export function rewriteHtml(
+  html: string,
+  targetUrl: string,
+  tabId: string,
+  proxyBase: string,
+): string {
   const origin = new URL(targetUrl).origin;
   html = html.replace(/(<head\b[^>]*>)/i, `$1<base href="${origin}/">`);
   const linkTags: string[] = [];
@@ -12,7 +21,7 @@ export function rewriteHtml(html: string, targetUrl: string, tabId: string): str
     try {
       const abs = new URL(url, targetUrl).href;
       if (!abs.startsWith('http')) return match;
-      return `${prefix}href="http://localhost:${PORT}/proxy?tabId=${tabId}&url=${encodeURIComponent(abs)}"`;
+      return `${prefix}href="${proxyBase}/proxy?tabId=${tabId}&url=${encodeURIComponent(abs)}"`;
     } catch { return match; }
   });
   return html.replace(/<!--LINK_(\d+)-->/g, (_, i) => linkTags[parseInt(i)]);
