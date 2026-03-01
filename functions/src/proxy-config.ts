@@ -18,12 +18,14 @@ export const CHROME_SANDBOX_ARGS = [
     '--no-sandbox',
     '--disable-setuid-sandbox',
     '--disable-dev-shm-usage',   // use /tmp instead of /dev/shm (limited in containers)
-    '--no-zygote',               // required with --single-process in containers
+    '--no-zygote',               // Docker containers lack the Linux capabilities the zygote needs
 ] as const;
 
 export const CHROME_PERF_ARGS = [
     '--disable-gpu',
-    '--single-process',          // reduce memory footprint
+    // Why: --single-process was removed — it collapses renderer+browser into one OS process,
+    // causing 'Target page, context or browser has been closed' crashes when creating
+    // new BrowserContexts. Multi-process mode is stable with --no-zygote + --no-sandbox.
     '--disable-extensions',
     '--disable-background-networking',
     '--disable-default-apps',
@@ -32,6 +34,9 @@ export const CHROME_PERF_ARGS = [
     '--mute-audio',
 ] as const;
 
+/** Remote debugging port — must be declared before CHROME_STEALTH_ARGS uses it */
+export const REMOTE_DEBUGGING_PORT = 9222;
+
 /** Anti-fingerprinting args — from browser-use/web-ui stealth patterns */
 export const CHROME_STEALTH_ARGS = [
     '--disable-blink-features=AutomationControlled',
@@ -39,6 +44,7 @@ export const CHROME_STEALTH_ARGS = [
     '--window-size=1280,800',
     '--disable-web-security',         // allow cross-origin iframes
     '--ignore-certificate-errors',
+    `--remote-debugging-port=${REMOTE_DEBUGGING_PORT}`, // Why: expose CDP so humans can connect via DevTools
 ] as const;
 
 export const CHROME_DEFAULT_ARGS = [
@@ -46,9 +52,6 @@ export const CHROME_DEFAULT_ARGS = [
     ...CHROME_PERF_ARGS,
     ...CHROME_STEALTH_ARGS,
 ] as const;
-
-/** Remote debugging port used when connecting to an existing browser instance */
-export const REMOTE_DEBUGGING_PORT = 9222;
 
 /**
  * Checks whether a TCP port is already in use.
@@ -69,28 +72,31 @@ export function isPortInUse(port: number): Promise<boolean> {
 }
 
 let browserInstance: Browser | null = null;
+// Why: Launch lock prevents concurrent requests from each spawning a Chrome process.
+// Without this, two simultaneous calls while browserInstance=null both try chromium.launch()
+// and the second Chrome fails to bind --remote-debugging-port=9222 → 180s timeout → proxy down.
+let launchInProgress: Promise<Browser> | null = null;
 
 export async function getBrowser(): Promise<Browser> {
-    if (!browserInstance || !browserInstance.isConnected()) {
-        // --- browser-use/web-ui: connect to existing browser if remote debug port active ---
-        const debugPortActive = await isPortInUse(REMOTE_DEBUGGING_PORT);
-        if (debugPortActive) {
-            try {
-                browserInstance = await chromium.connectOverCDP(`http://127.0.0.1:${REMOTE_DEBUGGING_PORT}`);
-                console.log(`[Proxy] Connected to existing browser on port ${REMOTE_DEBUGGING_PORT}`);
-                return browserInstance;
-            } catch (e: any) {
-                console.warn('[Proxy] CDP connect failed, launching new browser:', e.message);
-            }
-        }
+    if (browserInstance?.isConnected()) return browserInstance;
 
-        browserInstance = await chromium.launch({
-            headless: true,
-            args: [...CHROME_DEFAULT_ARGS],
-        });
-        console.log('[Proxy] Browser launched successfully');
-    }
-    return browserInstance;
+    // If a launch is already in flight, wait for it instead of starting another
+    if (launchInProgress) return launchInProgress;
+
+    launchInProgress = (async () => {
+        try {
+            browserInstance = await chromium.launch({
+                headless: true,
+                args: [...CHROME_DEFAULT_ARGS],
+            });
+            console.log('[Proxy] Browser launched successfully');
+            return browserInstance;
+        } finally {
+            launchInProgress = null; // Release lock whether launch succeeded or failed
+        }
+    })();
+
+    return launchInProgress;
 }
 
 export function stripSecurityHeaders(res: any) {

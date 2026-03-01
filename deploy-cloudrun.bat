@@ -23,6 +23,9 @@ set SERVICE=sentient-proxy
 set IMAGE=gcr.io/%PROJECT%/%SERVICE%
 set FUNCS_DIR=%~dp0functions
 
+:: Why: never hardcode API keys in source; fall back GOOGLE_API_KEY from EXPO key if needed
+if "%GOOGLE_API_KEY%"=="" set GOOGLE_API_KEY=%EXPO_PUBLIC_GEMINI_API_KEY%
+
 if "%1"=="" goto all
 if "%1"=="build"  goto build
 if "%1"=="deploy" goto deploy
@@ -60,12 +63,12 @@ call %GCLOUD% run deploy %SERVICE% ^
     --region %REGION% ^
     --project %PROJECT% ^
     --allow-unauthenticated ^
-    --memory 1Gi ^
+    --memory 2Gi ^
     --cpu 1 ^
     --timeout 300 ^
     --min-instances 0 ^
     --max-instances 2 ^
-    --set-env-vars "NODE_ENV=production"
+    --set-env-vars "NODE_ENV=production,GOOGLE_API_KEY=%GOOGLE_API_KEY%,EXPO_PUBLIC_GEMINI_API_KEY=%EXPO_PUBLIC_GEMINI_API_KEY%,PROXY_API_KEY=%PROXY_API_KEY%"
 if %ERRORLEVEL% NEQ 0 (
     echo [ERROR] Cloud Run deploy failed.
     exit /b %ERRORLEVEL%

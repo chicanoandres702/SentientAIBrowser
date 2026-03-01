@@ -7,6 +7,61 @@ import { syncTaskToFirestore, updateTaskInFirestore, removeTaskFromFirestore, hy
 export const useTaskQueue = () => {
     const [tasks, setTasks] = useState<TaskItem[]>([]);
 
+    const deriveProgress = useCallback((status: TaskStatus, subActions?: TaskItem['subActions'], current: number = 0): number => {
+        if (!subActions || subActions.length === 0) {
+            if (status === 'completed') return 100;
+            if (status === 'in_progress') return Math.max(current, 50);
+            if (status === 'failed') return 0;
+            return 0;
+        }
+
+        const total = subActions.length;
+        const completed = subActions.filter(sa => sa.status === 'completed').length;
+        const inProgress = subActions.filter(sa => sa.status === 'in_progress').length;
+        const base = Math.round(((completed + inProgress * 0.5) / total) * 100);
+
+        if (status === 'completed') return 100;
+        if (status === 'in_progress') return Math.max(base, 5);
+        if (status === 'failed') return base;
+        return base;
+    }, []);
+
+    const advanceSubActions = useCallback((
+        subActions: TaskItem['subActions'],
+        nextStatus: TaskStatus,
+        details?: string,
+    ): TaskItem['subActions'] => {
+        if (!subActions || subActions.length === 0) return subActions;
+        const updated = subActions.map(sa => ({ ...sa }));
+
+        if (nextStatus === 'in_progress') {
+            if (!updated.some(sa => sa.status === 'in_progress' || sa.status === 'completed')) {
+                const firstPending = updated.find(sa => sa.status === 'pending');
+                if (firstPending) firstPending.status = 'in_progress';
+            }
+            return updated;
+        }
+
+        if (nextStatus === 'completed') {
+            const doneMatch = (details || '').match(/^Done:\s*([a-z_]+)/i);
+            const doneAction = doneMatch?.[1]?.toLowerCase();
+            const byAction = doneAction
+                ? updated.find(sa => sa.status !== 'completed' && sa.action.toLowerCase() === doneAction)
+                : undefined;
+            const target = byAction || updated.find(sa => sa.status === 'in_progress') || updated.find(sa => sa.status === 'pending');
+            if (target) target.status = 'completed';
+            return updated;
+        }
+
+        if (nextStatus === 'failed') {
+            const target = updated.find(sa => sa.status === 'in_progress') || updated.find(sa => sa.status === 'pending');
+            if (target) target.status = 'failed';
+            return updated;
+        }
+
+        return updated;
+    }, []);
+
     useEffect(() => {
         const hydrate = async () => {
             if (!auth.currentUser) return;
@@ -66,32 +121,41 @@ export const useTaskQueue = () => {
     }, []);
 
     const updateTask = useCallback(async (id: string, status: TaskStatus, details?: string) => {
+        let persistedStatus: TaskStatus = status;
+        let persistedDetails: string = details || '';
         setTasks(prev => {
             const now = Date.now();
             let updated = prev.map(t => {
                 if (t.id !== id) return t;
-                const completedTime = status === 'completed' ? now : t.completedTime;
-                const progress = status === 'completed' ? 100 : status === 'failed' ? 0 : t.progress;
+                const nextSubActions = advanceSubActions(t.subActions, status, details || t.details);
+                const subActionComplete = !!nextSubActions?.length && nextSubActions.every(sa => sa.status === 'completed');
+                const normalizedStatus: TaskStatus = (status === 'completed' && !subActionComplete) ? 'in_progress' : status;
+                const completedTime = normalizedStatus === 'completed' ? now : t.completedTime;
+                const progress = deriveProgress(normalizedStatus, nextSubActions, t.progress);
                 // Fix: set startTime when promoting pending → in_progress
-                const startTime = (status === 'in_progress' && !t.startTime) ? now : t.startTime;
-                return { ...t, status, details: details || t.details, completedTime, progress, startTime };
+                const startTime = (normalizedStatus === 'in_progress' && !t.startTime) ? now : t.startTime;
+                persistedStatus = normalizedStatus;
+                persistedDetails = details || t.details || '';
+                return { ...t, status: normalizedStatus, details: details || t.details, completedTime, progress, startTime, subActions: nextSubActions };
             });
 
             const task = updated.find(t => t.id === id);
             if (task?.missionId) {
                 // Auto-advance: when a task completes, promote next pending sibling
-                if (status === 'completed' || status === 'failed') {
+                if (task.status === 'completed' || task.status === 'failed') {
                     const nextPending = updated.find(t =>
                         !t.isMission && t.missionId === task.missionId
                         && t.status === 'pending' && t.id !== id
                     );
                     if (nextPending) {
+                        const nextSubActions = advanceSubActions(nextPending.subActions, 'in_progress', `Executing: ${nextPending.title}`);
+                        const nextProgress = deriveProgress('in_progress', nextSubActions, nextPending.progress);
                         updated = updated.map(t =>
                             t.id === nextPending.id
-                                ? { ...t, status: 'in_progress' as TaskStatus, startTime: now, details: `Executing: ${t.title}` }
+                                ? { ...t, status: 'in_progress' as TaskStatus, startTime: now, details: `Executing: ${t.title}`, progress: nextProgress, subActions: nextSubActions }
                                 : t
                         );
-                        updateTaskInFirestore(nextPending.id, { status: 'in_progress', details: `Executing: ${nextPending.title}` }).catch(() => {});
+                        updateTaskInFirestore(nextPending.id, { status: 'in_progress', details: `Executing: ${nextPending.title}`, progress: nextProgress }).catch(() => {});
                     }
                 }
                 updated = recalcMissionProgress(updated, task.missionId);
@@ -106,9 +170,9 @@ export const useTaskQueue = () => {
             return updated;
         });
         try {
-            await updateTaskInFirestore(id, { status, details: details || "" });
+            await updateTaskInFirestore(id, { status: persistedStatus, details: persistedDetails });
         } catch (e) { console.error("Task update sync failed:", e); }
-    }, [recalcMissionProgress]);
+    }, [advanceSubActions, deriveProgress, recalcMissionProgress]);
 
     const removeTask = useCallback(async (id: string) => {
         setTasks(prev => prev.filter(t => t.id !== id));

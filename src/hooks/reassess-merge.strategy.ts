@@ -32,6 +32,7 @@ export const mergeReassessedTasks = async (
 
         const subActions: SubAction[] = steps.map((step: any) => ({
             action: step.action || 'interact',
+            goal: step.goal || segName,
             explanation: step.explanation || step.action,
             status: 'pending' as TaskStatus,
         }));

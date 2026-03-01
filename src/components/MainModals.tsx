@@ -23,6 +23,8 @@ export const MainModals = ({ s, theme, setTheme }: any) => (
             onToggleDaemon={s.toggleDaemon} 
             layoutMode={s.layoutMode}
             setLayoutMode={s.setLayoutMode}
+            runtimeGeminiApiKey={s.runtimeGeminiApiKey}
+            setRuntimeGeminiApiKey={s.setRuntimeGeminiApiKey}
         />
         <SentinelInteractiveModal 
             visible={s.isInteractiveModalVisible} 
