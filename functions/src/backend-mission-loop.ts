@@ -5,6 +5,7 @@
 // the mission reaches a terminal state or the Firestore document is no longer active.
 import { db } from './proxy-config';
 import { processMissionStep } from './backend-mission.executor';
+import { openMissionIssue, openStepIssue, closeMissionIssue } from './features/github/github-tracer.service';
 
 /** Pause between consecutive LLM decision cycles — prevents rate-limit exhaustion.
  *  Override with ORCHESTRATOR_STEP_DELAY_MS env var (milliseconds). */
@@ -37,6 +38,10 @@ export async function runMissionLoop(
     processingMissions.add(missionId);
     console.log(`[MissionLoop] Starting loop for: ${goal}`);
 
+    // Why: Epic issue is the root of the §6 Issue Hierarchy tree for this mission.
+    // If GitHub env vars are absent the tracer is a no-op — missions run unchanged.
+    const epicNum = await openMissionIssue(missionId, goal);
+
     try {
         let iterations = 0;
         let hitLimit = true;
@@ -46,12 +51,18 @@ export async function runMissionLoop(
 
             if (res === 'done') {
                 console.log(`[MissionLoop] Mission ${missionId} completed.`);
+                if (epicNum) await closeMissionIssue(epicNum, 'completed');
                 hitLimit = false; break;
             }
             if (res === 'failed') {
                 console.warn(`[MissionLoop] Mission ${missionId} failed.`);
+                if (epicNum) await closeMissionIssue(epicNum, 'failed');
                 hitLimit = false; break;
             }
+
+            // Why: Step issues are only created for 'pending' cycles — avoids orphaned
+            // open issues when a cycle immediately reaches done/failed.
+            if (epicNum) await openStepIssue(missionId, iterations, `Decision cycle ${iterations}: ${goal.slice(0, 50)}`, epicNum);
 
             // 'pending' — verify the mission is still active before continuing
             const snap = await db.collection('missions').doc(missionId).get();
@@ -71,6 +82,7 @@ export async function runMissionLoop(
                 lastAction: `Orchestrator iteration limit reached (${MAX_LOOP_ITERATIONS})`,
                 updated_at: new Date().toISOString(),
             });
+            if (epicNum) await closeMissionIssue(epicNum, 'failed');
         }
     } finally {
         processingMissions.delete(missionId);
