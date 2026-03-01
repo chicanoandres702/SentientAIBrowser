@@ -1,3 +1,4 @@
+// Feature: Page Lifecycle | Trace: README.md
 import { getBrowser, db } from './proxy-config';
 import { BLOCKED_EXTENSIONS } from './proxy-asset';
 import { Page, BrowserContext } from 'playwright';

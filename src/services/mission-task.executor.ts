@@ -1,7 +1,8 @@
 // Feature: Missions | Why: Auto-execute tasks from active missions
 import { auth, db } from '../features/auth/firebase-config';
-import { doc, onSnapshot, updateDoc, collection, query, where, getDoc } from 'firebase/firestore';
+import { doc, onSnapshot, updateDoc, collection, query, where } from 'firebase/firestore';
 import { HeadlessWebViewRef } from '../components/HeadlessWebView';
+import { MissionTask, getCurrentTaskForMission, updateMissionTaskStatus } from './mission-task.utils';
 
 interface TaskExecutorContext {
     webViewRef: React.RefObject<HeadlessWebViewRef>;
@@ -10,16 +11,6 @@ interface TaskExecutorContext {
     setActiveUrl?: (url: string) => void;
     updateTask: (id: string, status: any, details?: string) => Promise<void>;
     remoteActions?: { executeAction: (action: 'click' | 'type', targetId: string | undefined, value?: string, ariaSelector?: { role?: string; name?: string; text?: string }) => Promise<void> };
-}
-
-interface MissionTask {
-    id: string;
-    title: string;
-    action: string;
-    status: 'pending' | 'in_progress' | 'completed' | 'failed';
-    targetId?: string;
-    value?: string;
-    explanation?: string;
 }
 
 /**
@@ -33,16 +24,9 @@ export class MissionTaskExecutor {
 
     start(context: TaskExecutorContext) {
         if (this.unsubscribe || !auth.currentUser) return;
-        
         this.ctx = context;
         console.log('[MissionTaskExecutor] Starting mission task execution listener...');
-
-        // Listen to all active missions
-        const q = query(
-            collection(db, 'missions'),
-            where('userId', '==', auth.currentUser.uid),
-            where('status', '==', 'active')
-        );
+        const q = query(collection(db, 'missions'), where('userId', '==', auth.currentUser.uid), where('status', '==', 'active'));
 
         this.unsubscribe = onSnapshot(q, (snapshot) => {
             snapshot.forEach(async (docSnap) => {
@@ -52,7 +36,7 @@ export class MissionTaskExecutor {
                 if (!mission.tasks || mission.tasks.length === 0) return;
 
                 // Find the current task to execute
-                const currentTask = this.getCurrentTaskForMission(mission.tasks);
+                const currentTask = getCurrentTaskForMission(mission.tasks);
                 
                 if (currentTask && !this.currentlyExecuting) {
                     await this.executeTask(missionId, currentTask, mission.goal);
@@ -62,21 +46,9 @@ export class MissionTaskExecutor {
     }
 
     stop() {
-        if (this.unsubscribe) {
-            this.unsubscribe();
-            this.unsubscribe = null;
-        }
+        if (this.unsubscribe) { this.unsubscribe(); this.unsubscribe = null; }
         this.currentlyExecuting = null;
         console.log('[MissionTaskExecutor] Stopped');
-    }
-
-    private getCurrentTaskForMission(tasks: MissionTask[]): MissionTask | null {
-        // First, look for in_progress task
-        const inProgress = tasks.find(t => t.status === 'in_progress');
-        if (inProgress) return inProgress;
-
-        // Otherwise, get first pending task
-        return tasks.find(t => t.status === 'pending') || null;
     }
 
     private async executeTask(missionId: string, task: MissionTask, missionGoal: string) {
@@ -90,7 +62,7 @@ export class MissionTaskExecutor {
             // Update task status to in_progress
             const missionRef = doc(db, 'missions', missionId);
             await updateDoc(missionRef, {
-                tasks: await this.updateTaskStatus(missionId, task.id, 'in_progress'),
+                tasks: await updateMissionTaskStatus(missionId, task.id, 'in_progress'),
                 lastAction: `Executing: ${task.title}`,
                 updated_at: new Date().toISOString()
             });
@@ -125,7 +97,7 @@ export class MissionTaskExecutor {
 
             // Mark task as completed
             await updateDoc(missionRef, {
-                tasks: await this.updateTaskStatus(missionId, task.id, 'completed'),
+                tasks: await updateMissionTaskStatus(missionId, task.id, 'completed'),
                 lastAction: `Completed: ${task.title}`,
                 updated_at: new Date().toISOString()
             });
@@ -136,24 +108,13 @@ export class MissionTaskExecutor {
             console.error(`[MissionTaskExecutor] Task execution failed:`, e);
             const missionRef = doc(db, 'missions', missionId);
             await updateDoc(missionRef, {
-                tasks: await this.updateTaskStatus(missionId, task.id, 'failed'),
+                tasks: await updateMissionTaskStatus(missionId, task.id, 'failed'),
                 lastAction: `Failed: ${task.title}`,
                 updated_at: new Date().toISOString()
             });
         } finally {
             this.currentlyExecuting = null;
         }
-    }
-
-    private async updateTaskStatus(missionId: string, taskId: string, status: string): Promise<MissionTask[]> {
-        const missionRef = doc(db, 'missions', missionId);
-        const snap = await getDoc(missionRef);
-        if (!snap.exists()) return [];
-
-        const tasks = snap.data()?.tasks || [];
-        return tasks.map((t: MissionTask) => 
-            t.id === taskId ? { ...t, status } : t
-        );
     }
 }
 

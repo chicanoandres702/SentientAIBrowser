@@ -1,3 +1,4 @@
+// Feature: Firestore Diagnostics | Trace: README.md
 const admin = require('firebase-admin');
 
 // Initialize Firebase Admin for the specific project

@@ -1,7 +1,4 @@
-// Feature: Mission Executor | Trace: src/features/agent/trace.md
-// Why: Single Firestore listener that reacts to new/resumed missions and delegates
-// all execution to runMissionLoop — keeps this file focused on event routing only.
-// Complies with the 100-Line Law by extracting loop logic to backend-mission-loop.ts.
+// Feature: Backend Orchestrator | Trace: README.md
 import { db } from './proxy-config';
 import { runMissionLoop } from './backend-mission-loop';
 
