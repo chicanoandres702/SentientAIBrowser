@@ -3,9 +3,12 @@ import { getBrowser, db } from './proxy-config';
 import { BLOCKED_EXTENSIONS } from './proxy-asset';
 import { Page, BrowserContext } from 'playwright';
 import { guardedNavigate, syncSettledUrl } from './proxy-nav-controller';
+import { loadSession, saveSession } from './proxy-session.service';
 
 export const activeContexts = new Map<string, BrowserContext>();
 export const activePages = new Map<string, Page>();
+// Why: track userId per tab so closePage and captureAndSyncTab can save/restore the right session
+const activeUserIds = new Map<string, string>();
 // Why: store interval IDs so closePage can clear them — prevents ghost re-creation of closed tabs
 const syncIntervals = new Map<string, ReturnType<typeof setInterval>>();
 let firestoreAvailable = true;
@@ -37,9 +40,13 @@ async function captureAndSync(tabId: string, userId: string, page: Page, context
   try {
     const screenshot = (await page.screenshot({ quality: 60, type: 'jpeg' })).toString('base64');
     await db.collection('browser_tabs').doc(tabId).set({
+      id: tabId,  // Why: listenToTabs maps data.id — must match the doc ID for address bar updates
       screenshot: `data:image/jpeg;base64,${screenshot}`,
       url: page.url(), title: (await page.title()) || 'Loading...',
       source: 'proxy', // Why: signals the listener to skip — breaks self-echo loop
+      // Why: user_id + isActive must be present so the frontend's listenToTabs query
+      // (filtered by user_id) returns this tab and activeUrl reflects the real proxy URL.
+      ...(userId && userId !== 'default' ? { user_id: userId, isActive: true } : {}),
       last_sync: new Date().toISOString()
     }, { merge: true });
   } catch (e: any) { 
@@ -63,26 +70,39 @@ export async function getPersistentPage(targetUrl: string | null, tabId: string,
     page = undefined;
   }
   if (!page) {
+    // Why: restore prior session (cookies + localStorage) so logins persist across Cloud Run
+    // restarts and cold starts — user never has to log in again after the first session.
+    const savedSession = await loadSession(userId);
     const context = await browser.newContext({
       userAgent: STEALTH_UA,
       viewport: { width: 1280, height: 800 },
       locale: 'en-US',
       timezoneId: 'America/New_York',
       extraHTTPHeaders: { 'Accept-Language': 'en-US,en;q=0.9' },
+      ...(savedSession ? { storageState: savedSession } : {}),
     });
+    if (savedSession) console.log(`[Session] Restored cookies for user: ${userId}`);
     // Why: hide navigator.webdriver + add fake plugin/language signals before any page script runs
     await context.addInitScript(STEALTH_INIT_SCRIPT);
     page = await context.newPage();
     await setupRequestBlocking(page);
     activePages.set(tabId, page);
     activeContexts.set(tabId, context);
+    activeUserIds.set(tabId, userId);
     // Why: keep settledUrls current for navigations the PAGE triggers itself (JS redirects,
     // meta-refresh, CAPTCHA auto-continue) — without this the dedup check in guardedNavigate
     // stays stale and re-navigates back into a bot-check loop.
     page.on('framenavigated', (frame) => {
       if (frame === page!.mainFrame()) syncSettledUrl(tabId, frame.url());
     });
-    const interval = setInterval(() => captureAndSync(tabId, userId, page!, context), 5000);
+    // Why: screenshot sync every 5s; session (cookies) saved every 60s separately — avoids
+    // hammering Firestore with a full storageState write on every screenshot tick.
+    let sessionTickCount = 0;
+    const interval = setInterval(() => {
+      captureAndSync(tabId, userId, page!, context);
+      sessionTickCount++;
+      if (sessionTickCount % 12 === 0) saveSession(userId, context).catch(() => {}); // every ~60s
+    }, 5000);
     syncIntervals.set(tabId, interval);
   }
   const currentUrl = page.url();
@@ -90,6 +110,9 @@ export async function getPersistentPage(targetUrl: string | null, tabId: string,
     // Why: guardedNavigate provides mutex + redirect resolution; captureAndSync adds screenshot
     await guardedNavigate(page, tabId, targetUrl);
     await captureAndSync(tabId, userId, page, activeContexts.get(tabId)!);
+    // Why: save cookies/localStorage immediately after every navigation — captures logins,
+    // consent cookies, and site state before Cloud Run can recycle the container.
+    saveSession(userId, activeContexts.get(tabId)!).catch(() => {});
   }
   return page;
 }
@@ -99,6 +122,11 @@ export function closePage(id: string) {
         clearInterval(syncIntervals.get(id)!);
         syncIntervals.delete(id);
     }
+    // Why: save session before closing so cookies survive tab close + Cloud Run recycling
+    const userId = activeUserIds.get(id);
+    const context = activeContexts.get(id);
+    if (userId && context) saveSession(userId, context).catch(() => {});
+    activeUserIds.delete(id);
     if (activePages.has(id)) {
         activePages.get(id)!.close().catch(() => {});
         activePages.delete(id);
@@ -117,8 +145,9 @@ export function closePage(id: string) {
 export async function captureAndSyncTab(tabId: string): Promise<void> {
     const page = activePages.get(tabId);
     const context = activeContexts.get(tabId);
+    const userId = activeUserIds.get(tabId) || 'default';
     if (!page || !context) return;
-    await captureAndSync(tabId, 'default', page, context);
+    await captureAndSync(tabId, userId, page, context);
 }
 
 // Why: Playwright is the central command center.

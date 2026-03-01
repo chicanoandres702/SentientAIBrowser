@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, FlatList, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { auth, db } from '../../auth/firebase-config';
 import { listenToMissions, MissionItem } from '../../../utils/browser-sync-service';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, onSnapshot } from 'firebase/firestore';
 import { RoutineManager } from './RoutineManager';
 import { missionStyles as styles } from './MissionOverview.styles';
 import { uiColors } from '../../ui/theme/ui.theme';
@@ -28,16 +28,24 @@ export const MissionOverview: React.FC<Props> = ({ theme, onSelectMission, onLau
 
     useEffect(() => {
         if (!auth.currentUser) return;
-        return listenToMissions(auth.currentUser.uid, (data) => {
+        const taskUnsubs: (() => void)[] = [];
+        const missionUnsub = listenToMissions(auth.currentUser.uid, (data) => {
             setMissions(data); setLoading(false);
-            data.forEach(async (m) => {
+            // Why: subscribe real-time to each mission's tasks so status updates (in_progress,
+            // completed, failed) stream in live without requiring a manual refresh.
+            taskUnsubs.forEach(u => u());
+            taskUnsubs.length = 0;
+            data.forEach((m) => {
                 if (!m.id) return;
-                try {
-                    const snap = await getDoc(doc(db, 'missions', m.id));
-                    if (snap.exists() && snap.data().tasks) setMissionTasks(t => ({ ...t, [m.id]: snap.data().tasks }));
-                } catch (e) { console.error('Failed to fetch mission tasks:', e); }
+                const unsub = onSnapshot(doc(db, 'missions', m.id), (snap) => {
+                    if (snap.exists() && snap.data().tasks) {
+                        setMissionTasks(t => ({ ...t, [m.id]: snap.data().tasks }));
+                    }
+                });
+                taskUnsubs.push(unsub);
             });
         });
+        return () => { missionUnsub(); taskUnsubs.forEach(u => u()); };
     }, [auth.currentUser]);
 
     const renderItem = ({ item }: { item: MissionItem }) => (
@@ -64,7 +72,7 @@ export const MissionOverview: React.FC<Props> = ({ theme, onSelectMission, onLau
                 <TouchableOpacity onPress={onClose} style={styles.closeButton}><Text style={{ color: '#fff', fontSize: 24 }}>×</Text></TouchableOpacity>
             </View>
             {view === 'missions'
-                ? (loading ? <ActivityIndicator color={activeColor} size="large" style={{ flex: 1 }} /> : <FlatList data={missions} renderItem={renderItem} keyExtractor={m => m.id} numColumns={2} contentContainerStyle={styles.list} />)
+                : (loading ? <ActivityIndicator color={activeColor} size="large" style={{ flex: 1 }} /> : <FlatList data={missions} renderItem={renderItem} keyExtractor={m => m.id} numColumns={2} contentContainerStyle={styles.list} extraData={missionTasks} />)
                 : (<RoutineManager theme={theme} onLaunchRoutine={(r) => { onLaunchRoutine(r.initialUrl, r.steps[0]); onClose(); }} currentGoal={currentGoal} currentUrl={currentUrl} />)
             }
         </View>

@@ -4,6 +4,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.onMissionTrigger = exports.sentientProxy = void 0;
+// Feature: Functions Entry | Trace: README.md
 const firestore_1 = require("firebase-functions/v2/firestore");
 const index_app_1 = require("./index-app");
 Object.defineProperty(exports, "sentientProxy", { enumerable: true, get: function () { return index_app_1.sentientProxy; } });
