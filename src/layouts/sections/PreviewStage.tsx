@@ -6,6 +6,7 @@ import { BrowserPreview } from '../../components/BrowserPreview';
 import { HeadlessWebView } from '../../components/HeadlessWebView';
 import { VirtualCursor } from '../../components/VirtualCursor';
 import { RemoteMirrorPreview } from '../../components/RemoteMirrorPreview';
+import { KeyboardCapture } from '../../components/KeyboardCapture';
 import { uiColors } from '../../features/ui/theme/ui.theme';
 import { styles } from '../../../App.styles';
 
@@ -39,7 +40,7 @@ export const PreviewStage: React.FC<Props> = ({
         >
             {s.isRemoteMirrorEnabled
                 ? <RemoteMirrorPreview screenshot={s.remoteMirror?.screenshot || null} error={s.remoteMirror?.lastError || null} isConnected={!!s.remoteMirror?.isConnected} theme={theme} />
-                : <BrowserPreview tabId={s.activeTabId} theme={theme} />}
+                : <BrowserPreview tabId={s.activeTabId} theme={theme} onPress={s.handleManualClick} />}
             {s.isAIMode && !s.isRemoteMirrorEnabled && (
                 <HeadlessWebView
                     ref={s.webViewRef}
@@ -50,8 +51,8 @@ export const PreviewStage: React.FC<Props> = ({
                     onNewTabRequested={s.addNewTab || (() => {})}
                 />
             )}
-            {/* Virtual cursor overlay — shows AI clicking/typing in real-time */}
-            {s.isAIMode && s.cursor && (
+            {/* Virtual cursor overlay — shows AI + manual clicking in real-time */}
+            {s.cursor && (
                 <VirtualCursor cursor={s.cursor} accentColor={colors.accent} />
             )}
             {s.isAIMode && !s.isPaused && (
@@ -87,6 +88,12 @@ export const PreviewStage: React.FC<Props> = ({
                 />
             </Suspense>
         )}
+        {/* Forward keystrokes typed in the web-UI to the Playwright page's focused element */}
+        <KeyboardCapture
+            active={!!s.PROXY_BASE_URL}
+            onType={s.handleManualType}
+            onSpecialKey={s.handleManualKeyPress}
+        />
     </>
     );
 };

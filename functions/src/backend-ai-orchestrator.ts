@@ -1,26 +1,38 @@
 // Feature: Backend Orchestrator | Trace: README.md
 import { db } from './proxy-config';
-import { processMissionStep } from './backend-mission.executor';
+import { runMissionLoop } from './backend-mission-loop';
 
 class BackendAIOrchestrator {
     private isListening: boolean = false;
+    /** Missions currently being driven by a loop — in-process mutex against concurrent re-entry */
+    private processingMissions = new Set<string>();
 
     /**
-     * start: Local listener for missions.
-     * Use this when running the proxy server locally (fallback for no Blaze plan).
+     * start: Local Firestore listener (fallback when Cloud Functions are not available).
+     * Why: We only react to 'added' events (new missions) plus 'modified' events that
+     * transition a mission back to 'active' (resume). We intentionally IGNORE 'modified'
+     * events triggered by our own missionRef.update() calls inside processMissionStep —
+     * those would spawn concurrent overlapping loops for the same mission.
      */
     start() {
         if (this.isListening) return;
         this.isListening = true;
         console.log('[Orchestrator] Starting Local AI Listener (Admin SDK Mode)...');
-        
+
         try {
             db.collection('missions').where('status', '==', 'active').onSnapshot((snapshot) => {
-                snapshot.docChanges().forEach(async (change) => {
-                    if (change.type === 'added' || change.type === 'modified') {
-                        const missionId = change.doc.id;
-                        const data = change.doc.data();
-                        await this.processMission(missionId, data);
+                snapshot.docChanges().forEach((change) => {
+                    const missionId = change.doc.id;
+                    const data = change.doc.data();
+
+                    if (change.type === 'added') {
+                        // Why: 'added' fires for new missions AND for active missions present at startup.
+                        this.runLoop(missionId, data);
+                    } else if (change.type === 'modified' && data.status === 'active') {
+                        // Why: Only start a loop on an explicit resume, never from our own writes.
+                        if (!this.processingMissions.has(missionId)) {
+                            this.runLoop(missionId, data);
+                        }
                     }
                 });
             }, (error) => {
@@ -31,17 +43,17 @@ class BackendAIOrchestrator {
         }
     }
 
-    /**
-     * processMission: Entry point for both Cloud Triggers and Local Listeners.
-     */
+    /** Thin wrapper that surfaces loop errors to the console without crashing the listener. */
+    private runLoop(missionId: string, data: any) {
+        runMissionLoop(missionId, data.goal, this.processingMissions).catch((e) =>
+            console.error(`[Orchestrator] Loop error for ${missionId}:`, e.message));
+    }
+
+    /** processMission: Kept for backward compatibility with Cloud Function triggers. */
     async processMission(missionId: string, data: any) {
-        console.log(`[Orchestrator] Processing mission step for: ${data.goal}`);
-        const res = await processMissionStep(missionId);
-        
-        if (res === 'done') {
-            console.log(`[Orchestrator] Mission ${missionId} marked as completed.`);
-        }
+        await runMissionLoop(missionId, data.goal, this.processingMissions);
     }
 }
 
 export default new BackendAIOrchestrator();
+

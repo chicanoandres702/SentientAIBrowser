@@ -10,7 +10,7 @@ interface TaskExecutorContext {
     setActivePrompt: (p: string) => void;
     setActiveUrl?: (url: string) => void;
     updateTask: (id: string, status: any, details?: string) => Promise<void>;
-    remoteActions?: { executeAction: (action: 'click' | 'type', targetId: string, value?: string) => Promise<void> };
+    remoteActions?: { executeAction: (action: 'click' | 'type', targetId: string | undefined, value?: string, ariaSelector?: { role?: string; name?: string; text?: string }) => Promise<void> };
 }
 
 /**

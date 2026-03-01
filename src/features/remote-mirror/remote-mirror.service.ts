@@ -11,6 +11,13 @@ export interface RemoteDomMapResponse {
     url?: string;
 }
 
+/** ARIA selector fields — Playwright MCP style, stable across DOM mutations */
+export interface AriaSelector {
+    role?: string;
+    name?: string;
+    text?: string;
+}
+
 export const fetchRemoteDomMap = async (
     baseUrl: string,
     tabId: string,
@@ -57,13 +64,15 @@ export const sendRemoteAction = async (
     tabId: string,
     url: string | undefined,
     action: 'click' | 'type',
-    id: string,
+    id: string | undefined,
     value?: string,
-): Promise<void> => {
+    ariaSelector?: AriaSelector,
+): Promise<{ finalUrl?: string }> => {
     const res = await fetch(`${baseUrl}/proxy/action`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url, action, id, value, tabId }),
+        body: JSON.stringify({ url, action, id, value, tabId, ...ariaSelector }),
     });
     if (!res.ok) throw new Error(`action ${res.status}`);
+    return res.json();
 };

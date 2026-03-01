@@ -60,7 +60,7 @@ export const MainLayout: React.FC<Props> = ({ s, theme, setTheme }) => {
             {config.showChrome && (
                 <BrowserChrome
                     url={s.activeUrl}
-                    onNavigate={s.navigateActiveTab || s.setActiveUrl}
+                    onNavigate={s.navigateWithGuard || s.navigateActiveTab}
                     onReload={s.handleReload}
                     theme={theme}
                 />

@@ -1,6 +1,6 @@
 // Feature: Browser | Why: Route handlers for proxy action + screenshot — keeps routes file under 100 lines
 import { Express } from 'express';
-import { getPersistentPage, activePages } from './proxy-page-handler';
+import { getPersistentPage, activePages, captureAndSyncTab } from './proxy-page-handler';
 import { applyCorsHeaders, resolvePage } from './proxy-route.utils';
 import { buildDomMap } from './proxy-dom-map';
 
@@ -8,21 +8,31 @@ import { buildDomMap } from './proxy-dom-map';
 export function setupActionRoute(app: Express) {
     app.post('/proxy/action', async (req, res): Promise<any> => {
         applyCorsHeaders(res);
-        const { url, action, id, value, tabId = 'default' } = req.body;
+        const { url, action, id, value, tabId = 'default', role, name: ariaName, text: ariaText } = req.body;
         let page = activePages.get(tabId) || await getPersistentPage(url, tabId).catch(() => null);
         if (!page) return res.status(500).json({ error: 'Session died' });
         try {
-            const sel = `[data-ai-id="${id}"]`;
+            // Why: ARIA selectors (role+name) are preferred — Playwright MCP style, stable across DOM mutations.
+            // data-ai-id is the legacy fallback for HeadlessWebView sessions.
+            const resolveLocator = () => {
+                if (role) return page!.getByRole(role as any, ariaName ? { name: ariaName, exact: false } : undefined);
+                if (ariaName) return page!.getByLabel(ariaName, { exact: false });
+                if (ariaText) return page!.getByText(ariaText, { exact: false });
+                if (id) return page!.locator(`[data-ai-id="${id}"]`);
+                throw new Error('No element selector provided (need role, name, text, or id)');
+            };
+            const locator = resolveLocator();
             if (action === 'click') {
-                await page.evaluate((s) => { const e = document.querySelector(s) as HTMLElement; if (e) { e.scrollIntoView({ block: 'center' }); e.click(); } }, sel);
+                await locator.first().scrollIntoViewIfNeeded({ timeout: 3000 }).catch(() => {});
+                await locator.first().click({ timeout: 8000 });
             } else if (action === 'type') {
-                const el = await page.$(sel); if (!el) throw new Error('Not found'); await el.focus();
-                await page.evaluate((s) => { (document.querySelector(s) as HTMLInputElement).value = ''; }, sel);
-                await el.type(value || '', { delay: 10 });
-                await page.evaluate(s => { const e = document.querySelector(s); ['input', 'change'].forEach(t => e?.dispatchEvent(new Event(t, { bubbles: true }))); }, sel);
+                await locator.first().click({ timeout: 5000 });
+                await locator.first().fill(value || '');
                 if (value?.length) await page.keyboard.press('Enter');
             }
-            res.json({ success: true });
+            await page.waitForLoadState('domcontentloaded', { timeout: 2000 }).catch(() => {});
+            await captureAndSyncTab(tabId);
+            res.json({ success: true, finalUrl: page.url() });
         } catch (e: any) { res.status(500).json({ error: e.message }); }
     });
 }
@@ -72,6 +82,24 @@ export function setupScreenshotStreamRoute(app: Express) {
             }
         }, STREAM_INTERVAL_MS);
         req.on('close', () => clearInterval(timer));
+    });
+}
+
+/** POST /proxy/click — mouse click at absolute Playwright viewport coordinates for manual pass-through */
+export function setupCoordClickRoute(app: Express) {
+    app.post('/proxy/click', async (req, res): Promise<any> => {
+        applyCorsHeaders(res);
+        const { x, y, tabId = 'default' } = req.body;
+        const page = activePages.get(tabId);
+        if (!page) return res.status(503).json({ error: 'No active session' });
+        try {
+            await page.mouse.click(Number(x), Number(y));
+            // Wait briefly for any navigation the click may have triggered to settle
+            await page.waitForLoadState('domcontentloaded', { timeout: 2000 }).catch(() => {});
+            // Sync immediately — don’t wait for the 5s periodic interval
+            await captureAndSyncTab(tabId);
+            return res.json({ success: true, finalUrl: page.url() });
+        } catch (e: any) { return res.status(500).json({ error: e.message }); }
     });
 }
 

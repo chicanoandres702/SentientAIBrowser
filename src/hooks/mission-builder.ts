@@ -8,6 +8,13 @@ interface MissionBuilderDeps {
     setStatusMessage: (m: string) => void;
 }
 
+const buildMissionHeaderTitle = (prompt: string, firstSegmentName?: string): string => {
+    const base = (firstSegmentName || prompt || 'Mission').replace(/\s+/g, ' ').trim();
+    const words = base.split(' ').slice(0, 5).join(' ');
+    const compact = words.length > 34 ? `${words.slice(0, 34).trim()}…` : words;
+    return `Mission: ${compact}`;
+};
+
 /** Create mission + child tasks from planner segments, persist to Firestore */
 export const buildMissionFromSegments = async (
     prompt: string,
@@ -24,8 +31,10 @@ export const buildMissionFromSegments = async (
     const missionId = now.toString();
     const runId = runIdOverride || `run_${missionId}`;
 
+    const missionCardTitle = buildMissionHeaderTitle(prompt, segments?.[0]?.name);
+
     // Top-level mission card (pinned header)
-    await deps.addTask(prompt, 'in_progress', `${segments.length} tasks planned`, {
+    await deps.addTask(missionCardTitle, 'in_progress', `${segments.length} tasks planned`, {
         id: missionId, isMission: true, missionId, progress: 0,
         runId, tabId, order: 0, source: 'planner', startTime: now,
     });
@@ -39,6 +48,7 @@ export const buildMissionFromSegments = async (
 
         const subActions: SubAction[] = steps.map((step: any) => ({
             action: step.action || 'interact',
+            goal: step.goal || segName,
             explanation: step.explanation || step.action,
             status: 'pending' as const,
         }));

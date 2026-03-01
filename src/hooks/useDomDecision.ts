@@ -33,10 +33,11 @@ export const useDomDecision = (
     isScholarMode: boolean = false,
     tasks: TaskItem[] = [],
     onScanComplete?: () => void,
-    heuristicCtx?: HeuristicContext,
+    getHeuristicContext?: (currentAction: string, currentUrl: string, domNodeCount: number, pageText?: string) => HeuristicContext,
     onStepOutcome?: (success: boolean) => void,
     cursorActions?: CursorActions,
     remoteActions?: RemoteActions,
+    runtimeGeminiApiKey?: string,
 ) => {
     const handleDomMapReceived = useCallback(async (map: any) => {
         if (!activePrompt || isThinking) return;
@@ -64,9 +65,14 @@ export const useDomDecision = (
 
         try {
             const token = await auth.currentUser?.getIdToken();
+            const headers: Record<string, string> = {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token || 'anonymous'}`,
+            };
+            if (runtimeGeminiApiKey) headers['x-gemini-api-key'] = runtimeGeminiApiKey;
             const cloudResponse = await fetch(`${PROXY_BASE_URL}/agent/analyze`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token || 'anonymous'}` },
+                headers,
                 body: JSON.stringify({ prompt: activePrompt + heuristicInjection, url: activeUrl, domMap: map, retryCount, lookedUpDocs, isScholarMode, workflowIds, currentTask: taskContext }),
             });
 
@@ -99,6 +105,14 @@ export const useDomDecision = (
                 if (currentTask && (actionExecuted || firstStep.action === 'done')) {
                     updateTask(currentTask.id, 'completed', `Done: ${firstStep.action}${firstStep.targetId ? ` → ${firstStep.targetId}` : ''}`);
                     onStepOutcome?.(true);
+                } else if (currentTask && !actionExecuted) {
+                    // Why: avoid infinite in_progress hangs when the planner returns a step
+                    // that cannot execute in the current runtime (missing selector/unsupported action).
+                    const waitingForUser = firstStep.action === 'wait_for_user' || firstStep.action === 'ask_user';
+                    if (!waitingForUser) {
+                        updateTask(currentTask.id, 'failed', `No executable action: ${firstStep.action}`);
+                        onStepOutcome?.(false);
+                    }
                 }
             } else if (currentTask) updateTask(currentTask.id, 'completed', 'Completed — analyzed page');
         } catch (e) {

@@ -6,6 +6,8 @@ type RawStep = {
     value?: string;
     url?: string;
     text?: string;
+    role?: string;
+    name?: string;
     explanation?: string;
     knowledgeContext?: Record<string, unknown>;
 };

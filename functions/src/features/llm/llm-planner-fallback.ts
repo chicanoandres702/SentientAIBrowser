@@ -15,6 +15,7 @@ export const buildFallbackMissionResponse = (): MissionResponse => ({
             {
                 name: 'Analyze Current Page',
                 steps: [{
+                    goal: 'Understand the current page and find useful targets',
                     explanation: 'Scan the DOM to understand page structure and available elements',
                     action: 'scan_dom',
                 }],
@@ -22,13 +23,22 @@ export const buildFallbackMissionResponse = (): MissionResponse => ({
             {
                 name: 'Perform Requested Action',
                 steps: [
-                    { explanation: 'Locate and interact with the most relevant elements on the page', action: 'interact' },
-                    { explanation: 'Verify the action produced the expected result', action: 'verify' },
+                    {
+                        goal: 'Perform the most relevant interaction for the mission',
+                        explanation: 'Locate and interact with the most relevant elements on the page',
+                        action: 'interact',
+                    },
+                    {
+                        goal: 'Confirm the interaction succeeded',
+                        explanation: 'Verify the action produced the expected result',
+                        action: 'verify',
+                    },
                 ],
             },
             {
                 name: 'Confirm Completion',
                 steps: [{
+                    goal: 'Finalize the mission safely',
                     explanation: 'Mark mission as successfully completed',
                     action: 'done',
                 }],

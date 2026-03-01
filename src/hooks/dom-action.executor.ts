@@ -11,8 +11,15 @@ export interface CursorActions {
     hideCursor: () => void;
 }
 
+/** ARIA selector fields for remote Playwright dispatch */
+export interface AriaSelector {
+    role?: string;
+    name?: string;
+    text?: string;
+}
+
 export interface RemoteActions {
-    executeAction: (action: 'click' | 'type', targetId: string, value?: string) => Promise<void>;
+    executeAction: (action: 'click' | 'type', targetId: string | undefined, value?: string, ariaSelector?: AriaSelector) => Promise<void>;
 }
 
 interface ActionContext {
@@ -92,6 +99,23 @@ export const executeDomAction = async (rawStep: any, ctx: ActionContext): Promis
             ctx.webViewRef.current?.executeAction(action as any, step.targetId, step.value);
         }
         return true;
+    }
+
+    // Why: LLM returns ARIA role+name selectors (Playwright MCP format) — never numeric targetIds.
+    // When no targetId is present, resolve via the remote Playwright locator API.
+    const hasAriaSelector = !!(step.role || step.name || step.text);
+    if (hasAriaSelector && (action === 'click' || action === 'type')) {
+        ctx.setStatusMessage(`Executing: ${action} (ARIA)...`);
+        if (ctx.remoteActions) {
+            await ctx.remoteActions.executeAction(
+                action, undefined, step.value,
+                { role: step.role, name: step.name, text: step.text },
+            );
+            return true;
+        }
+        // No remote — cannot resolve ARIA without Playwright
+        ctx.setStatusMessage(`ARIA actions require the remote proxy (enable Remote Mirror)`);
+        return false;
     }
     if (action === 'verify' || action === 'extract_data') {
         ctx.webViewRef.current?.scanDOM();

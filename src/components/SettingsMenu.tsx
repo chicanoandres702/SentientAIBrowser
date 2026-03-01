@@ -1,6 +1,6 @@
 // Feature: Settings | Trace: README.md
 import React from 'react';
-import { StyleSheet, Text, View, Modal, TouchableOpacity, ScrollView, Platform } from 'react-native';
+import { StyleSheet, Text, View, Modal, TouchableOpacity, ScrollView, Platform, TextInput } from 'react-native';
 import { AppTheme } from '../../App';
 import { ConfigRow } from './settings/ConfigRow';
 import { ThemeSelector } from './settings/ThemeSelector';
@@ -15,6 +15,7 @@ interface Props {
     isScholarMode: boolean; setIsScholarMode: (val: boolean) => void;
     isDaemonRunning: boolean; onToggleDaemon: () => void;
     layoutMode: LayoutMode; setLayoutMode: (mode: LayoutMode) => void;
+    runtimeGeminiApiKey: string; setRuntimeGeminiApiKey: (key: string) => void;
 }
 
 export const SettingsMenu: React.FC<Props> = (p) => {
@@ -59,6 +60,20 @@ export const SettingsMenu: React.FC<Props> = (p) => {
                             <View style={[s.daemonDot, { backgroundColor: p.isDaemonRunning ? colors.danger : accent }]} />
                             <Text style={[s.daemonText, { color: p.isDaemonRunning ? colors.danger : accent }]}>{p.isDaemonRunning ? 'TERMINATE DAEMON' : 'LAUNCH DAEMON'}</Text>
                         </TouchableOpacity>
+
+                        <Text style={[s.section, { color: colors.textMuted }]}>LLM OVERRIDE</Text>
+                        <View style={[s.sectionCard, { borderColor: colors.border, backgroundColor: colors.bgElevated }]}>
+                            <Text style={[s.layoutHint, { color: colors.textMuted }]}>Optional runtime Gemini API key override (stored locally in this browser).</Text>
+                            <TextInput
+                                value={p.runtimeGeminiApiKey}
+                                onChangeText={p.setRuntimeGeminiApiKey}
+                                placeholder="AIza..."
+                                placeholderTextColor={colors.textDim}
+                                autoCapitalize="none"
+                                autoCorrect={false}
+                                style={[s.input, { color: colors.text, borderColor: colors.border, backgroundColor: colors.panel2 }]}
+                            />
+                        </View>
                     </ScrollView>
                     <View style={[s.footer, { borderTopColor: colors.border }]}>
                         <Text style={[s.version, { color: colors.textMuted }]}>SENTIENT BROWSER · v2.0.0</Text>
@@ -99,6 +114,7 @@ const s = StyleSheet.create({
     daemonBtn: { flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderRadius: 10, padding: 14, gap: 10, marginBottom: 8 },
     daemonDot: { width: 7, height: 7, borderRadius: 3.5 },
     daemonText: { fontSize: 11, fontWeight: '800', letterSpacing: 1.2 },
+    input: { borderWidth: 1, borderRadius: 10, paddingHorizontal: 10, paddingVertical: 10, fontSize: 12 },
     footer: { padding: 12, borderTopWidth: 1, alignItems: 'center' },
     version: { fontSize: 8, letterSpacing: 2, fontWeight: '700' },
 });
