@@ -48,14 +48,40 @@ export const useRemoteMirror = (
 
     useEffect(() => {
         if (!enabled || !baseUrl || !url) return;
-        const close = openRemoteScreenshotStream(
-            baseUrl,
-            tabId,
-            url,
-            (frame) => setState(prev => ({ ...prev, screenshot: frame, isConnected: true })),
-            (message) => setState(prev => ({ ...prev, lastError: message, isConnected: false })),
-        );
-        return () => close();
+        let cancelled = false;
+        let closeFn: () => void = () => {};
+        let timer: ReturnType<typeof setTimeout> | null = null;
+        let attempt = 0;
+        const BASE_RECONNECT_MS = 3000;
+        const MAX_RECONNECT_MS = 20000;
+
+        // Why: Cloud Run SSE can drop on idle/restart; exponential backoff + jitter
+        // avoids synchronized reconnect storms while still recovering quickly.
+        const connect = (delay = 0) => {
+            timer = setTimeout(() => {
+                if (cancelled) return;
+                closeFn = openRemoteScreenshotStream(
+                    baseUrl, tabId, url,
+                    (frame) => {
+                        if (!cancelled) {
+                            attempt = 0;
+                            setState(prev => ({ ...prev, screenshot: frame, isConnected: true, lastError: null }));
+                        }
+                    },
+                    (message) => {
+                        if (!cancelled) {
+                            setState(prev => ({ ...prev, lastError: message, isConnected: false }));
+                            attempt++;
+                            const backoff = Math.min(BASE_RECONNECT_MS * Math.pow(2, Math.max(0, attempt - 1)), MAX_RECONNECT_MS);
+                            const jitter = Math.floor(Math.random() * 700);
+                            connect(backoff + jitter);
+                        }
+                    },
+                );
+            }, delay);
+        };
+        connect();
+        return () => { cancelled = true; if (timer) clearTimeout(timer); closeFn(); };
     }, [enabled, baseUrl, tabId, url]);
 
     return { ...state, refresh };

@@ -16,6 +16,7 @@ interface Props {
     isDaemonRunning: boolean; onToggleDaemon: () => void;
     layoutMode: LayoutMode; setLayoutMode: (mode: LayoutMode) => void;
     runtimeGeminiApiKey: string; setRuntimeGeminiApiKey: (key: string) => void;
+    useConfirmerAgent: boolean; setUseConfirmerAgent: (val: boolean) => void;
 }
 
 export const SettingsMenu: React.FC<Props> = (p) => {
@@ -41,6 +42,7 @@ export const SettingsMenu: React.FC<Props> = (p) => {
                         <View style={[s.sectionCard, { borderColor: colors.border, backgroundColor: colors.bgElevated }]}>
                             <ConfigRow label="Sentient AI Mode" sub="Enable autonomous navigation" value={p.isAIMode} onToggle={p.setIsAIMode} accent={accent} />
                             <ConfigRow label="CORS Proxy" sub="Bypass security restrictions" value={p.useProxy} onToggle={p.setUseProxy} accent={accent} />
+                            <ConfigRow label="Visual Confirmer" sub="Screenshot verify + auto-solve captcha" value={p.useConfirmerAgent} onToggle={p.setUseConfirmerAgent} accent={accent} />
                             <ConfigRow label="Scholar Mode" sub="MISSION: SCHOLAR (Capella.edu)" value={p.isScholarMode} onToggle={p.setIsScholarMode} accent={scholarAccent} />
                         </View>
 

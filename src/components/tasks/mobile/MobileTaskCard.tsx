@@ -48,7 +48,7 @@ export const MobileTaskCard: React.FC<Props> = ({ item, accentColor, removeTask,
                     {elapsedStr && <Text style={[s.metaText, { color: accentColor }]}>⏱ {elapsedStr}</Text>}
                     {hasSubActions && <Text style={[s.metaText, { color: accentColor }]}>{expanded ? '▼' : '▶'} {item.subActions!.length} action{item.subActions!.length !== 1 ? 's' : ''}</Text>}
                 </View>
-                {isActive && item.progress !== undefined && (
+                {(isActive || isDone) && item.progress !== undefined && (
                     <View style={s.progressRow}><View style={s.progressTrack}><View style={[s.progressFill, { width: `${item.progress}%`, backgroundColor: accentColor }]} /></View><Text style={[s.progressPct, { color: accentColor }]}>{item.progress}%</Text></View>
                 )}
                 {item.details && <Text style={[m.body, { marginTop: 4, fontSize: 9 }]} numberOfLines={expanded ? 5 : 1}>{item.details}</Text>}

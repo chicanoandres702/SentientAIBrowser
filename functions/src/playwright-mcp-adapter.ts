@@ -4,7 +4,7 @@
 import { Page } from 'playwright';
 
 export interface AriaStep {
-    action: 'click' | 'type' | 'navigate' | 'wait' | 'done' | 'wait_for_user' | 'ask_user';
+    action: 'click' | 'type' | 'navigate' | 'wait' | 'done' | 'wait_for_user' | 'ask_user' | 'record_knowledge' | 'upload_file' | 'lookup_documentation' | string;
     role?: string;    // ARIA role: 'button' | 'link' | 'textbox' | 'checkbox' | 'combobox'
     name?: string;    // Accessible name (label or visible text) — most stable identifier
     label?: string;   // aria-label / <label> text fallback

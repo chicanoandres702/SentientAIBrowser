@@ -1,6 +1,6 @@
 // Feature: Navigation | Why: Direct navigate endpoint — gives frontend redirect-aware results
 import { Express } from 'express';
-import { applyCorsHeaders } from './proxy-route.utils';
+import { applyCorsHeaders, getUserIdFromReq } from './proxy-route.utils';
 import { activePages, getPersistentPage, closePage } from './proxy-page-handler';
 import { guardedNavigate, isNavLocked } from './proxy-nav-controller';
 import { db } from './proxy-config';
@@ -25,6 +25,8 @@ export function setupNavRoute(app: Express): void {
         applyCorsHeaders(res);
         const { url, tabId = 'default' } = req.body;
         if (!url) return res.status(400).json({ error: 'url required' });
+        // Why: userId is needed so getPersistentPage restores the right session on cold start.
+        const userId = getUserIdFromReq(req);
 
         // Return 409 instead of silently dropping — lets client decide to retry or wait
         if (isNavLocked(tabId)) {
@@ -34,7 +36,7 @@ export function setupNavRoute(app: Express): void {
         try {
             // Ensure a page exists for this tab (creates one if needed)
             let page = activePages.get(tabId) ?? undefined;
-            if (!page) page = await getPersistentPage(url, tabId).catch(() => undefined);
+            if (!page) page = await getPersistentPage(url, tabId, userId).catch(() => undefined);
             if (!page) return res.status(503).json({ error: 'No active session for tab' });
 
             const result = await guardedNavigate(page, tabId, url);

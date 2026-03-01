@@ -26,6 +26,8 @@ function setupNavRoute(app) {
         const { url, tabId = 'default' } = req.body;
         if (!url)
             return res.status(400).json({ error: 'url required' });
+        // Why: userId is needed so getPersistentPage restores the right session on cold start.
+        const userId = (0, proxy_route_utils_1.getUserIdFromReq)(req);
         // Return 409 instead of silently dropping — lets client decide to retry or wait
         if ((0, proxy_nav_controller_1.isNavLocked)(tabId)) {
             return res.status(409).json({ error: 'Navigation already in progress', tabId });
@@ -34,7 +36,7 @@ function setupNavRoute(app) {
             // Ensure a page exists for this tab (creates one if needed)
             let page = (_a = proxy_page_handler_1.activePages.get(tabId)) !== null && _a !== void 0 ? _a : undefined;
             if (!page)
-                page = await (0, proxy_page_handler_1.getPersistentPage)(url, tabId).catch(() => undefined);
+                page = await (0, proxy_page_handler_1.getPersistentPage)(url, tabId, userId).catch(() => undefined);
             if (!page)
                 return res.status(503).json({ error: 'No active session for tab' });
             const result = await (0, proxy_nav_controller_1.guardedNavigate)(page, tabId, url);

@@ -65,8 +65,18 @@ export const usePlanReassessment = ({
                     headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token || 'anonymous'}` },
                     body: JSON.stringify({ prompt: reassessPrompt, tabId, ...getSchemaPayload() }),
                 });
-                if (resp.ok) { const d = await resp.json(); newResponse = d.missionResponse || d; }
-            } catch { newResponse = generateMockPlanResponse(reassessPrompt).missionResponse; }
+                if (resp.ok) {
+                    const d = await resp.json();
+                    newResponse = d.missionResponse || d;
+                    console.info('[Planner] source=remote mode=reassess status=ok');
+                } else {
+                    console.warn(`[Planner] source=fallback mode=reassess reason=http_${resp.status}`);
+                    newResponse = generateMockPlanResponse(reassessPrompt).missionResponse;
+                }
+            } catch {
+                console.warn('[Planner] source=fallback mode=reassess reason=network_or_cors');
+                newResponse = generateMockPlanResponse(reassessPrompt).missionResponse;
+            }
 
             if (!newResponse?.execution?.segments) { setStatusMessage('Reassessment: no changes'); return; }
 

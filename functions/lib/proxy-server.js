@@ -37,6 +37,9 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 // Feature: System Utilities | Trace: README.md
+// Why: Pure Playwright control server — no HTML proxy layer.
+// The frontend receives browser state (screenshots, URL, title) via Firestore real-time
+// sync. This server's only job is accepting Playwright control commands and running missions.
 const http = __importStar(require("http"));
 const net = __importStar(require("net"));
 const express_1 = __importDefault(require("express"));
@@ -44,20 +47,13 @@ const cors_1 = __importDefault(require("cors"));
 const proxy_config_1 = require("./proxy-config");
 const proxy_routes_browser_1 = require("./proxy-routes-browser");
 const backend_ai_orchestrator_1 = __importDefault(require("./backend-ai-orchestrator"));
-/**
- * Sentinel AI Browser Proxy Server
- * Note: The cluster module was removed for local development stability.
- */
 const app = (0, express_1.default)();
-app.use((0, cors_1.default)());
-app.use((req, res, next) => {
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'GET,POST,DELETE,OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-    if (req.method === 'OPTIONS')
-        return res.sendStatus(204);
-    return next();
-});
+app.use((0, cors_1.default)({
+    origin: '*',
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'Origin', 'X-Requested-With', 'X-Gemini-Api-Key'],
+}));
+app.options('*', (_req, res) => res.sendStatus(204));
 app.use(express_1.default.json());
 (0, proxy_routes_browser_1.setupBrowserRoutes)(app);
 // Why: use http.createServer so we can intercept WebSocket upgrade events.

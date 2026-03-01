@@ -1,5 +1,6 @@
 // Feature: Navigation | Why: Frontend nav guard — resolves redirects before writing to Firestore
 import { useCallback, useRef } from 'react';
+import { auth } from '../features/auth/firebase-config';
 
 interface NavResult {
     finalUrl: string;
@@ -48,7 +49,7 @@ export function useNavigationController(
             const res = await fetch(`${proxyBaseUrl}/proxy/navigate`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ url: targetUrl, tabId }),
+                body: JSON.stringify({ url: targetUrl, tabId, userId: auth.currentUser?.uid || '' }),
             });
 
             if (!res.ok) {
@@ -59,12 +60,10 @@ export function useNavigationController(
 
             const { finalUrl, isBotCheck }: NavResult & { isBotCheck?: boolean } = await res.json();
 
-            // Why: if Google/Cloudflare bot-check intercepted us, keep the URL the user
-            // originally wanted so the address bar doesn't flip to /sorry/index.
-            // Calling navigateTab(botCheckUrl) would just re-issue the request and loop.
+            // Why: don't pause on bot-check — stealth headers may already bypass it and
+            // refusing to write finalUrl desync the address bar from the real page.
             if (isBotCheck) {
-                console.warn('[NavCtrl] Bot-check page detected — pausing navigation. User must resolve.');
-                return;
+                console.warn('[NavCtrl] Bot-check detected — updating URL and continuing:', finalUrl);
             }
 
             // Write the RESOLVED URL — not the originally requested URL

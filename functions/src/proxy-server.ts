@@ -1,4 +1,7 @@
 // Feature: System Utilities | Trace: README.md
+// Why: Pure Playwright control server — no HTML proxy layer.
+// The frontend receives browser state (screenshots, URL, title) via Firestore real-time
+// sync. This server's only job is accepting Playwright control commands and running missions.
 import * as http from 'http';
 import * as net from 'net';
 import express from 'express';
@@ -8,15 +11,14 @@ import { setupBrowserRoutes } from './proxy-routes-browser';
 import orchestrator from './backend-ai-orchestrator';
 
 const app = express();
-
-// ── Middleware ───────────────────────────────────────────────────────────────
-app.use(cors({ origin: '*', methods: ['GET', 'POST', 'DELETE', 'OPTIONS'], allowedHeaders: ['Content-Type', 'Authorization'] }));
+app.use(cors({
+  origin: '*',
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'Origin', 'X-Requested-With', 'X-Gemini-Api-Key'],
+}));
 app.options('*', (_req, res) => res.sendStatus(204));
 app.use(express.json());
-// Why: urlencoded body parsing is required for HTML form POST submissions proxied via /:url(*)
-app.use(express.urlencoded({ extended: true }));
 
-// ── Routes ───────────────────────────────────────────────────────────────────
 setupBrowserRoutes(app);
 
 // Why: use http.createServer so we can intercept WebSocket upgrade events.

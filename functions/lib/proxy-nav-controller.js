@@ -60,13 +60,10 @@ async function guardedNavigate(page, tabId, targetUrl) {
     if (currentUrl === targetUrl && settledUrls.get(tabId) === targetUrl) {
         return { finalUrl: targetUrl, wasRedirected: false, isBotCheck: isBotCheckUrl(targetUrl) };
     }
-    // Why: if the page is currently stuck on a bot-check URL (e.g. Google /sorry/) and
-    // the caller is trying to navigate TO THE SAME HOST again, refuse the navigation —
-    // going there will just get bot-checked again and restart the loop.
-    const currentBotCheck = isBotCheckUrl(currentUrl);
-    if (currentBotCheck) {
-        console.warn(`[NavCtrl] Bot-check detected on tab ${tabId}: ${currentUrl}. Refusing navigation to prevent loop.`);
-        return { finalUrl: currentUrl, wasRedirected: true, isBotCheck: true };
+    // Why: log bot-check but DON'T refuse — stealth headers may bypass it, and
+    // refusing navigation stalls the mission permanently with no recovery path.
+    if (isBotCheckUrl(currentUrl)) {
+        console.warn(`[NavCtrl] Bot-check on tab ${tabId}: ${currentUrl} — proceeding with navigation attempt.`);
     }
     navLocks.set(tabId, true);
     try {

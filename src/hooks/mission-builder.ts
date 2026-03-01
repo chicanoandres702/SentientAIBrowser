@@ -6,6 +6,7 @@ import { TaskItem, SubAction } from '../features/tasks/types';
 interface MissionBuilderDeps {
     addTask: (title: string, status: any, details?: string, extra?: Partial<TaskItem>) => Promise<any>;
     setStatusMessage: (m: string) => void;
+    useConfirmerAgent?: boolean;
 }
 
 const buildMissionHeaderTitle = (prompt: string, firstSegmentName?: string): string => {
@@ -88,6 +89,7 @@ export const buildMissionFromSegments = async (
                 lastAction: missionResponse.meta?.reasoning || 'Executing plan',
                 startedAt: now, updatedAt: now, schemaVersion: MISSION_SCHEMA_VERSION,
                 createdAt: now, missionResponse,
+                useConfirmerAgent: deps.useConfirmerAgent ?? true,
             });
         } catch (e) { console.error('Failed to save mission:', e); }
     }

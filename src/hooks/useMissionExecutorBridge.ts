@@ -11,12 +11,37 @@ interface BridgeArgs {
     setActivePrompt: (p: string) => void;
     setActiveUrl: (url: string) => void;
     updateTask: (id: string, status: any, details?: string) => Promise<void>;
-    remoteActions?: { executeAction: (action: 'click' | 'type', targetId: string, value?: string) => Promise<void> };
+    remoteActions?: { executeAction: (action: 'click' | 'type', targetId: string | undefined, value?: string, ariaSelector?: { role?: string; name?: string; text?: string }) => Promise<void> };
 }
 
 export const useMissionExecutorBridge = (args: BridgeArgs): void => {
     useEffect(() => {
-        if (!auth.currentUser || (!args.webViewRef.current && !args.isRemoteMirrorEnabled)) {
+        missionTaskExecutor.updateContext({
+            webViewRef: args.webViewRef,
+            setStatusMessage: args.setStatusMessage,
+            setActivePrompt: args.setActivePrompt,
+            setActiveUrl: args.setActiveUrl,
+            updateTask: args.updateTask,
+            remoteActions: args.remoteActions,
+        });
+    }, [
+        args.webViewRef,
+        args.setStatusMessage,
+        args.setActivePrompt,
+        args.setActiveUrl,
+        args.updateTask,
+        args.remoteActions,
+    ]);
+
+    useEffect(() => {
+        // Why: backend mission loop is the source of truth in remote mirror/proxy mode.
+        // Running MissionTaskExecutor in the client at the same time creates duplicate
+        // writes and repeated start/stop churn.
+        if (args.isRemoteMirrorEnabled) {
+            return () => missionTaskExecutor.stop();
+        }
+
+        if (!auth.currentUser || !args.webViewRef.current) {
             return () => missionTaskExecutor.stop();
         }
         missionTaskExecutor.start({
@@ -31,10 +56,5 @@ export const useMissionExecutorBridge = (args: BridgeArgs): void => {
     }, [
         args.webViewRef,
         args.isRemoteMirrorEnabled,
-        args.setStatusMessage,
-        args.setActivePrompt,
-        args.setActiveUrl,
-        args.updateTask,
-        args.remoteActions,
     ]);
 };

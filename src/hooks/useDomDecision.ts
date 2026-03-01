@@ -60,6 +60,12 @@ export const useDomDecision = (
         const navState = assessNavState(activeUrl, domNodeCount);
         if (navState === 'lost') { setStatusMessage('⚠️ Lost — blank page'); setIsThinking(false); return; }
 
+        const heuristicCtx = getHeuristicContext?.(
+            'scan_dom',
+            activeUrl,
+            domNodeCount,
+            currentTask?.title,
+        );
         const heuristicInjection = heuristicCtx?.promptInjection || buildDefaultHeuristicPrompt(navState);
         setStatusMessage(currentTask ? `Working: ${currentTask.title}` : 'Thinking (Cloud)...');
 
@@ -124,7 +130,7 @@ export const useDomDecision = (
             setIsThinking(false);
             onScanComplete?.();
         }
-    }, [activePrompt, activeUrl, retryCount, setStatusMessage, setIsPaused, setBlockedReason, setIsBlockedModalVisible, PROXY_BASE_URL, lookedUpDocs, isScholarMode, webViewRef, isThinking, setIsThinking, workflowIds, tasks, updateTask, onScanComplete, cursorActions]);
+    }, [activePrompt, activeUrl, retryCount, setStatusMessage, setIsPaused, setBlockedReason, setIsBlockedModalVisible, PROXY_BASE_URL, lookedUpDocs, isScholarMode, webViewRef, isThinking, setIsThinking, workflowIds, tasks, updateTask, onScanComplete, getHeuristicContext, cursorActions]);
 
     return { handleDomMapReceived };
 };

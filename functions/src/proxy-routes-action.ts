@@ -1,6 +1,6 @@
 // Feature: Browser | Why: Route handlers for proxy action + screenshot — keeps routes file under 100 lines
 import { Express } from 'express';
-import { getPersistentPage, activePages, captureAndSyncTab } from './proxy-page-handler';
+import { getPersistentPage, activePages, captureAndSyncTab, saveSessionForTab } from './proxy-page-handler';
 import { applyCorsHeaders, resolvePage } from './proxy-route.utils';
 import { buildDomMap } from './proxy-dom-map';
 
@@ -93,11 +93,14 @@ export function setupCoordClickRoute(app: Express) {
         const page = activePages.get(tabId);
         if (!page) return res.status(503).json({ error: 'No active session' });
         try {
+            const urlBefore = page.url();
             await page.mouse.click(Number(x), Number(y));
             // Wait briefly for any navigation the click may have triggered to settle
             await page.waitForLoadState('domcontentloaded', { timeout: 2000 }).catch(() => {});
-            // Sync immediately — don’t wait for the 5s periodic interval
+            // Sync immediately — don't wait for the 5s periodic interval
             await captureAndSyncTab(tabId);
+            // Why: save cookies immediately if click triggered a navigation (e.g. login form submit)
+            if (page.url() !== urlBefore) await saveSessionForTab(tabId);
             return res.json({ success: true, finalUrl: page.url() });
         } catch (e: any) { return res.status(500).json({ error: e.message }); }
     });

@@ -29,6 +29,13 @@ export const styles = StyleSheet.create({
 /** Mission card styles — extracted from inline objects to avoid per-render allocation */
 export const missionStyles = StyleSheet.create({
     card: { backgroundColor: 'rgba(0,210,255,0.06)', borderWidth: 1, borderRadius: 12, padding: 12, marginBottom: 12 },
+    activeCard: { backgroundColor: 'rgba(0,210,255,0.10)' },
+    dropTarget: { backgroundColor: 'rgba(0,210,255,0.15)', borderColor: 'rgba(0,210,255,0.6)' },
+    cardHeader: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 2 },
+    dragHandle: { paddingRight: 8, paddingTop: 2 } as any,
+    reorderBtns: { flexDirection: 'column', paddingRight: 8, marginTop: 2 } as any,
+    reorderBtn: { padding: 2 },
+    reorderIcon: { fontSize: 9, color: 'rgba(255,255,255,0.3)' },
     label: { fontSize: 8, fontWeight: '900', letterSpacing: 1.2, marginBottom: 4 },
     title: { fontSize: 12, fontWeight: '800', color: '#fff', letterSpacing: 0.3 },
     progressRow: { flexDirection: 'row', alignItems: 'center', marginTop: 8, gap: 8 },

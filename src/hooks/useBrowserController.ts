@@ -19,7 +19,7 @@ export const useBrowserController = (
     setIsDaemonRunning: (r: boolean) => void,
     PROXY_BASE_URL: string
 ) => {
-    const handleExecutePrompt = async (prompt: string, tabId: string, _userId: string) => {
+    const handleExecutePrompt = async (prompt: string, tabId: string, _userId: string, useConfirmerAgent = true) => {
         const FIRST_TASK_ORDER = 1;
         const runId = `run_${Date.now()}`;
         setActivePrompt(prompt);
@@ -39,17 +39,19 @@ export const useBrowserController = (
             if (response.ok) {
                 const data = await response.json();
                 missionResponse = data.missionResponse || data;
+                console.info('[Planner] source=remote endpoint=/agent/plan status=ok');
             } else { llmError = `LLM endpoint error: ${response.status}`; }
         } catch (e) { llmError = e instanceof Error ? e.message : String(e); }
 
         // 2. Fallback to local planner
         if (!missionResponse) {
+            console.warn(`[Planner] source=fallback reason=${llmError || 'remote_unavailable'}`);
             missionResponse = generateMockPlanResponse(prompt).missionResponse;
         }
 
         // 3. Build mission tasks or single fallback task
         if (missionResponse?.execution?.segments) {
-            await buildMissionFromSegments(prompt, missionResponse, llmError, tabId, runId, { addTask, setStatusMessage });
+            await buildMissionFromSegments(prompt, missionResponse, llmError, tabId, runId, { addTask, setStatusMessage, useConfirmerAgent });
         } else {
             await addTask(`Execute: ${prompt}`, 'pending', 'Awaiting execution', {
                 runId,

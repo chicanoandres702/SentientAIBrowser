@@ -1,12 +1,15 @@
 // Feature: Tasks | Trace: README.md
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { onAuthStateChanged } from 'firebase/auth';
 import { auth } from '../features/auth/firebase-config';
 import { TaskItem, TaskStatus } from '../features/tasks/types';
-import { syncTaskToFirestore, updateTaskInFirestore, removeTaskFromFirestore, hydrateTasksFromFirestore } from '../utils/task-sync-service';
+import { syncTaskToFirestore, updateTaskInFirestore, removeTaskFromFirestore, listenToTasks } from '../utils/task-sync-service';
 import { recalcMissionProgress } from './task-queue-progress';
 
 export const useTaskQueue = () => {
     const [tasks, setTasks] = useState<TaskItem[]>([]);
+    // Why: ref holds the Firestore unsub so we can swap it when auth state changes
+    const taskUnsubRef = useRef<(() => void) | undefined>(undefined);
 
     const deriveProgress = useCallback((status: TaskStatus, subActions?: TaskItem['subActions'], current: number = 0): number => {
         if (!subActions || subActions.length === 0) {
@@ -44,14 +47,11 @@ export const useTaskQueue = () => {
         }
 
         if (nextStatus === 'completed') {
-            const doneMatch = (details || '').match(/^Done:\s*([a-z_]+)/i);
-            const doneAction = doneMatch?.[1]?.toLowerCase();
-            const byAction = doneAction
-                ? updated.find(sa => sa.status !== 'completed' && sa.action.toLowerCase() === doneAction)
-                : undefined;
-            const target = byAction || updated.find(sa => sa.status === 'in_progress') || updated.find(sa => sa.status === 'pending');
-            if (target) target.status = 'completed';
-            return updated;
+            // Why: bulk-complete all remaining sub-actions so the task can fully complete
+            // and auto-advance to the next sibling task fires correctly.
+            return updated.map(sa =>
+                sa.status !== 'completed' ? { ...sa, status: 'completed' as TaskStatus } : sa
+            );
         }
 
         if (nextStatus === 'failed') {
@@ -64,15 +64,27 @@ export const useTaskQueue = () => {
     }, []);
 
     useEffect(() => {
-        const hydrate = async () => {
-            if (!auth.currentUser) return;
-            try {
-                const loadedTasks = await hydrateTasksFromFirestore(auth.currentUser.uid);
-                if (loadedTasks.length > 0) setTasks(loadedTasks);
-            } catch (e) { console.error("Hydration failed:", e); }
-        };
-        hydrate();
-    }, [auth.currentUser]);
+        // Why: onAuthStateChanged fires after the Firebase SDK has loaded the ID token
+        // into the Firestore internal auth provider. auth.currentUser at mount time is
+        // unreliable and causes "Missing or insufficient permissions" on cold starts.
+        // onSnapshot replaces the one-time getDocs so Cloud Run task updates arrive live.
+        const authUnsub = onAuthStateChanged(auth, (user) => {
+            taskUnsubRef.current?.();
+            if (!user) return;
+            taskUnsubRef.current = listenToTasks(user.uid, (cloudTasks) => {
+                setTasks(prev => {
+                    // Why: only replace state if something actually changed to avoid thrashing
+                    const same = prev.length === cloudTasks.length &&
+                        prev.every((t, i) => t.id === cloudTasks[i].id &&
+                            t.status === cloudTasks[i].status &&
+                            t.progress === cloudTasks[i].progress &&
+                            t.subActions?.length === cloudTasks[i].subActions?.length);
+                    return same ? prev : cloudTasks;
+                });
+            });
+        });
+        return () => { authUnsub(); taskUnsubRef.current?.(); };
+    }, []);  // eslint-disable-line react-hooks/exhaustive-deps
 
     const addTask = useCallback(async (title: string, status: TaskStatus = 'pending', details?: string, extra?: Partial<TaskItem>) => {
         const id = extra?.id || (Date.now().toString() + Math.random().toString());
@@ -103,8 +115,9 @@ export const useTaskQueue = () => {
             let updated = prev.map(t => {
                 if (t.id !== id) return t;
                 const nextSubActions = advanceSubActions(t.subActions, status, details || t.details);
-                const subActionComplete = !!nextSubActions?.length && nextSubActions.every(sa => sa.status === 'completed');
-                const normalizedStatus: TaskStatus = (status === 'completed' && !subActionComplete) ? 'in_progress' : status;
+                // Why: trust the explicit status from the AI — sub-actions are bulk-completed
+                // above when status='completed', so the guard is no longer needed.
+                const normalizedStatus: TaskStatus = status;
                 const completedTime = normalizedStatus === 'completed' ? now : t.completedTime;
                 const progress = deriveProgress(normalizedStatus, nextSubActions, t.progress);
                 // Fix: set startTime when promoting pending → in_progress
@@ -164,5 +177,37 @@ export const useTaskQueue = () => {
         } catch (e) { console.error("Task clear sync failed:", e); }
     }, [tasks]);
 
-    return { tasks, setTasks, addTask, updateTask, removeTask, clearTasks, editTask: () => {} };
+    // Why: Reorder missions in the queue — children follow their parent mission
+    const reorderMissions = useCallback((missionIds: string[]) => {
+        setTasks(prev => {
+            const ordered: TaskItem[] = [];
+            missionIds.forEach(mid => {
+                const mission = prev.find(t => t.id === mid && t.isMission);
+                if (mission) ordered.push(mission);
+                prev.filter(t => t.missionId === mid && !t.isMission).forEach(c => ordered.push(c));
+            });
+            prev.filter(t => !t.isMission && !t.missionId).forEach(t => ordered.push(t));
+            return ordered;
+        });
+    }, []);
+
+    /** Remove all task_queues docs belonging to a mission (header + children) */
+    const removeMissionTasks = useCallback(async (missionId: string) => {
+        const toRemove = tasks.filter(t => t.id === missionId || t.missionId === missionId);
+        setTasks(prev => prev.filter(t => t.id !== missionId && t.missionId !== missionId));
+        for (const t of toRemove) {
+            await removeTaskFromFirestore(t.id).catch(() => {});
+        }
+    }, [tasks]);
+
+    /** Remove all task_queues docs associated with a specific browser tab */
+    const removeTabTasks = useCallback(async (tabId: string) => {
+        const toRemove = tasks.filter(t => t.tabId === tabId);
+        setTasks(prev => prev.filter(t => t.tabId !== tabId));
+        for (const t of toRemove) {
+            await removeTaskFromFirestore(t.id).catch(() => {});
+        }
+    }, [tasks]);
+
+    return { tasks, setTasks, addTask, updateTask, removeTask, clearTasks, editTask: () => {}, reorderMissions, removeMissionTasks, removeTabTasks };
 };

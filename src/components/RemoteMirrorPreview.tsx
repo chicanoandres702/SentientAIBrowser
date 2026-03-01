@@ -1,6 +1,6 @@
-// Feature: Remote Mirror | Why: Lightweight live preview for SSE screenshots
-import React from 'react';
-import { Image, Text, View } from 'react-native';
+// Feature: Remote Mirror | Why: Live SSE preview — keeps last frame on reconnect, zero-flicker on web
+import React, { useRef, useState } from 'react';
+import { Image, Platform, Text, View } from 'react-native';
 import { previewStyles as styles } from '../features/browser/components/BrowserPreview.styles';
 import { uiColors } from '../features/ui/theme/ui.theme';
 
@@ -9,31 +9,46 @@ interface Props {
     error: string | null;
     isConnected: boolean;
     theme: 'red' | 'blue';
+    onPress?: (x: number, y: number, w: number, h: number) => void;
 }
 
-export const RemoteMirrorPreview: React.FC<Props> = ({ screenshot, error, isConnected, theme }) => {
+const BADGE: object = { position: 'absolute', top: 8, right: 8, backgroundColor: 'rgba(0,0,0,0.55)', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 };
+
+/** Remote screenshot viewer — buffers last frame so reconnects never flash blank */
+export const RemoteMirrorPreview: React.FC<Props> = ({
+    screenshot, error, isConnected, theme, onPress,
+}) => {
     const colors = uiColors(theme);
-    if (error) {
-        return (
-            <View style={styles.container}>
-                <Text style={[styles.statusTitle, { color: colors.textMuted }]}>Remote stream error</Text>
-                <Text style={[styles.statusHint, { color: colors.textMuted }]}>{error}</Text>
-            </View>
-        );
-    }
-    if (!screenshot) {
-        return (
-            <View style={styles.container}>
-                <Text style={[styles.statusTitle, { color: colors.textMuted }]}>Connecting…</Text>
-                <Text style={[styles.statusHint, { color: colors.textMuted }]}>
-                    {isConnected ? 'Waiting for first frame' : 'No stream yet'}
-                </Text>
-            </View>
-        );
-    }
+    const [size, setSize] = useState({ w: 1, h: 1 });
+    // Why: buffer last good frame — on SSE reconnect, screenshot=null briefly;
+    // showing blank here is jarring. Keep displaying stale frame + badge instead.
+    const lastGoodRef = useRef<string | null>(null);
+    if (screenshot) lastGoodRef.current = screenshot;
+    const displayUri = screenshot ?? lastGoodRef.current;
+    const isReconnecting = !screenshot && !!lastGoodRef.current && !error;
+
     return (
-        <View style={styles.container}>
-            <Image source={{ uri: screenshot }} style={styles.screenshot} resizeMode="contain" />
+        <View
+            style={styles.container}
+            onLayout={e => setSize({ w: e.nativeEvent.layout.width, h: e.nativeEvent.layout.height })}
+            onStartShouldSetResponder={() => true}
+            onResponderGrant={e => onPress?.(e.nativeEvent.locationX, e.nativeEvent.locationY, size.w, size.h)}
+        >
+            {displayUri && (Platform.OS === 'web'
+                ? <View style={[styles.screenshot, { backgroundImage: `url("${displayUri}")`, backgroundSize: 'contain', backgroundRepeat: 'no-repeat', backgroundPosition: 'center' } as any]} />
+                : <Image source={{ uri: displayUri }} style={styles.screenshot} resizeMode="contain" />
+            )}
+            {!displayUri && !error && (
+                <Text style={[styles.statusTitle, { color: colors.textMuted }]}>
+                    {isConnected ? 'Waiting for first frame' : 'Connecting…'}
+                </Text>
+            )}
+            {error && <Text style={[styles.statusTitle, { color: colors.textMuted }]}>{error}</Text>}
+            {isReconnecting && (
+                <View style={BADGE as any}>
+                    <Text style={{ color: '#fff', fontSize: 11 }}>● Reconnecting…</Text>
+                </View>
+            )}
         </View>
     );
 };

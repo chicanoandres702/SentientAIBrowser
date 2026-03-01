@@ -33,7 +33,10 @@ export const DashboardLayout: React.FC<Props> = ({
                 <DashboardPanel title="TASKS" accent={colors.accent}>
                     <Suspense fallback={<ActivityIndicator size="small" color={colors.accent} />}>
                         <TaskQueueUI tasks={s.tasks} theme={theme} addTask={s.addTask}
-                            removeTask={s.removeTask} clearTasks={s.clearTasks} editTask={s.editTask} />
+                            removeTask={s.removeTask} clearTasks={s.clearTasks} editTask={s.editTask}
+                            isPaused={s.isPaused} onPause={() => s.setIsPaused(true)} onResume={() => s.setIsPaused(false)}
+                            onActivateTask={(id) => s.updateTask(id, 'in_progress')}
+                            reorderMissions={s.reorderMissions} proxyBaseUrl={s.PROXY_BASE_URL} />
                     </Suspense>
                 </DashboardPanel>
             </View>

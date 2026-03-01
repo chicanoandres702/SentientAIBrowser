@@ -10,9 +10,9 @@ exports.runMissionLoop = runMissionLoop;
 const proxy_config_1 = require("./proxy-config");
 const backend_mission_executor_1 = require("./backend-mission.executor");
 const github_tracer_service_1 = require("./features/github/github-tracer.service");
-/** Pause between consecutive LLM decision cycles — prevents rate-limit exhaustion.
+/** Pause between consecutive LLM cycles — short enough to feel live, long enough to avoid rate-limit.
  *  Override with ORCHESTRATOR_STEP_DELAY_MS env var (milliseconds). */
-exports.STEP_DELAY_MS = parseInt(process.env.ORCHESTRATOR_STEP_DELAY_MS || '2000', 10);
+exports.STEP_DELAY_MS = parseInt(process.env.ORCHESTRATOR_STEP_DELAY_MS || '500', 10);
 // Why: No iteration cap — the mission runs indefinitely until the user stops it
 // (by setting status ≠ 'active' in Firestore) or the LLM emits action 'done'.
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));

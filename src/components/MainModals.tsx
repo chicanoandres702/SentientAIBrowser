@@ -25,6 +25,8 @@ export const MainModals = ({ s, theme, setTheme }: any) => (
             setLayoutMode={s.setLayoutMode}
             runtimeGeminiApiKey={s.runtimeGeminiApiKey}
             setRuntimeGeminiApiKey={s.setRuntimeGeminiApiKey}
+            useConfirmerAgent={s.useConfirmerAgent ?? true}
+            setUseConfirmerAgent={s.setUseConfirmerAgent}
         />
         <SentinelInteractiveModal 
             visible={s.isInteractiveModalVisible} 

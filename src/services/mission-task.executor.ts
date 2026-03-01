@@ -23,8 +23,8 @@ export class MissionTaskExecutor {
     private ctx: TaskExecutorContext | null = null;
 
     start(context: TaskExecutorContext) {
-        if (this.unsubscribe || !auth.currentUser) return;
         this.ctx = context;
+        if (this.unsubscribe || !auth.currentUser) return;
         console.log('[MissionTaskExecutor] Starting mission task execution listener...');
         const q = query(collection(db, 'missions'), where('userId', '==', auth.currentUser.uid), where('status', '==', 'active'));
 
@@ -43,6 +43,10 @@ export class MissionTaskExecutor {
                 }
             });
         });
+    }
+
+    updateContext(context: TaskExecutorContext) {
+        this.ctx = context;
     }
 
     stop() {

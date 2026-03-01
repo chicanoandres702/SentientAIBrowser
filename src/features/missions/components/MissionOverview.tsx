@@ -72,7 +72,7 @@ export const MissionOverview: React.FC<Props> = ({ theme, onSelectMission, onLau
                 <TouchableOpacity onPress={onClose} style={styles.closeButton}><Text style={{ color: '#fff', fontSize: 24 }}>×</Text></TouchableOpacity>
             </View>
             {view === 'missions'
-                : (loading ? <ActivityIndicator color={activeColor} size="large" style={{ flex: 1 }} /> : <FlatList data={missions} renderItem={renderItem} keyExtractor={m => m.id} numColumns={2} contentContainerStyle={styles.list} extraData={missionTasks} />)
+                ? (loading ? <ActivityIndicator color={activeColor} size="large" style={{ flex: 1 }} /> : <FlatList data={missions} renderItem={renderItem} keyExtractor={m => m.id} numColumns={2} contentContainerStyle={styles.list} extraData={missionTasks} />)
                 : (<RoutineManager theme={theme} onLaunchRoutine={(r) => { onLaunchRoutine(r.initialUrl, r.steps[0]); onClose(); }} currentGoal={currentGoal} currentUrl={currentUrl} />)
             }
         </View>
