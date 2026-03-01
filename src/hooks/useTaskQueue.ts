@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { auth } from '../features/auth/firebase-config';
 import { TaskItem, TaskStatus } from '../features/tasks/types';
 import { syncTaskToFirestore, updateTaskInFirestore, removeTaskFromFirestore, hydrateTasksFromFirestore } from '../utils/task-sync-service';
+import { recalcMissionProgress } from './task-queue-progress';
 
 export const useTaskQueue = () => {
     const [tasks, setTasks] = useState<TaskItem[]>([]);
@@ -17,32 +18,6 @@ export const useTaskQueue = () => {
         };
         hydrate();
     }, [auth.currentUser]);
-
-    /** Recalculate a mission task's progress from its child tasks.
-     *  Counts in_progress tasks as half-done so the bar advances during execution. */
-    const recalcMissionProgress = useCallback((allTasks: TaskItem[], missionId: string): TaskItem[] => {
-        const children = allTasks.filter(t => t.missionId === missionId && !t.isMission);
-        if (children.length === 0) return allTasks;
-
-        const completed = children.filter(t => t.status === 'completed').length;
-        const inProgress = children.filter(t => t.status === 'in_progress').length;
-        const failed = children.filter(t => t.status === 'failed').length;
-        const total = children.length;
-        // Each completed = 1 unit, each in_progress = 0.5 unit (half-done)
-        const progress = Math.min(100, Math.round(((completed + inProgress * 0.5) / total) * 100));
-
-        let missionStatus: TaskStatus = 'in_progress';
-        if (completed === total) missionStatus = 'completed';
-        else if (failed === total) missionStatus = 'failed';
-        else if (completed + failed === total) missionStatus = failed > 0 ? 'failed' : 'completed';
-
-        return allTasks.map(t => {
-            if (t.id === missionId && t.isMission) {
-                return { ...t, progress, status: missionStatus, completedTime: missionStatus === 'completed' ? Date.now() : t.completedTime };
-            }
-            return t;
-        });
-    }, []);
 
     const addTask = useCallback(async (title: string, status: TaskStatus = 'pending', details?: string, extra?: Partial<TaskItem>) => {
         const id = extra?.id || (Date.now().toString() + Math.random().toString());

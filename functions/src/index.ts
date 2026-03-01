@@ -1,3 +1,4 @@
+// Feature: Functions Entry | Trace: README.md
 import { onDocumentWritten } from "firebase-functions/v2/firestore";
 import { sentientProxy as proxyApp } from "./index-app";
 import orchestrator from "./backend-ai-orchestrator";

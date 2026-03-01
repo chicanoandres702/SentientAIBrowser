@@ -3,7 +3,7 @@ const fs = require('fs');
 const path = require('path');
 
 const MAX_LINES = 100;
-const EXCLUDED_DIRS = ['.git', 'node_modules', '.expo', 'assets', '.gemini', '.vscode', 'dist', 'build', 'out', '.next', '.antigravity', 'extension_dist'];
+const EXCLUDED_DIRS = ['.git', 'node_modules', '.expo', 'assets', '.gemini', '.vscode', 'dist', 'build', 'out', '.next', '.antigravity', 'extension_dist', 'lib'];
 const TARGET_EXTENSIONS = ['.ts', '.tsx', '.js', '.jsx'];
 
 console.log('--- SENTIENT CODE VALIDATION ---');
