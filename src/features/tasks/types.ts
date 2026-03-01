@@ -3,6 +3,7 @@ export type TaskStatus = 'pending' | 'in_progress' | 'completed' | 'failed' | 'b
 
 export interface SubAction {
     action: string;
+    goal?: string;
     explanation: string;
     status: TaskStatus;
 }

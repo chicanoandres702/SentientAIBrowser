@@ -34,10 +34,11 @@ export const useDomDecision = (
     isScholarMode: boolean = false,
     tasks: TaskItem[] = [],
     onScanComplete?: () => void,
-    heuristicCtx?: HeuristicContext,
+    getHeuristicContext?: (currentAction: string, currentUrl: string, domNodeCount: number, pageText?: string) => HeuristicContext,
     onStepOutcome?: (success: boolean) => void,
     cursorActions?: CursorActions,
     remoteActions?: RemoteActions,
+    runtimeGeminiApiKey?: string,
 ) => {
     /** Find the current task to execute: first in_progress, or first pending non-mission task */
     const getCurrentTask = useCallback((): TaskItem | null => {
@@ -69,14 +70,32 @@ export const useDomDecision = (
         const navState = assessNavState(activeUrl, domNodeCount);
         if (navState === 'lost') { setStatusMessage('⚠️ Lost — blank page'); setIsThinking(false); return; }
 
-        const heuristicInjection = heuristicCtx?.promptInjection || buildHeuristicInjection({ consecutiveFailures: 0, successStreak: 0, lastActionUrl: '', lastAction: '', repeatCount: 0, stuckDetected: false, progressRegex: /(?:question|step|page)\s+(\d+)\s*(?:of|\/)\s*(\d+)/i }, navState);
+        const pageText = Array.isArray(map)
+            ? map.map((n: any) => n?.text).filter(Boolean).join(' ').slice(0, 2500)
+            : '';
+        const heuristicCtx = getHeuristicContext?.(currentTask?.title || 'analyze', activeUrl, domNodeCount, pageText);
+        if (heuristicCtx?.shouldStop) {
+            setStatusMessage('⛔ Heuristic stop: reassess required');
+            if (currentTask) updateTask(currentTask.id, 'failed', 'Heuristic stop (loop/failure guard)');
+            onStepOutcome?.(false);
+            setIsThinking(false);
+            return;
+        }
+
+        const heuristicInjection = heuristicCtx?.promptInjection
+            || buildHeuristicInjection({ consecutiveFailures: 0, successStreak: 0, lastActionUrl: '', lastAction: '', repeatCount: 0, stuckDetected: false, progressRegex: /(?:question|step|page)\s+(\d+)\s*(?:of|\/)\s*(\d+)/i }, navState);
         setStatusMessage(currentTask ? `Working: ${currentTask.title}` : 'Thinking (Cloud)...');
 
         try {
             const token = await auth.currentUser?.getIdToken();
+            const headers: Record<string, string> = {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token || 'anonymous'}`,
+            };
+            if (runtimeGeminiApiKey) headers['x-gemini-api-key'] = runtimeGeminiApiKey;
             const cloudResponse = await fetch(`${PROXY_BASE_URL}/agent/analyze`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token || 'anonymous'}` },
+                headers,
                 body: JSON.stringify({ prompt: activePrompt + heuristicInjection, url: activeUrl, domMap: map, retryCount, lookedUpDocs, isScholarMode, workflowIds, currentTask: taskContext }),
             });
 
@@ -116,6 +135,14 @@ export const useDomDecision = (
                 if (currentTask && (actionExecuted || firstStep.action === 'done')) {
                     updateTask(currentTask.id, 'completed', `Done: ${firstStep.action}${firstStep.targetId ? ` → ${firstStep.targetId}` : ''}`);
                     onStepOutcome?.(true);
+                } else if (currentTask && !actionExecuted) {
+                    // Why: avoid infinite in_progress hangs when the planner returns a step
+                    // that cannot execute in the current runtime (missing selector/unsupported action).
+                    const waitingForUser = firstStep.action === 'wait_for_user' || firstStep.action === 'ask_user';
+                    if (!waitingForUser) {
+                        updateTask(currentTask.id, 'failed', `No executable action: ${firstStep.action}`);
+                        onStepOutcome?.(false);
+                    }
                 }
             } else {
                 if (currentTask) updateTask(currentTask.id, 'completed', 'Completed — analyzed page');
@@ -129,7 +156,9 @@ export const useDomDecision = (
             setIsThinking(false);
             onScanComplete?.();
         }
-    }, [activePrompt, activeUrl, retryCount, setStatusMessage, setIsPaused, setBlockedReason, setIsBlockedModalVisible, PROXY_BASE_URL, lookedUpDocs, isScholarMode, webViewRef, isThinking, setIsThinking, workflowIds, tasks, getCurrentTask, updateTask, onScanComplete, cursorActions]);
+    // Why: remoteActions captures activeUrl/tabId; navigateActiveTab captures tabs array.
+    // Both must be deps so the callback always fires with current values.
+    }, [activePrompt, activeUrl, retryCount, setStatusMessage, setIsPaused, setBlockedReason, setIsBlockedModalVisible, PROXY_BASE_URL, lookedUpDocs, isScholarMode, webViewRef, isThinking, setIsThinking, workflowIds, tasks, getCurrentTask, updateTask, onScanComplete, cursorActions, remoteActions, navigateActiveTab, runtimeGeminiApiKey, getHeuristicContext]);
 
     return { handleDomMapReceived };
 };

@@ -55,6 +55,7 @@ export const getWebScannerScript = (): string => `
       }
     });
     window.parent.postMessage({
+      source: 'sentient-scanner',
       type: 'DOM_MAP',
       url: window.location.href,
       payload: elementMap
@@ -64,18 +65,18 @@ export const getWebScannerScript = (): string => `
   function executeAction(action, targetId, value) {
     var el = document.querySelector('[data-ai-id="' + targetId + '"]');
     if (!el) {
-      window.parent.postMessage({ type: 'ERROR', payload: 'Element not found' }, '*');
+      window.parent.postMessage({ source: 'sentient-scanner', type: 'ERROR', payload: 'Element not found' }, '*');
       return;
     }
     if (action === 'click') {
       el.scrollIntoView({ behavior: 'smooth', block: 'center' });
       el.click();
-      window.parent.postMessage({ type: 'SUCCESS', payload: 'Clicked ' + targetId }, '*');
+      window.parent.postMessage({ source: 'sentient-scanner', type: 'SUCCESS', payload: 'Clicked ' + targetId }, '*');
     } else if (action === 'type') {
       el.value = value || '';
       el.dispatchEvent(new Event('input', { bubbles: true }));
       el.dispatchEvent(new Event('change', { bubbles: true }));
-      window.parent.postMessage({ type: 'SUCCESS', payload: 'Typed ' + targetId }, '*');
+      window.parent.postMessage({ source: 'sentient-scanner', type: 'SUCCESS', payload: 'Typed ' + targetId }, '*');
     }
     // Re-scan after action to get updated DOM
     setTimeout(scanDOM, 500);

@@ -9,7 +9,13 @@ import { rewriteHtml } from './proxy-html.service';
 import { generateLLMPlanResponse } from './features/llm/llm-mission-planner';
 import { DeepResearchAgent, RunResult } from './features/deep-research/deep-research-agent';
 import { Express } from 'express';
-import { setupActionRoute, setupDomMapRoute, setupScreenshotRoute, setupScreenshotStreamRoute } from './proxy-routes-action';
+import { setupActionRoute, setupCoordClickRoute, setupDomMapRoute, setupScreenshotRoute, setupScreenshotStreamRoute } from './proxy-routes-action';
+import { setupAgentAnalyzeRoute } from './proxy-routes-agent';
+import { setupNavRoute } from './proxy-routes-nav';
+import { setupKeyTypeRoute } from './proxy-routes-type';
+import { setupCdpRoutes } from './proxy-routes-cdp';
+import { setupMouseRoutes } from './proxy-routes-mouse';
+import { setupExternalRoutes } from './proxy-routes-external';
 
 // In-memory registry of running deep-research agents (keyed by taskId)
 const activeResearchAgents = new Map<string, DeepResearchAgent>();
@@ -106,7 +112,15 @@ export function setupBrowserRoutes(app: Express) {
     try {
       const page = await getPersistentPage(targetUrl, tabId);
       if (!page) throw new Error('Failed to load page');
-      await page.waitForSelector('body', { timeout: 5000 }).catch(() => {});
+      // Why: domcontentloaded fires before JS runs — wait for networkidle so React/Vue/Angular
+      // SPAs finish their initial render before we serialize the DOM. 15s cap prevents
+      // pages with persistent polling (ads, websockets) from hanging forever.
+      await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
+      // Extra SPA guard: ensure root component has mounted at least one child element
+      await page.waitForFunction(
+        () => document.body && document.body.children.length > 0,
+        { timeout: 5000 }
+      ).catch(() => {});
       await page.evaluate(() => {
         let id = 1;
         document.querySelectorAll('button, a, input, select, textarea, [role="button"]').forEach(el => {
@@ -116,14 +130,24 @@ export function setupBrowserRoutes(app: Express) {
         });
       });
       let html = await page.content();
+      // Why: derive proxy base from the actual request host so links always point back to the
+      // correct origin — works on Cloud Run, custom domains, and local dev without hardcoding.
+      const proxyBase = process.env.PUBLIC_PROXY_URL || `${req.protocol}://${req.get('host')}`;
       stripSecurityHeaders(res);
-      res.set('Content-Type', 'text/html').status(200).send(injectScanner(rewriteHtml(html, targetUrl, tabId)));
+      res.set('Content-Type', 'text/html').status(200).send(injectScanner(rewriteHtml(html, targetUrl, tabId, proxyBase)));
     } catch (e: any) { res.status(500).send(`Proxy failed: ${e.message}`); }
   });
 
   // Delegate action + screenshot routes to extracted module
+  setupAgentAnalyzeRoute(app);
+  setupNavRoute(app);
+  setupKeyTypeRoute(app);
   setupActionRoute(app);
+  setupCoordClickRoute(app);
   setupScreenshotRoute(app);
   setupDomMapRoute(app);
   setupScreenshotStreamRoute(app);
+  setupMouseRoutes(app);
+  setupCdpRoutes(app);
+  setupExternalRoutes(app);
 }

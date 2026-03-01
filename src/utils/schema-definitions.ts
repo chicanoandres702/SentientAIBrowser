@@ -16,7 +16,7 @@ export const APP_SCHEMAS = {
             source: "'planner' | 'manual' | 'fallback'",
             isMission: 'boolean? — true if this is the top-level mission',
             progress: 'number 0-100',
-            subActions: '{ action, explanation, status }[] — hidden background steps',
+            subActions: '{ action, goal, explanation, status }[] — hidden background steps',
             details: 'string?',
             startTime: 'number? epoch ms',
             completedTime: 'number? epoch ms',

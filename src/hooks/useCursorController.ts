@@ -116,7 +116,18 @@ export const useCursorController = (
         setCursor({ x, y, visible: true, effect: 'idle', effectKey: keyRef.current });
     }, []);
 
-    return { cursor, updateDomMap, animateClick, animateType, hideCursor, showAt };
+    /** Animate a click at raw container pixel coordinates — for manual user interactions */
+    const clickAt = useCallback(async (x: number, y: number): Promise<void> => {
+        keyRef.current++;
+        const key = keyRef.current;
+        setCursor({ x, y, visible: true, effect: 'move', effectKey: key });
+        await sleep(150);
+        setCursor({ x, y, visible: true, effect: 'click', effectKey: key + 1 });
+        await sleep(CLICK_HOLD_MS);
+        setCursor(prev => ({ ...prev, effect: 'idle', effectKey: key + 2 }));
+    }, []);
+
+    return { cursor, updateDomMap, animateClick, animateType, hideCursor, showAt, clickAt };
 };
 
 const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));

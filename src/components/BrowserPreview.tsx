@@ -15,13 +15,19 @@ const STALE_THRESHOLD_MS = 45_000;
 const DIRECT_FETCH_INTERVAL_MS = 6_000;
 const MAX_DIRECT_RETRIES = 5;
 
-interface Props { tabId: string; theme: 'red' | 'blue'; }
+interface Props {
+    tabId: string;
+    theme: 'red' | 'blue';
+    /** Why: called with container-relative px coords + container size so parent can position cursor + forward to proxy */
+    onPress?: (x: number, y: number, w: number, h: number) => void;
+}
 
-export const BrowserPreview: React.FC<Props> = ({ tabId, theme }) => {
+export const BrowserPreview: React.FC<Props> = ({ tabId, theme, onPress }) => {
     const [screenshot, setScreenshot] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [status, setStatus] = useState<PreviewStatus>('loading');
+    const [containerSize, setContainerSize] = useState({ w: 1, h: 1 });
     const [proxyOnline, setProxyOnline] = useState<boolean | null>(null);
     const directRetryCount = useRef(0);
     const directPollTimer = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -79,7 +85,12 @@ export const BrowserPreview: React.FC<Props> = ({ tabId, theme }) => {
     const dim = dimAccent(accent);
 
     return (
-        <View style={styles.container}>
+        <View
+            style={styles.container}
+            onLayout={e => setContainerSize({ w: e.nativeEvent.layout.width, h: e.nativeEvent.layout.height })}
+            onStartShouldSetResponder={() => !!onPress}
+            onResponderGrant={e => onPress?.(e.nativeEvent.locationX, e.nativeEvent.locationY, containerSize.w, containerSize.h)}
+        >
             {loading && !screenshot && <PreviewLoader status={status} accent={accent} />}
             {screenshot && <Image source={{ uri: screenshot }} style={styles.screenshot} resizeMode="contain" onError={() => { setError('Failed'); setScreenshot(null); setStatus('snapshot_error'); }} />}
             {status === 'stale' && screenshot && <StaleBadge onRetry={handleRetry} accent={accent} dimAccent={dim} />}
