@@ -1,26 +1,26 @@
-// Feature: Layout | Why: Sidebar rendering isolated — reused by desktop, mobile, dashboard
+// Feature: Layout | Trace: src/layouts/sections/LayoutSidebar.tsx
 import React, { Suspense, lazy } from 'react';
 import { View, Text, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { WorkflowSelector } from '../../components/WorkflowSelector';
 import { uiColors } from '../../features/ui/theme/ui.theme';
 import { sidebarStyles as ss } from '../styles/sidebar.styles';
 import { styles as appStyles } from '../../../App.styles';
 import { SidebarWidthMode } from '../config/layout.types';
 import { LayoutMode } from '../../hooks/useBrowserState';
 
-const TaskQueueUI = lazy(() =>
-    import('../../components/TaskQueueUI').then(m => ({ default: m.TaskQueueUI })),
-);
-const MobileTaskQueueUI = lazy(() =>
-    import('../../components/tasks/mobile/MobileTaskQueueUI').then(m => ({ default: m.MobileTaskQueueUI })),
-);
-const PromptInterface = lazy(() =>
-    import('../../components/PromptInterface').then(m => ({ default: m.PromptInterface })),
-);
-
-/* ─── Shared inner content ───────────────────────────── */
+const TaskQueueUI = lazy(() => import('../../components/TaskQueueUI').then(m => ({ default: m.TaskQueueUI })));
+const MobileTaskQueueUI = lazy(() => import('../../components/tasks/mobile/MobileTaskQueueUI').then(m => ({ default: m.MobileTaskQueueUI })));
+const PromptInterface = lazy(() => import('../../components/PromptInterface').then(m => ({ default: m.PromptInterface })));
 
 export const SidebarContent: React.FC<{ s: any; theme: any }> = ({ s, theme }) => (
     <Suspense fallback={<ActivityIndicator color={uiColors(theme).accent} style={{ flex: 1, marginTop: 24 }} />}>
+        <WorkflowSelector
+            tabs={s.tabs}
+            onSelectTab={s.selectTab}
+            onCloseTab={s.closeTab}
+            onNewTab={() => s.addNewTab('https://www.google.com')}
+            theme={theme}
+        />
         <TaskQueueUI tasks={s.tasks} theme={theme} addTask={s.addTask} removeTask={s.removeTask} clearTasks={s.clearTasks} editTask={s.editTask}
             isPaused={s.isPaused} onPause={() => s.setIsPaused(true)} onResume={() => s.setIsPaused(false)}
             onActivateTask={(id) => s.updateTask(id, 'in_progress')}
@@ -75,6 +75,8 @@ export const LayoutSidebar: React.FC<SidebarProps> = ({
 
 export const MobileSidebar: React.FC<{ s: any; theme: any }> = ({ s, theme }) => {
     const colors = uiColors(theme);
+    // Filter tasks to only show those for the active tab/workflow
+    const filteredTasks = s.activeTabId ? s.tasks.filter((t: any) => t.tabId === s.activeTabId) : s.tasks;
 
     return (
         <View style={[appStyles.mobileSidebarOverlay, { backgroundColor: colors.bg }]}>
@@ -91,13 +93,14 @@ export const MobileSidebar: React.FC<{ s: any; theme: any }> = ({ s, theme }) =>
             </View>
             <Suspense fallback={<ActivityIndicator color={colors.accent} style={{ flex: 1, marginTop: 24 }} />}>
                 <MobileTaskQueueUI
-                    tasks={s.tasks}
+                    tasks={filteredTasks}
                     theme={theme}
                     addTask={s.addTask}
                     removeTask={s.removeTask}
                     clearTasks={s.clearTasks}
                     editTask={s.editTask}
                     showSwitcher={true}
+                    activeTabId={s.activeTabId}
                 />
             </Suspense>
         </View>

@@ -3,8 +3,8 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth } from '../features/auth/firebase-config';
-import { TabItem } from '../features/browser/types';
-import { listenToTabs } from '../utils/browser-sync-service';
+import { TabItem } from '../features/workflow/workflow.types';
+import { listenToWorkflow } from '../features/workflow/workflow.service';
 import { syncInitialTab, syncNewTab, syncCloseTab, syncSelectTab, syncNavigate } from './browser-tab-sync';
 
 const NAV_DEBOUNCE_MS = 400; // coalesce rapid URL changes (address-bar typing, redirects)
@@ -42,7 +42,7 @@ export const useBrowserTabs = (initialUrl: string) => {
             if (!user) return;
             const defaultTab = tabs.find(t => t.id === '1');
             if (defaultTab) syncInitialTab(defaultTab);
-            tabUnsubRef.current = listenToTabs(user.uid, (cloudTabs) => {
+            tabUnsubRef.current = listenToWorkflow(user.uid, (cloudTabs) => {
                 // Why: skip cloud updates that arrived as the echo of our own write
                 if (isSyncingRef.current) return;
                 // Why: filter out tombstoned (closed) tabs — the backend captureAndSync may

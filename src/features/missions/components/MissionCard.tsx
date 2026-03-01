@@ -1,7 +1,7 @@
 // Feature: Missions | Why: Renders a single mission card with expandable task list
 import React from 'react';
 import { View, Text, TouchableOpacity, ActivityIndicator } from 'react-native';
-import { MissionItem } from '../../../utils/browser-sync-service';
+import { MissionItem } from '../../../../shared/mission-sync.service';
 import { missionStyles as styles } from './MissionOverview.styles';
 import { missionLocalStyles as ls } from './MissionOverview.local.styles';
 

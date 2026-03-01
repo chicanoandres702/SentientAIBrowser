@@ -19,6 +19,8 @@ interface Props {
     editTask: (id: string, t: string) => void;
     /** If true, render the layout switcher at the top */
     showSwitcher?: boolean;
+    /** Active tab ID for workflow isolation */
+    activeTabId?: string;
 }
 
 /**
@@ -26,13 +28,15 @@ interface Props {
  * Renders one of 3 mobile-optimised layouts with an optional switcher strip.
  */
 export const MobileTaskQueueUI: React.FC<Props> = ({
-    tasks, theme, addTask, removeTask, clearTasks, editTask, showSwitcher = true,
+    tasks, theme, addTask, removeTask, clearTasks, editTask, showSwitcher = true, activeTabId,
 }) => {
     const [variant, setVariant] = useState<MobileLayoutVariant>('command');
     const colors = uiColors(theme);
     const accent = colors.accent;
 
-    const layoutProps = { tasks, theme, addTask, removeTask, clearTasks, editTask };
+    // Filter tasks to only show those for the active tab/workflow (if activeTabId provided)
+    const displayTasks = activeTabId ? tasks.filter(t => t.tabId === activeTabId) : tasks;
+    const layoutProps = { tasks: displayTasks, theme, addTask, removeTask, clearTasks, editTask };
 
     return (
         <View style={s.root}>

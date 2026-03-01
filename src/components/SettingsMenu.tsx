@@ -87,22 +87,8 @@ export const SettingsMenu: React.FC<Props> = (p) => {
 };
 
 const s = StyleSheet.create({
-    overlay: {
-        flex: 1,
-        justifyContent: 'flex-end',
-        backgroundColor: 'rgba(3, 5, 10, 0.82)',
-    },
-    sheet: {
-        borderTopLeftRadius: 20,
-        borderTopRightRadius: 20,
-        borderWidth: 1,
-        overflow: 'hidden',
-        maxHeight: '92%',
-        ...Platform.select({
-            web: { boxShadow: '0 -4px 24px rgba(0, 0, 0, 0.4)' } as any,
-            default: { elevation: 20 },
-        }),
-    },
+    overlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(3, 5, 10, 0.82)' },
+    sheet: { borderTopLeftRadius: 20, borderTopRightRadius: 20, borderWidth: 1, overflow: 'hidden', maxHeight: '92%', ...Platform.select({ web: { boxShadow: '0 -4px 24px rgba(0, 0, 0, 0.4)' } as any, default: { elevation: 20 } }) },
     handleBar: { width: 36, height: 3, borderRadius: 2, alignSelf: 'center', marginTop: 12, marginBottom: 4, opacity: 0.5 },
     header: { paddingHorizontal: 18, paddingVertical: 14, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderBottomWidth: 1 },
     title: { fontSize: 16, fontWeight: '800', letterSpacing: 0.3 },

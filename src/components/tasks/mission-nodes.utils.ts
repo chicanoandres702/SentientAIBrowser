@@ -1,7 +1,8 @@
 // Feature: Tasks | Why: Build mission nodes for embedded rendering
 import { useMemo } from 'react';
 import { TaskItem } from '../../features/tasks/types';
-import { FilterType, SortMode, STATUS_ORDER } from './task-filter.utils';
+import type { FilterType, SortMode } from '../../hooks/useFilteredTasks';
+import { STATUS_ORDER } from './task-filter.utils';
 
 export interface MissionNode {
     mission: TaskItem;

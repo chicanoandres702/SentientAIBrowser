@@ -2,6 +2,12 @@
 // so the frontend onSnapshot listener sees live subAction completions without any polling.
 import { db } from './proxy-config';
 
+export interface CurrentSegmentTask {
+    id: string;
+    order: number;
+    status: string;
+}
+
 /** Find the task_queues document for a given mission segment (matched by missionId + order) */
 export async function findSegmentTaskId(missionId: string, segOrder: number): Promise<string | null> {
     const snap = await db.collection('task_queues')
@@ -10,6 +16,32 @@ export async function findSegmentTaskId(missionId: string, segOrder: number): Pr
         .limit(1)
         .get();
     return snap.empty ? null : snap.docs[0].id;
+}
+
+/**
+ * Find the currently runnable segment task for a mission.
+ * Priority: first in_progress task, otherwise first pending task.
+ */
+export async function findCurrentSegmentTask(missionId: string): Promise<CurrentSegmentTask | null> {
+    const snap = await db.collection('task_queues')
+        .where('missionId', '==', missionId)
+        .orderBy('order', 'asc')
+        .limit(100)
+        .get();
+
+    if (snap.empty) return null;
+
+    const docs = snap.docs
+        .map(d => ({ id: d.id, data: d.data() as any }))
+        .filter(d => !d.data?.isMission);
+
+    const active = docs.find(d => d.data?.status === 'in_progress');
+    if (active) return { id: active.id, order: Number(active.data.order || 0), status: active.data.status };
+
+    const pending = docs.find(d => d.data?.status === 'pending');
+    if (pending) return { id: pending.id, order: Number(pending.data.order || 0), status: pending.data.status };
+
+    return null;
 }
 
 /** Mark a single subAction in a task_queues document as in_progress / completed / failed */
@@ -21,9 +53,24 @@ export async function setSubActionStatus(
     const ref = db.collection('task_queues').doc(taskDocId);
     const snap = await ref.get();
     if (!snap.exists) return;
-    const subActions = [...(snap.data()?.subActions || [])];
+    const data = snap.data() as any;
+    const subActions = [...(data?.subActions || [])];
+    if (subIdx >= subActions.length) {
+        subActions.push({ action: 'step', explanation: `Step ${subIdx + 1}`, status: 'pending' });
+    }
     if (subActions[subIdx]) subActions[subIdx] = { ...subActions[subIdx], status };
-    await ref.update({ subActions, updated_at: new Date().toISOString() });
+
+    const total = subActions.length || 1;
+    const completed = subActions.filter((sa: any) => sa.status === 'completed').length;
+    const inProgress = subActions.filter((sa: any) => sa.status === 'in_progress').length;
+    const progress = Math.max(0, Math.min(99, Math.round(((completed + inProgress * 0.5) / total) * 100)));
+
+    await ref.update({
+        subActions,
+        progress,
+        status: status === 'in_progress' ? 'in_progress' : data?.status,
+        updated_at: new Date().toISOString(),
+    });
 }
 
 /**

@@ -21,6 +21,16 @@ export function setupNavRoute(app: Express): void {
         res.sendStatus(204);
     });
 
+    app.options('/proxy/back', (_req, res) => {
+        applyCorsHeaders(res);
+        res.sendStatus(204);
+    });
+
+    app.options('/proxy/forward', (_req, res) => {
+        applyCorsHeaders(res);
+        res.sendStatus(204);
+    });
+
     app.post('/proxy/navigate', async (req, res): Promise<any> => {
         applyCorsHeaders(res);
         const { url, tabId = 'default' } = req.body;
@@ -43,6 +53,56 @@ export function setupNavRoute(app: Express): void {
             return res.json(result);
         } catch (e: any) {
             console.error('[/proxy/navigate] Error:', e.message);
+            return res.status(500).json({ error: e.message });
+        }
+    });
+
+    /**
+     * POST /proxy/back
+     * Body: { tabId? }
+     * Returns: { finalUrl, moved }
+     */
+    app.post('/proxy/back', async (req, res): Promise<any> => {
+        applyCorsHeaders(res);
+        const { tabId = 'default' } = req.body || {};
+        const userId = getUserIdFromReq(req);
+
+        try {
+            let page = activePages.get(tabId) ?? undefined;
+            if (!page) page = await getPersistentPage(null, tabId, userId).catch(() => undefined);
+            if (!page) return res.status(503).json({ error: 'No active session for tab' });
+
+            const before = page.url();
+            await page.goBack({ waitUntil: 'domcontentloaded', timeout: 15000 }).catch(() => null);
+            const finalUrl = page.url() || before;
+            return res.json({ finalUrl, moved: finalUrl !== before });
+        } catch (e: any) {
+            console.error('[/proxy/back] Error:', e.message);
+            return res.status(500).json({ error: e.message });
+        }
+    });
+
+    /**
+     * POST /proxy/forward
+     * Body: { tabId? }
+     * Returns: { finalUrl, moved }
+     */
+    app.post('/proxy/forward', async (req, res): Promise<any> => {
+        applyCorsHeaders(res);
+        const { tabId = 'default' } = req.body || {};
+        const userId = getUserIdFromReq(req);
+
+        try {
+            let page = activePages.get(tabId) ?? undefined;
+            if (!page) page = await getPersistentPage(null, tabId, userId).catch(() => undefined);
+            if (!page) return res.status(503).json({ error: 'No active session for tab' });
+
+            const before = page.url();
+            await page.goForward({ waitUntil: 'domcontentloaded', timeout: 15000 }).catch(() => null);
+            const finalUrl = page.url() || before;
+            return res.json({ finalUrl, moved: finalUrl !== before });
+        } catch (e: any) {
+            console.error('[/proxy/forward] Error:', e.message);
             return res.status(500).json({ error: e.message });
         }
     });

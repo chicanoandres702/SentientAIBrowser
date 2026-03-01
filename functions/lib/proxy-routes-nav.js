@@ -20,6 +20,14 @@ function setupNavRoute(app) {
         (0, proxy_route_utils_1.applyCorsHeaders)(res);
         res.sendStatus(204);
     });
+    app.options('/proxy/back', (_req, res) => {
+        (0, proxy_route_utils_1.applyCorsHeaders)(res);
+        res.sendStatus(204);
+    });
+    app.options('/proxy/forward', (_req, res) => {
+        (0, proxy_route_utils_1.applyCorsHeaders)(res);
+        res.sendStatus(204);
+    });
     app.post('/proxy/navigate', async (req, res) => {
         var _a;
         (0, proxy_route_utils_1.applyCorsHeaders)(res);
@@ -44,6 +52,58 @@ function setupNavRoute(app) {
         }
         catch (e) {
             console.error('[/proxy/navigate] Error:', e.message);
+            return res.status(500).json({ error: e.message });
+        }
+    });
+    /**
+     * POST /proxy/back
+     * Body: { tabId? }
+     * Returns: { finalUrl, moved }
+     */
+    app.post('/proxy/back', async (req, res) => {
+        var _a;
+        (0, proxy_route_utils_1.applyCorsHeaders)(res);
+        const { tabId = 'default' } = req.body || {};
+        const userId = (0, proxy_route_utils_1.getUserIdFromReq)(req);
+        try {
+            let page = (_a = proxy_page_handler_1.activePages.get(tabId)) !== null && _a !== void 0 ? _a : undefined;
+            if (!page)
+                page = await (0, proxy_page_handler_1.getPersistentPage)(null, tabId, userId).catch(() => undefined);
+            if (!page)
+                return res.status(503).json({ error: 'No active session for tab' });
+            const before = page.url();
+            await page.goBack({ waitUntil: 'domcontentloaded', timeout: 15000 }).catch(() => null);
+            const finalUrl = page.url() || before;
+            return res.json({ finalUrl, moved: finalUrl !== before });
+        }
+        catch (e) {
+            console.error('[/proxy/back] Error:', e.message);
+            return res.status(500).json({ error: e.message });
+        }
+    });
+    /**
+     * POST /proxy/forward
+     * Body: { tabId? }
+     * Returns: { finalUrl, moved }
+     */
+    app.post('/proxy/forward', async (req, res) => {
+        var _a;
+        (0, proxy_route_utils_1.applyCorsHeaders)(res);
+        const { tabId = 'default' } = req.body || {};
+        const userId = (0, proxy_route_utils_1.getUserIdFromReq)(req);
+        try {
+            let page = (_a = proxy_page_handler_1.activePages.get(tabId)) !== null && _a !== void 0 ? _a : undefined;
+            if (!page)
+                page = await (0, proxy_page_handler_1.getPersistentPage)(null, tabId, userId).catch(() => undefined);
+            if (!page)
+                return res.status(503).json({ error: 'No active session for tab' });
+            const before = page.url();
+            await page.goForward({ waitUntil: 'domcontentloaded', timeout: 15000 }).catch(() => null);
+            const finalUrl = page.url() || before;
+            return res.json({ finalUrl, moved: finalUrl !== before });
+        }
+        catch (e) {
+            console.error('[/proxy/forward] Error:', e.message);
             return res.status(500).json({ error: e.message });
         }
     });
