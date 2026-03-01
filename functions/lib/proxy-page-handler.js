@@ -4,17 +4,26 @@ exports.activePages = exports.activeContexts = void 0;
 exports.getPersistentPage = getPersistentPage;
 exports.closePage = closePage;
 exports.captureAndSyncTab = captureAndSyncTab;
+exports.saveSessionForTab = saveSessionForTab;
 // Feature: Page Lifecycle | Trace: README.md
 const proxy_config_1 = require("./proxy-config");
-const proxy_asset_1 = require("./proxy-asset");
 const proxy_nav_controller_1 = require("./proxy-nav-controller");
 const proxy_session_service_1 = require("./proxy-session.service");
+// Why: block heavy binary resources that waste bandwidth and slow down Playwright.
+// Images/fonts/media are irrelevant for the LLM's ARIA snapshot + screenshot flow.
+const BLOCKED_EXTENSIONS = [
+    '.png', '.jpg', '.jpeg', '.gif', '.svg', '.webp', '.ico',
+    '.woff', '.woff2', '.ttf', '.eot', '.mp4', '.webm',
+];
 exports.activeContexts = new Map();
 exports.activePages = new Map();
 // Why: track userId per tab so closePage and captureAndSyncTab can save/restore the right session
 const activeUserIds = new Map();
 // Why: store interval IDs so closePage can clear them — prevents ghost re-creation of closed tabs
 const syncIntervals = new Map();
+// Why: tombstone set — once a tab is closed, captureAndSync will never re-write its Firestore doc.
+// Fixes the race where an in-flight captureAndSync finishes after closePage clears the interval.
+const closedTabs = new Set();
 let firestoreAvailable = true;
 // Why: Stealth headers — make Playwright look like a real Chrome user.
 // Without these, Google/Cloudflare instantly detect navigator.webdriver and show CAPTCHAs.
@@ -22,20 +31,42 @@ const STEALTH_UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36
 const STEALTH_INIT_SCRIPT = `
   Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
   Object.defineProperty(navigator, 'languages', { get: () => ['en-US', 'en'] });
-  Object.defineProperty(navigator, 'plugins', { get: () => [1, 2, 3, 4, 5] });
   Object.defineProperty(navigator, 'platform', { get: () => 'Win32' });
-  window.chrome = { runtime: {} };
+  Object.defineProperty(navigator, 'hardwareConcurrency', { get: () => 8 });
+  Object.defineProperty(navigator, 'deviceMemory', { get: () => 8 });
+  // Why: fake realistic plugin list so fingerprinting scripts don't see an empty navigator.plugins
+  Object.defineProperty(navigator, 'plugins', { get: () => {
+    const mkPlugin = (name, desc, filename) => { const p = Object.create(Plugin.prototype); Object.assign(p, { name, description: desc, filename }); return p; };
+    return [mkPlugin('PDF Viewer','Portable Document Format','internal-pdf-viewer'), mkPlugin('Chrome PDF Viewer','Portable Document Format','mhjfbmdgcfjbbpaeojofohoefgiehjai'), mkPlugin('Chromium PDF Viewer','Portable Document Format','internal-pdf-viewer')];
+  }});
+  // Why: chrome runtime presence is checked by most bot detectors
+  window.chrome = { runtime: {}, loadTimes: () => ({}), csi: () => ({}), app: { isInstalled: false, InstallState: { DISABLED: 'disabled', INSTALLED: 'installed', NOT_INSTALLED: 'not_installed' }, RunningState: { CANNOT_RUN: 'cannot_run', READY_TO_RUN: 'ready_to_run', RUNNING: 'running' } } };
+  // Why: permissions.query for 'notifications' is a common fingerprint probe
+  if (window.navigator.permissions) {
+    const origQuery = window.navigator.permissions.query.bind(window.navigator.permissions);
+    window.navigator.permissions.query = (params) =>
+      params.name === 'notifications'
+        ? Promise.resolve({ state: 'default', onchange: null })
+        : origQuery(params);
+  }
+  // Why: connection object is used by bot detectors to verify realistic network conditions
+  if (!navigator.connection) {
+    Object.defineProperty(navigator, 'connection', { get: () => ({ rtt: 50, downlink: 10, effectiveType: '4g', saveData: false }) });
+  }
 `;
 async function setupRequestBlocking(page) {
     await page.route('**/*', (route) => {
         const url = route.request().url();
-        if (proxy_asset_1.BLOCKED_EXTENSIONS.some(ext => url.endsWith(ext)))
+        if (BLOCKED_EXTENSIONS.some(ext => url.endsWith(ext)))
             route.abort();
         else
             route.continue();
     });
 }
 async function captureAndSync(tabId, userId, page, context) {
+    // Why: tombstone check — prevents an in-flight tick from re-creating a closed tab's Firestore doc
+    if (closedTabs.has(tabId))
+        return;
     if (!firestoreAvailable)
         return;
     // Why: never broadcast about:blank — prevents overwriting a real URL with a transitional blank state
@@ -87,14 +118,28 @@ async function getPersistentPage(targetUrl, tabId, userId = 'default') {
             if (frame === page.mainFrame())
                 (0, proxy_nav_controller_1.syncSettledUrl)(tabId, frame.url());
         });
-        // Why: screenshot sync every 5s; session (cookies) saved every 60s separately — avoids
-        // hammering Firestore with a full storageState write on every screenshot tick.
+        // Why: save immediately when the server sets new cookies (login, consent, auth tokens)
+        // so the session isn't lost if the container recycles before the next interval tick.
+        page.on('response', (response) => {
+            if (response.headers()['set-cookie']) {
+                (0, proxy_session_service_1.saveSession)(userId, context).catch(() => { });
+            }
+        });
+        // Why: save on every full page load — covers SPAs that update localStorage after hydration
+        page.on('load', () => {
+            (0, proxy_session_service_1.saveSession)(userId, context).catch(() => { });
+        });
+        if (userId && userId !== 'default') {
+            console.log(`[Session] 💾 User data path: ${(0, proxy_session_service_1.sessionFilePath)(userId)}`);
+        }
+        // Why: screenshot sync every 5s; session saved every 10s (2nd tick) — more aggressive
+        // than the previous 20s to reduce cookie loss window on container recycle.
         let sessionTickCount = 0;
         const interval = setInterval(() => {
             captureAndSync(tabId, userId, page, context);
             sessionTickCount++;
-            if (sessionTickCount % 12 === 0)
-                (0, proxy_session_service_1.saveSession)(userId, context).catch(() => { }); // every ~60s
+            if (sessionTickCount % 2 === 0)
+                (0, proxy_session_service_1.saveSession)(userId, context).catch(() => { }); // every ~10s
         }, 5000);
         syncIntervals.set(tabId, interval);
     }
@@ -110,6 +155,8 @@ async function getPersistentPage(targetUrl, tabId, userId = 'default') {
     return page;
 }
 function closePage(id) {
+    // Why: mark closed FIRST — any concurrent captureAndSync still awaiting screenshot will bail
+    closedTabs.add(id);
     if (syncIntervals.has(id)) {
         clearInterval(syncIntervals.get(id));
         syncIntervals.delete(id);
@@ -141,6 +188,14 @@ async function captureAndSyncTab(tabId) {
     if (!page || !context)
         return;
     await captureAndSync(tabId, userId, page, context);
+}
+/** Force-save cookies for a tab — call after login/form-submit actions to persist immediately. */
+async function saveSessionForTab(tabId) {
+    const userId = activeUserIds.get(tabId);
+    const context = exports.activeContexts.get(tabId);
+    if (!userId || userId === 'default' || !context)
+        return;
+    await (0, proxy_session_service_1.saveSession)(userId, context).catch(() => { });
 }
 // Why: Playwright is the central command center.
 // Navigation is driven exclusively by direct API calls (POST /proxy/navigate, etc.).

@@ -1,9 +1,13 @@
 // Feature: Core | Why: Manages browser tab state (add, close, select, navigate) with Firestore sync
-import { useState, useCallback, useEffect } from 'react';
+// Debounce on navigate prevents rapid URL changes from each firing a Firestore write → snapshot loop
+import { useState, useCallback, useEffect, useRef } from 'react';
+import { onAuthStateChanged } from 'firebase/auth';
 import { auth } from '../features/auth/firebase-config';
 import { TabItem } from '../features/browser/types';
 import { listenToTabs } from '../utils/browser-sync-service';
 import { syncInitialTab, syncNewTab, syncCloseTab, syncSelectTab, syncNavigate } from './browser-tab-sync';
+
+const NAV_DEBOUNCE_MS = 400; // coalesce rapid URL changes (address-bar typing, redirects)
 
 export type { TabItem };
 
@@ -18,30 +22,62 @@ export const useBrowserTabs = (initialUrl: string) => {
     const [tabs, setTabs] = useState<TabItem[]>([{ id: '1', title: 'New Tab', isActive: true, url: initialUrl }]);
     const [activeTabId, setActiveTabId] = useState('1');
     const [activeUrl, setActiveUrl] = useState(initialUrl);
+    // Why: store listener teardown so onAuthStateChanged can swap it when user changes account
+    const tabUnsubRef = useRef<(() => void) | undefined>(undefined);
+    // Why: debounce outgoing navigate writes so typing / redirects don't fire a Firestore write per event
+    const navDebounceRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+    // Why: write-lock prevents the snapshot callback from re-applying state we just wrote ourselves
+    const isSyncingRef = useRef(false);
+    // Why: tombstone — closed tab IDs are remembered for the session lifetime so Firestore
+    // snapshot echoes (from the backend's in-flight captureAndSync) can never ghost a tab back.
+    const closedTabIdsRef = useRef(new Set<string>());
 
     useEffect(() => {
-        if (!auth.currentUser) return;
-        const defaultTab = tabs.find(t => t.id === '1');
-        if (defaultTab) syncInitialTab(defaultTab);
-        const unsub = listenToTabs(auth.currentUser.uid, (cloudTabs) => {
-            if (cloudTabs.length > 0) {
-                setTabs(cloudTabs);
-                const active = cloudTabs.find(t => t.isActive);
-                if (active) { setActiveTabId(active.id); setActiveUrl(active.url); }
-            }
+        // Why: onAuthStateChanged fires AFTER the Firebase SDK has loaded a valid ID token
+        // into the Firestore internal auth provider. Checking auth.currentUser directly is
+        // unreliable at startup — the token may not have propagated yet → "Missing or
+        // insufficient permissions" even though the user IS logged in.
+        const authUnsub = onAuthStateChanged(auth, (user) => {
+            tabUnsubRef.current?.();
+            if (!user) return;
+            const defaultTab = tabs.find(t => t.id === '1');
+            if (defaultTab) syncInitialTab(defaultTab);
+            tabUnsubRef.current = listenToTabs(user.uid, (cloudTabs) => {
+                // Why: skip cloud updates that arrived as the echo of our own write
+                if (isSyncingRef.current) return;
+                // Why: filter out tombstoned (closed) tabs — the backend captureAndSync may
+                // have re-written the doc after our delete; ignore it permanently.
+                const live = cloudTabs.filter(t => !closedTabIdsRef.current.has(t.id));
+                if (live.length > 0) {
+                    setTabs(prev => {
+                        const same = prev.length === live.length &&
+                            prev.every((t, i) => t.id === live[i].id && t.url === live[i].url &&
+                                t.title === live[i].title && t.isActive === live[i].isActive);
+                        return same ? prev : live;
+                    });
+                    const active = live.find(t => t.isActive);
+                    if (active) {
+                        setActiveTabId(id => id === active.id ? id : active.id);
+                        setActiveUrl(url => url === active.url ? url : active.url);
+                    }
+                }
+            });
         });
-        return () => unsub();
-    }, [auth.currentUser]);
+        return () => { authUnsub(); tabUnsubRef.current?.(); };
+    }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-    const addNewTab = useCallback(async (url: string, title = 'New Tab') => {
+    const addNewTab = useCallback(async (url: string, title = 'New Tab'): Promise<string> => {
         const id = Date.now().toString();
         const newTab: TabItem = { id, title, isActive: true, url };
         setTabs(prev => prev.map(t => ({ ...t, isActive: false })).concat(newTab));
         setActiveTabId(id); setActiveUrl(url);
         await syncNewTab(tabs, newTab);
+        return id;
     }, [tabs]);
 
     const closeTab = useCallback(async (id: string) => {
+        // Why: tombstone first — any onSnapshot fired after this point will ignore this tab ID
+        closedTabIdsRef.current.add(id);
         await syncCloseTab(id);
         setTabs(prev => {
             const next = prev.filter(t => t.id !== id);
@@ -72,7 +108,14 @@ export const useBrowserTabs = (initialUrl: string) => {
         setActiveUrl(nextUrl);
         const title = deriveTitleFromUrl(nextUrl);
         setTabs(prev => prev.map(t => t.id === activeTabId ? { ...t, url: nextUrl, title } : t));
-        await syncNavigate(activeTabId, nextUrl, title);
+        // Why: debounce so address-bar typing or redirect chains coalesce into a single write
+        clearTimeout(navDebounceRef.current);
+        navDebounceRef.current = setTimeout(async () => {
+            isSyncingRef.current = true;
+            await syncNavigate(activeTabId, nextUrl, title);
+            // Why: keep lock open briefly so the echo snapshot arrives and is ignored
+            setTimeout(() => { isSyncingRef.current = false; }, 600);
+        }, NAV_DEBOUNCE_MS);
     }, [activeTabId]);
 
     return { tabs, setTabs, activeTabId, activeUrl, setActiveUrl, navigateActiveTab, addNewTab, closeTab, selectTab };

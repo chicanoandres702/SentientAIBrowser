@@ -17,7 +17,7 @@ interface Props {
     totalEarnings?: number;
 }
 
-export const SentientStatusBar: React.FC<Props> = ({ isAIMode, statusMessage, useProxy, theme, domain, isScholarMode, totalEarnings }) => {
+export const SentientStatusBar: React.FC<Props> = React.memo(({ isAIMode, statusMessage, useProxy, theme, domain, isScholarMode, totalEarnings }) => {
     const colors = uiColors(theme);
     const accent = resolveDomainAccent({ theme, domain, isScholarMode });
     const isActive = statusMessage !== 'Ready' && statusMessage !== 'Paused';
@@ -93,5 +93,5 @@ export const SentientStatusBar: React.FC<Props> = ({ isAIMode, statusMessage, us
             </View>
         </View>
     );
-};
+});
 

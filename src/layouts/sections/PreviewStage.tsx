@@ -34,39 +34,42 @@ export const PreviewStage: React.FC<Props> = ({
     const colors = uiColors(theme);
     return (
     <>
-        <View
-            style={[styles.webViewWrapper, { flex: 1, minHeight: 400 }]}
-            {...responderProps}
-        >
-            {s.isRemoteMirrorEnabled
-                ? <RemoteMirrorPreview screenshot={s.remoteMirror?.screenshot || null} error={s.remoteMirror?.lastError || null} isConnected={!!s.remoteMirror?.isConnected} theme={theme} />
-                : <BrowserPreview tabId={s.activeTabId} theme={theme} onPress={s.handleManualClick} />}
-            {s.isAIMode && !s.isRemoteMirrorEnabled && (
-                <HeadlessWebView
-                    ref={s.webViewRef}
-                    isVisible={false}
-                    url={s.webViewUrl || 'about:blank'}
-                    useProxy={s.useProxy}
-                    onDomMapReceived={s.handleDomMapReceived}
-                    onNewTabRequested={s.addNewTab || (() => {})}
-                />
-            )}
-            {/* Virtual cursor overlay — shows AI + manual clicking in real-time */}
+        {/* Outer wrapper: position:relative so VirtualCursor (absolute) escapes overflow:hidden */}
+        <View style={{ flex: 1, minHeight: 400, position: 'relative' }}>
+            <View
+                style={[styles.webViewWrapper, { flex: 1 }]}
+                {...responderProps}
+            >
+                {s.isRemoteMirrorEnabled
+                    ? <RemoteMirrorPreview screenshot={s.remoteMirror?.screenshot || null} error={s.remoteMirror?.lastError || null} isConnected={!!s.remoteMirror?.isConnected} theme={theme} onPress={s.handleManualClick} />
+                    : <BrowserPreview tabId={s.activeTabId} theme={theme} onPress={s.handleManualClick} />}
+                {s.isAIMode && !s.isRemoteMirrorEnabled && (
+                    <HeadlessWebView
+                        ref={s.webViewRef}
+                        isVisible={false}
+                        url={s.webViewUrl || 'about:blank'}
+                        useProxy={s.useProxy}
+                        onDomMapReceived={s.handleDomMapReceived}
+                        onNewTabRequested={s.addNewTab || (() => {})}
+                    />
+                )}
+                {s.isAIMode && !s.isPaused && (
+                    <Animatable.View
+                        animation="fadeIn"
+                        iterationCount="infinite"
+                        direction="alternate"
+                        duration={3000}
+                        style={[styles.hazeLayer, { pointerEvents: 'none' }]}
+                    >
+                        <Suspense fallback={null}>
+                            <HazeOverlay theme={theme} />
+                        </Suspense>
+                    </Animatable.View>
+                )}
+            </View>
+            {/* VirtualCursor lives OUTSIDE overflow:hidden webViewWrapper — not clipped */}
             {s.cursor && (
                 <VirtualCursor cursor={s.cursor} accentColor={colors.accent} />
-            )}
-            {s.isAIMode && !s.isPaused && (
-                <Animatable.View
-                    animation="fadeIn"
-                    iterationCount="infinite"
-                    direction="alternate"
-                    duration={3000}
-                    style={[styles.hazeLayer, { pointerEvents: 'none' }]}
-                >
-                    <Suspense fallback={null}>
-                        <HazeOverlay theme={theme} />
-                    </Suspense>
-                </Animatable.View>
             )}
         </View>
 

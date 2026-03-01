@@ -21,7 +21,11 @@ const PromptInterface = lazy(() =>
 
 export const SidebarContent: React.FC<{ s: any; theme: any }> = ({ s, theme }) => (
     <Suspense fallback={<ActivityIndicator color={uiColors(theme).accent} style={{ flex: 1, marginTop: 24 }} />}>
-        <TaskQueueUI tasks={s.tasks} theme={theme} addTask={s.addTask} removeTask={s.removeTask} clearTasks={s.clearTasks} editTask={s.editTask} />
+        <TaskQueueUI tasks={s.tasks} theme={theme} addTask={s.addTask} removeTask={s.removeTask} clearTasks={s.clearTasks} editTask={s.editTask}
+            isPaused={s.isPaused} onPause={() => s.setIsPaused(true)} onResume={() => s.setIsPaused(false)}
+            onActivateTask={(id) => s.updateTask(id, 'in_progress')}
+            reorderMissions={s.reorderMissions} proxyBaseUrl={s.PROXY_BASE_URL}
+            onCloseMission={s.closeMission} activeTabId={s.activeTabId} />
         <PromptInterface onExecutePrompt={s.handleExecutePrompt} theme={theme} />
     </Suspense>
 );

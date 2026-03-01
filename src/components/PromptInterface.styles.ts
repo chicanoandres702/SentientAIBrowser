@@ -1,16 +1,37 @@
-// Feature: UI | Why: Prompt interface styles — tokenized via ui.primitives
-import { StyleSheet } from 'react-native';
+// Feature: UI | Why: Prompt interface styles — includes planning/loading state variants
+import { StyleSheet, Platform } from 'react-native';
 import { BASE } from '../features/ui/theme/ui.primitives';
 
 export const styles = StyleSheet.create({
   container: {
     paddingHorizontal: 10,
-    paddingVertical: 8,
-    flexDirection: 'row',
-    alignItems: 'flex-end',
+    paddingTop: 0,
+    paddingBottom: 8,
     backgroundColor: BASE.bgElevated,
     borderTopWidth: 1,
+  },
+  // Why: status row above the input, only visible while planning
+  planningRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 4,
+    paddingTop: 7,
+    paddingBottom: 5,
+  },
+  planningDot: {
+    width: 5, height: 5, borderRadius: 3,
+    ...Platform.select({ web: { animation: 'pulse 1s ease-in-out infinite' } as any, default: {} }),
+  },
+  planningText: {
+    fontSize: 8, fontWeight: '900', letterSpacing: 1.6,
+  },
+  // Input row (always rendered)
+  inputRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
     gap: 8,
+    paddingTop: 6,
   },
   inputWrap: {
     flex: 1,
@@ -23,17 +44,32 @@ export const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 8,
   },
+  // Why: dim the border while planning so the UI reads as inactive
+  inputWrapPlanning: {
+    borderColor: 'rgba(140,160,200,0.08)',
+    opacity: 0.6,
+  },
   promptGlyph: {
     fontSize: 12, fontWeight: '900', marginRight: 8, opacity: 0.8,
   },
   input: {
     flex: 1, color: BASE.text, fontSize: 12, maxHeight: 68,
   },
+  inputDisabled: {
+    color: BASE.textFaint,
+  },
   sendBtn: {
     width: 36, height: 36, borderRadius: 10,
     justifyContent: 'center', alignItems: 'center',
   },
+  sendBtnPlanning: {
+    ...Platform.select({ web: { animation: 'spin 1s linear infinite' } as any, default: {} }),
+  },
   sendIcon: {
     color: BASE.bg, fontSize: 14, fontWeight: 'bold',
+  },
+  // Why: spin keyframe applied inline — native fallback is just a static icon
+  sendIconSpin: {
+    ...Platform.select({ web: { display: 'inline-block', animation: 'spin 0.9s linear infinite' } as any, default: {} }),
   },
 });

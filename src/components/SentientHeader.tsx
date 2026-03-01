@@ -25,7 +25,7 @@ interface Props {
     isDesktop?: boolean;
 }
 
-export const SentientHeader: React.FC<Props> = ({ isAIMode, isSidebarVisible, setIsSidebarVisible, setIsSettingsVisible, setIsIntelVisible, theme, domain, layoutMode = 'standard', setLayoutMode, isDesktop = true }) => {
+export const SentientHeader: React.FC<Props> = React.memo(({ isAIMode, isSidebarVisible, setIsSidebarVisible, setIsSettingsVisible, setIsIntelVisible, theme, domain, layoutMode = 'standard', setLayoutMode, isDesktop = true }) => {
     const colors = uiColors(theme);
     const accent = resolveDomainAccent({ theme, domain });
 
@@ -85,5 +85,5 @@ export const SentientHeader: React.FC<Props> = ({ isAIMode, isSidebarVisible, se
             </View>
         </View>
     );
-};
+});
 

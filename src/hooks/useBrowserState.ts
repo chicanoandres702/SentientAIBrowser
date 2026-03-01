@@ -50,6 +50,17 @@ export const useBrowserState = () => {
         }
     };
 
+    // Why: confirmer agent — screenshot verification + captcha bypass after each step
+    const [useConfirmerAgent, setUseConfirmerAgentRaw] = useState<boolean>(() => {
+        if (Platform.OS !== 'web' || typeof window === 'undefined') return true;
+        return window.localStorage.getItem('sentient.confirmerAgent') !== 'false';
+    });
+    const setUseConfirmerAgent = (val: boolean) => {
+        setUseConfirmerAgentRaw(val);
+        if (Platform.OS === 'web' && typeof window !== 'undefined')
+            window.localStorage.setItem('sentient.confirmerAgent', val.toString());
+    };
+
     return {
         isDesktop, showWebView, setShowWebView, isAIMode, setIsAIMode,
         useProxy, setUseProxy, isDaemonRunning, setIsDaemonRunning,
@@ -66,6 +77,7 @@ export const useBrowserState = () => {
         isRemoteMirrorEnabled, setIsRemoteMirrorEnabled,
         runtimeGeminiApiKey: runtimeGeminiApiKeyState,
         setRuntimeGeminiApiKey,
+        useConfirmerAgent, setUseConfirmerAgent,
         trackManualInteraction
     };
 };

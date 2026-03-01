@@ -1,4 +1,4 @@
-// Feature: Tasks UI | Trace: README.md
+// Feature: Tasks UI | Why: Animated progress bar with completion state
 import React from 'react';
 import { View, Text, StyleSheet, Platform } from 'react-native';
 
@@ -11,6 +11,9 @@ interface Props {
 
 export const TaskProgressBar: React.FC<Props> = ({ progress = 0, accentColor, showPercentage = true, height = 4 }) => {
     const clampedProgress = Math.max(0, Math.min(100, progress));
+    const isDone = clampedProgress >= 100;
+    // Why: green when complete, accent when in-progress — bar color signals status at a glance
+    const barColor = isDone ? '#00ffaa' : accentColor;
 
     return (
         <View style={styles.container}>
@@ -20,15 +23,17 @@ export const TaskProgressBar: React.FC<Props> = ({ progress = 0, accentColor, sh
                         styles.fill,
                         {
                             width: `${clampedProgress}%`,
-                            backgroundColor: accentColor,
+                            backgroundColor: barColor,
                             height,
                         },
+                        isDone && styles.fillDone,
                     ]}
                 />
             </View>
             {showPercentage && (
-                <Text style={[styles.percentage, { color: accentColor }]}>
-                    {Math.round(clampedProgress)}%
+                // Why: swap to ✓ checkmark at 100% so completion is unmissable
+                <Text style={[styles.percentage, { color: barColor }]}>
+                    {isDone ? '✓' : `${Math.round(clampedProgress)}%`}
                 </Text>
             )}
         </View>
@@ -51,6 +56,8 @@ const styles = StyleSheet.create({
         borderRadius: 2,
         ...Platform.select({
             web: {
+                // Why: smooth animated fill as tasks complete — makes progress feel alive
+                transition: 'width 0.5s ease, background-color 0.4s ease',
                 boxShadow: '0 0 8px rgba(0, 0, 0, 0.5)',
             } as any,
             default: {
@@ -61,10 +68,23 @@ const styles = StyleSheet.create({
             },
         }),
     },
+    fillDone: {
+        ...Platform.select({
+            web: {
+                // Why: green glow when 100% — reinforces the ✓ badge
+                boxShadow: '0 0 10px rgba(0, 255, 170, 0.5)',
+            } as any,
+            default: {
+                shadowColor: '#00ffaa',
+                shadowOpacity: 0.6,
+                shadowRadius: 6,
+            },
+        }),
+    },
     percentage: {
         fontSize: 11,
-        fontWeight: '600',
-        minWidth: 35,
+        fontWeight: '700',
+        minWidth: 18,
         textAlign: 'right',
     },
 });
