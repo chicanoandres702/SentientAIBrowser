@@ -1,3 +1,4 @@
+// Feature: Auth Config | Trace: README.md
 import * as admin from 'firebase-admin';
 
 // Initialize Firebase Admin for the backend

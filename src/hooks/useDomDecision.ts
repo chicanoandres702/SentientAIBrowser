@@ -6,15 +6,15 @@ import { auth } from '../features/auth/firebase-config';
 import { TaskItem } from '../features/tasks/types';
 import { executeDomAction } from './dom-action.executor';
 import type { CursorActions, RemoteActions } from './dom-action.executor';
-import { assessNavState, buildHeuristicInjection } from '../features/agent/agent-heuristics.service';
+import { assessNavState } from '../features/agent/agent-heuristics.service';
 import { shouldConfirm, confirmAction } from '../features/agent/confirmer.service';
 import { HeuristicContext } from './useAgentHeuristics';
+import { getCurrentNonMissionTask, buildDefaultHeuristicPrompt, applyLoginGate, resolveFirstStep } from './dom-decision.utils';
 
 export const useDomDecision = (
     activePrompt: string,
     activeUrl: string,
     retryCount: number,
-    setRetryCount: (n: number) => void,
     updateTask: (id: string, s: any, d?: string) => void,
     workflowIds: string[],
     webViewRef: React.RefObject<HeadlessWebViewRef>,
@@ -25,7 +25,6 @@ export const useDomDecision = (
     setStatusMessage: (m: string) => void,
     setIsPaused: (p: boolean) => void,
     lookedUpDocs: any[],
-    setLookedUpDocs: (docs: any[]) => void,
     setInteractiveRequest: (req: { question: string; type: 'confirm' | 'input' } | null) => void,
     setIsInteractiveModalVisible: (v: boolean) => void,
     isThinking: boolean,
@@ -40,13 +39,6 @@ export const useDomDecision = (
     remoteActions?: RemoteActions,
     runtimeGeminiApiKey?: string,
 ) => {
-    /** Find the current task to execute: first in_progress, or first pending non-mission task */
-    const getCurrentTask = useCallback((): TaskItem | null => {
-        const inProgress = tasks.find(t => !t.isMission && t.status === 'in_progress');
-        if (inProgress) return inProgress;
-        return tasks.find(t => !t.isMission && t.status === 'pending') || null;
-    }, [tasks]);
-
     const handleDomMapReceived = useCallback(async (map: any) => {
         if (!activePrompt || isThinking) return;
 
@@ -56,10 +48,8 @@ export const useDomDecision = (
 
         setIsThinking(true);
 
-        const currentTask = getCurrentTask();
-        if (currentTask && currentTask.status === 'pending') {
-            updateTask(currentTask.id, 'in_progress', `Executing: ${currentTask.title}`);
-        }
+        const currentTask = getCurrentNonMissionTask(tasks);
+        if (currentTask && currentTask.status === 'pending') updateTask(currentTask.id, 'in_progress', `Executing: ${currentTask.title}`);
 
         const taskContext = currentTask
             ? { taskId: currentTask.id, taskTitle: currentTask.title, subActions: currentTask.subActions }
@@ -70,20 +60,7 @@ export const useDomDecision = (
         const navState = assessNavState(activeUrl, domNodeCount);
         if (navState === 'lost') { setStatusMessage('⚠️ Lost — blank page'); setIsThinking(false); return; }
 
-        const pageText = Array.isArray(map)
-            ? map.map((n: any) => n?.text).filter(Boolean).join(' ').slice(0, 2500)
-            : '';
-        const heuristicCtx = getHeuristicContext?.(currentTask?.title || 'analyze', activeUrl, domNodeCount, pageText);
-        if (heuristicCtx?.shouldStop) {
-            setStatusMessage('⛔ Heuristic stop: reassess required');
-            if (currentTask) updateTask(currentTask.id, 'failed', 'Heuristic stop (loop/failure guard)');
-            onStepOutcome?.(false);
-            setIsThinking(false);
-            return;
-        }
-
-        const heuristicInjection = heuristicCtx?.promptInjection
-            || buildHeuristicInjection({ consecutiveFailures: 0, successStreak: 0, lastActionUrl: '', lastAction: '', repeatCount: 0, stuckDetected: false, progressRegex: /(?:question|step|page)\s+(\d+)\s*(?:of|\/)\s*(\d+)/i }, navState);
+        const heuristicInjection = heuristicCtx?.promptInjection || buildDefaultHeuristicPrompt(navState);
         setStatusMessage(currentTask ? `Working: ${currentTask.title}` : 'Thinking (Cloud)...');
 
         try {
@@ -102,21 +79,14 @@ export const useDomDecision = (
             if (!cloudResponse.ok) throw new Error(`Cloud Analysis Failed: ${cloudResponse.status}`);
             const decision = await cloudResponse.json();
 
-            if (decision.isLoginPage) {
-                setStatusMessage('Auth Required');
-                setIsPaused(true);
-                setBlockedReason(decision.blockedReason || 'A security wall (Login) has been detected.');
-                setIsBlockedModalVisible(true);
+            if (applyLoginGate(decision, setStatusMessage, setIsPaused, setBlockedReason, setIsBlockedModalVisible)) {
                 setIsThinking(false);
                 return;
             }
 
             if (decision.execution) {
-                const firstStep = decision.execution.segments?.[0]?.steps?.[0];
-                if (!firstStep) {
-                    if (currentTask) updateTask(currentTask.id, 'completed', 'Completed — no actions needed');
-                    return;
-                }
+                const firstStep = resolveFirstStep(decision);
+                if (!firstStep) { if (currentTask) updateTask(currentTask.id, 'completed', 'Completed — no actions needed'); return; }
 
                 // Confirmer validation — web-ui-1 pattern: verify before executing risky actions
                 if (shouldConfirm(firstStep.action)) {
@@ -144,9 +114,7 @@ export const useDomDecision = (
                         onStepOutcome?.(false);
                     }
                 }
-            } else {
-                if (currentTask) updateTask(currentTask.id, 'completed', 'Completed — analyzed page');
-            }
+            } else if (currentTask) updateTask(currentTask.id, 'completed', 'Completed — analyzed page');
         } catch (e) {
             console.error('Decision failure', e);
             setStatusMessage('Retry required');
@@ -156,9 +124,7 @@ export const useDomDecision = (
             setIsThinking(false);
             onScanComplete?.();
         }
-    // Why: remoteActions captures activeUrl/tabId; navigateActiveTab captures tabs array.
-    // Both must be deps so the callback always fires with current values.
-    }, [activePrompt, activeUrl, retryCount, setStatusMessage, setIsPaused, setBlockedReason, setIsBlockedModalVisible, PROXY_BASE_URL, lookedUpDocs, isScholarMode, webViewRef, isThinking, setIsThinking, workflowIds, tasks, getCurrentTask, updateTask, onScanComplete, cursorActions, remoteActions, navigateActiveTab, runtimeGeminiApiKey, getHeuristicContext]);
+    }, [activePrompt, activeUrl, retryCount, setStatusMessage, setIsPaused, setBlockedReason, setIsBlockedModalVisible, PROXY_BASE_URL, lookedUpDocs, isScholarMode, webViewRef, isThinking, setIsThinking, workflowIds, tasks, updateTask, onScanComplete, cursorActions]);
 
     return { handleDomMapReceived };
 };
