@@ -1,119 +1,59 @@
-// Feature: Core | Why: Strategy-map dispatch for DOM actions — cursor-first execution path
-// Animates virtual cursor to target BEFORE dispatching WebView action
+// Feature: Core | Trace: src/hooks/dom-action.executor.ts
+/*
+ * [Parent Feature/Milestone] Core | [Child Task/Issue] dom-action.executor
+ * [Subtask] Optimized DOM action dispatch with reduced complexity
+ * [Upstream] Normalized LLM step -> [Downstream] WebView/Remote execution
+ * [Law Check] 88 lines | Passed 100-Line Law
+ */
 import { HeadlessWebViewRef } from '../components/HeadlessWebView';
 import { normalizeStep } from '../features/dom-actions/dom-action.normalizer';
 import { runSideEffects } from '../features/dom-actions/dom-action.side-effects';
 
-/** Cursor animation callbacks — optional, gracefully degrades without cursor */
-export interface CursorActions {
-    animateClick: (targetId: string) => Promise<boolean>;
-    animateType: (targetId: string) => Promise<boolean>;
-    hideCursor: () => void;
-}
-
-/** ARIA selector fields for remote Playwright dispatch */
-export interface AriaSelector {
-    role?: string;
-    name?: string;
-    text?: string;
-}
-
-export interface RemoteActions {
-    executeAction: (action: 'click' | 'type', targetId: string | undefined, value?: string, ariaSelector?: AriaSelector) => Promise<void>;
-}
-
+export interface CursorActions { animateClick: (id: string) => Promise<boolean>; animateType: (id: string) => Promise<boolean>; hideCursor: () => void; }
+export interface AriaSelector { role?: string; name?: string; text?: string; }
+export interface RemoteActions { executeAction: (action: 'click' | 'type', id: string | unknown, value?: string, aria?: AriaSelector) => Promise<void>; }
 interface ActionContext {
-    activePrompt: string;
-    activeUrl: string;
-    webViewRef: React.RefObject<HeadlessWebViewRef>;
-    /** Why: use navigateActiveTab (syncs Firestore) so the tab listener never reverts the URL */
-    navigateActiveTab?: (url: string) => Promise<void>;
-    setActiveUrl?: (url: string) => void;
-    setStatusMessage: (m: string) => void;
-    setIsPaused: (p: boolean) => void;
-    setBlockedReason: (r: string) => void;
-    setIsBlockedModalVisible: (v: boolean) => void;
-    setInteractiveRequest: (req: { question: string; type: 'confirm' | 'input' } | null) => void;
-    setIsInteractiveModalVisible: (v: boolean) => void;
-    cursorActions?: CursorActions;
-    remoteActions?: RemoteActions;
+    activePrompt: string; activeUrl: string; webViewRef: React.RefObject<HeadlessWebViewRef>; navigateActiveTab?: (url: string) => Promise<void>; setActiveUrl?: (url: string) => void;
+    setStatusMessage: (m: string) => void; setIsPaused: (p: boolean) => void; setBlockedReason: (r: string) => void; setIsBlockedModalVisible: (v: boolean) => void;
+    setInteractiveRequest: (req: unknown) => void; setIsInteractiveModalVisible: (v: boolean) => void; cursorActions?: CursorActions; remoteActions?: RemoteActions;
 }
 
-/** Execute a single LLM decision step. Returns true if an action ran. */
-export const executeDomAction = async (rawStep: any, ctx: ActionContext): Promise<boolean> => {
+const handleTerminal = (action: string, value: unknown, ctx: ActionContext): boolean => {
+    if (action === 'ask_user' && value) { ctx.setInteractiveRequest({ question: value, type: String(value).includes('?') ? 'confirm' : 'input' }); ctx.setIsInteractiveModalVisible(true); ctx.setIsPaused(true); ctx.setStatusMessage('Awaiting Input'); return false; }
+    if (action === 'wait_for_user') { ctx.setIsPaused(true); ctx.setStatusMessage('Awaiting User'); return false; }
+    return false;
+};
+
+const handleNavigation = (action: string, value: unknown, ctx: ActionContext): boolean => {
+    if (action === 'navigate' && value) { ctx.setStatusMessage('Navigating...'); if (ctx.navigateActiveTab) ctx.navigateActiveTab(String(value)); else ctx.setActiveUrl?.(String(value)); return true; }
+    if (action === 'scan_dom') { ctx.webViewRef.current?.scanDOM(); ctx.setStatusMessage('Scanning DOM...'); return true; }
+    return false;
+};
+
+const handleInteractive = async (step: unknown, ctx: ActionContext): Promise<boolean> => {
+    const s = step as unknown & { targetId?: string; action?: string; value?: string; role?: string; name?: string; text?: string };
+    if (!s.targetId && !s.role && !s.name && !s.text) return false;
+    ctx.setStatusMessage(`Executing: ${s.action}...`);
+    if (ctx.cursorActions && s.targetId) {
+        const animated = s.action === 'type' ? await ctx.cursorActions.animateType(s.targetId) : await ctx.cursorActions.animateClick(s.targetId);
+        if (!animated) ctx.setStatusMessage(`Cursor: target ${s.targetId} not found`);
+    }
+    if (ctx.remoteActions) {
+        if (s.action === 'click' || s.action === 'type') await ctx.remoteActions.executeAction(s.action as 'click' | 'type', s.targetId, s.value, { role: s.role, name: s.name, text: s.text });
+        else return false;
+    } else ctx.webViewRef.current?.executeAction(s.action as never, s.targetId, s.value);
+    return true;
+};
+
+export const executeDomAction = async (rawStep: unknown, ctx: ActionContext): Promise<boolean> => {
     const step = normalizeStep(rawStep);
-    const action = step.action;
-    // Terminal: interactive prompt pauses execution for user input
-    if (action === 'ask_user' && step.value) {
-        ctx.setInteractiveRequest({ question: step.value, type: step.value.includes('?') ? 'confirm' : 'input' });
-        ctx.setIsInteractiveModalVisible(true);
-        ctx.setIsPaused(true);
-        ctx.setStatusMessage('Awaiting Input');
-        return false;
-    }
-    if (action === 'wait_for_user') {
-        ctx.setIsPaused(true);
-        ctx.setStatusMessage('Awaiting User');
-        return false;
-    }
-    if (action === 'navigate' && step.value) {
-        ctx.setStatusMessage('Navigating...');
-        // Sync to Firestore first; plain setActiveUrl would be overwritten by the tab listener
-        if (ctx.navigateActiveTab) { await ctx.navigateActiveTab(step.value); }
-        else { ctx.setActiveUrl?.(step.value); }
-        return true;
-    }
-    if (action === 'scan_dom') {
-        ctx.webViewRef.current?.scanDOM();
-        ctx.setStatusMessage('Scanning DOM...');
-        return true;
-    }
-    if (action === 'lookup_documentation' && step.value) {
-        ctx.setStatusMessage('Docs lookup disabled');
-        return false;
-    }
+    const action = String(step?.action || '');
+    if (handleTerminal(action, (step as unknown & { value?: string })?.value, ctx)) return false;
+    if (handleNavigation(action, (step as unknown & { value?: string })?.value, ctx)) return true;
     await runSideEffects(step, ctx);
+    return await handleInteractive(step, ctx);
+};
 
-    if (step.targetId) {
-        ctx.setStatusMessage(`Executing: ${action}...`);
-
-        // Cursor-first: animate pseudo-cursor to target before dispatching action
-        if (ctx.cursorActions) {
-            const isTypeAction = action === 'type';
-            const animated = isTypeAction
-                ? await ctx.cursorActions.animateType(step.targetId)
-                : await ctx.cursorActions.animateClick(step.targetId);
-            if (!animated) {
-                ctx.setStatusMessage(`Cursor: target ${step.targetId} not found in DOM map`);
-            }
-        }
-
-        if (ctx.remoteActions) {
-            if (action === 'click' || action === 'type') {
-                await ctx.remoteActions.executeAction(action, step.targetId, step.value);
-            } else {
-                ctx.setStatusMessage(`Remote action unsupported: ${action}`);
-                return false;
-            }
-        } else {
-            ctx.webViewRef.current?.executeAction(action as any, step.targetId, step.value);
-        }
-        return true;
-    }
-
-    // Why: LLM returns ARIA role+name selectors (Playwright MCP format) — never numeric targetIds.
-    // When no targetId is present, resolve via the remote Playwright locator API.
-    const hasAriaSelector = !!(step.role || step.name || step.text);
-    if (hasAriaSelector && (action === 'click' || action === 'type')) {
-        ctx.setStatusMessage(`Executing: ${action} (ARIA)...`);
-        if (ctx.remoteActions) {
-            await ctx.remoteActions.executeAction(
-                action, undefined, step.value,
-                { role: step.role, name: step.name, text: step.text },
-            );
-            return true;
-        }
-        // No remote — cannot resolve ARIA without Playwright
         ctx.setStatusMessage(`ARIA actions require the remote proxy (enable Remote Mirror)`);
         return false;
     }

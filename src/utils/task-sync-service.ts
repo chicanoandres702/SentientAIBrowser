@@ -44,7 +44,8 @@ export const listenToTasks = (userId: string, callback: (tasks: TaskItem[]) => v
             const d = docSnap.data();
             tasks.push({ id: d.id, title: d.title, status: d.status, timestamp: d.timestamp,
                 details: d.details, category: d.category, progress: d.progress, missionId: d.missionId,
-                runId: d.runId, tabId: d.tabId, order: d.order, source: d.source, isMission: d.isMission,
+                runId: d.runId, tabId: d.tabId, workflowId: d.workflowId, workspaceId: d.workspaceId,
+                order: d.order, source: d.source, isMission: d.isMission,
                 subActions: d.subActions, startTime: d.startTime, completedTime: d.completedTime,
                 estimatedDuration: d.estimatedDuration } as TaskItem);
         });
@@ -74,6 +75,8 @@ export const hydrateTasksFromFirestore = async (userId: string) => {
             missionId: data.missionId,
             runId: data.runId,
             tabId: data.tabId,
+            workflowId: data.workflowId,
+            workspaceId: data.workspaceId,
             order: data.order,
             source: data.source,
             isMission: data.isMission,

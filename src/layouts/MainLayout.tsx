@@ -3,7 +3,6 @@ import React, { Suspense, lazy, useState } from 'react';
 import { SafeAreaView } from 'react-native';
 import { BrowserTabs } from '../components/BrowserTabs';
 import { BrowserChrome } from '../components/BrowserChrome';
-import { WorkflowsOverview } from '../components/WorkflowsOverview';
 import { styles } from '../../App.styles';
 import { LayoutMode } from '../hooks/useBrowserState';
 import { getLayoutConfig } from './config/layout.config';
@@ -48,16 +47,7 @@ export const MainLayout: React.FC<Props> = ({ s, theme, setTheme }) => {
                 />
             </Suspense>
 
-            {/* Workflow overview — always visible regardless of layout mode */}
-            <WorkflowsOverview
-                tabs={s.tabs}
-                onSelectTab={s.selectTab}
-                onCloseTab={s.closeTab}
-                onNewTab={() => s.addNewTab('https://www.google.com')}
-                theme={theme}
-            />
-
-            {/* Browser tab pills — below the workflow overview, mode-gated */}
+            {/* Browser tab pills — mode-gated */}
             {config.showTabs && (
                 <BrowserTabs
                     tabs={s.tabs}
@@ -72,6 +62,8 @@ export const MainLayout: React.FC<Props> = ({ s, theme, setTheme }) => {
                 <BrowserChrome
                     url={s.activeUrl}
                     onNavigate={s.navigateWithGuard || s.navigateActiveTab}
+                    onBack={s.navigateBack}
+                    onForward={s.navigateForward}
                     onReload={s.handleReload}
                     theme={theme}
                 />

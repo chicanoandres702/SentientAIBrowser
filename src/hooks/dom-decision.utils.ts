@@ -3,9 +3,9 @@ import { TaskItem } from '../features/tasks/types';
 import { buildHeuristicInjection } from '../features/agent/agent-heuristics.service';
 
 export const getCurrentNonMissionTask = (tasks: TaskItem[]): TaskItem | null => {
-    const inProgress = tasks.find(t => !t.isMission && t.status === 'in_progress');
+    const inProgress = tasks.find(t => !t.isMission && !t.missionId && t.status === 'in_progress');
     if (inProgress) return inProgress;
-    return tasks.find(t => !t.isMission && t.status === 'pending') || null;
+    return tasks.find(t => !t.isMission && !t.missionId && t.status === 'pending') || null;
 };
 
 export const buildDefaultHeuristicPrompt = (navState: string): string =>

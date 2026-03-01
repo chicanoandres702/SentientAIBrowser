@@ -1,6 +1,6 @@
 // Feature: Core | Why: Firestore sync helpers for browser tabs — keeps hook file under 100 lines
 import { auth } from '../features/auth/firebase-config';
-import { TabItem } from '../features/browser/types';
+import { TabItem } from '../features/workflow/workflow.types';
 import {
     syncTabToFirestore, updateTabInFirestore, removeTabFromFirestore, batchUpdateTabs
 } from '../utils/browser-sync-service';

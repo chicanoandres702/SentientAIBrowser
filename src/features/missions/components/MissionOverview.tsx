@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, FlatList, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { auth, db } from '../../auth/firebase-config';
-import { listenToMissions, MissionItem } from '../../../utils/browser-sync-service';
+import { listenToMissions, MissionItem } from '../../../../shared/mission-sync.service';
 import { doc, onSnapshot } from 'firebase/firestore';
 import { RoutineManager } from './RoutineManager';
 import { missionStyles as styles } from './MissionOverview.styles';

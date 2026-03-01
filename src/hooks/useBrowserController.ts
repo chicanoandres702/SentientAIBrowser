@@ -3,7 +3,6 @@ import React from 'react';
 import { HeadlessWebViewRef } from '../components/HeadlessWebView';
 import { registerBackgroundFetchAsync, unregisterBackgroundFetchAsync } from '../features/background-tasks/background-scanner.service';
 import { auth } from '../features/auth/firebase-config';
-import { generateMockPlanResponse } from '../utils/prompt-planner';
 import { getSchemaPayload } from '../utils/schema-context';
 import { TaskItem } from '../features/tasks/types';
 import { buildMissionFromSegments } from './mission-builder';
@@ -20,7 +19,6 @@ export const useBrowserController = (
     PROXY_BASE_URL: string
 ) => {
     const handleExecutePrompt = async (prompt: string, tabId: string, _userId: string, useConfirmerAgent = true) => {
-        const FIRST_TASK_ORDER = 1;
         const runId = `run_${Date.now()}`;
         setActivePrompt(prompt);
         setTaskStartTime(Date.now());
@@ -40,26 +38,27 @@ export const useBrowserController = (
                 const data = await response.json();
                 missionResponse = data.missionResponse || data;
                 console.info('[Planner] source=remote endpoint=/agent/plan status=ok');
-            } else { llmError = `LLM endpoint error: ${response.status}`; }
+            } else {
+                const errText = await response.text().catch(() => '');
+                llmError = `LLM endpoint error: ${response.status}${errText ? ` ${errText}` : ''}`;
+            }
         } catch (e) { llmError = e instanceof Error ? e.message : String(e); }
 
-        // 2. Fallback to local planner
+        // 2. Do NOT fallback to a local planner.
+        // Why: a second planner implementation creates divergent plans vs container runtime,
+        // which desynchronizes the UI task queue from backend execution state.
         if (!missionResponse) {
-            console.warn(`[Planner] source=fallback reason=${llmError || 'remote_unavailable'}`);
-            missionResponse = generateMockPlanResponse(prompt).missionResponse;
+            console.error(`[Planner] source=remote status=failed reason=${llmError || 'remote_unavailable'}`);
+            setStatusMessage(`Planner unavailable: ${llmError || 'unknown error'}`);
+            return;
         }
 
-        // 3. Build mission tasks or single fallback task
+        // 3. Build mission tasks
         if (missionResponse?.execution?.segments) {
             await buildMissionFromSegments(prompt, missionResponse, llmError, tabId, runId, { addTask, setStatusMessage, useConfirmerAgent });
         } else {
-            await addTask(`Execute: ${prompt}`, 'pending', 'Awaiting execution', {
-                runId,
-                tabId,
-                order: FIRST_TASK_ORDER,
-                source: 'fallback',
-            });
-            setStatusMessage('Task created — awaiting execution');
+            setStatusMessage('Planner returned invalid mission format');
+            return;
         }
 
         webViewRef.current?.scanDOM();

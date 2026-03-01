@@ -77,5 +77,37 @@ export function useNavigationController(
         }
     }, [proxyBaseUrl, tabId, navigateTab]);
 
-    return { navigateWithGuard };
+    const navigateBack = useCallback(async (): Promise<void> => {
+        if (!proxyBaseUrl) return;
+        try {
+            const res = await fetch(`${proxyBaseUrl}/proxy/back`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ tabId, userId: auth.currentUser?.uid || '' }),
+            });
+            if (!res.ok) return;
+            const { finalUrl } = await res.json();
+            if (finalUrl) await navigateTab(finalUrl);
+        } catch (e) {
+            console.warn('[NavCtrl] back error:', e);
+        }
+    }, [proxyBaseUrl, tabId, navigateTab]);
+
+    const navigateForward = useCallback(async (): Promise<void> => {
+        if (!proxyBaseUrl) return;
+        try {
+            const res = await fetch(`${proxyBaseUrl}/proxy/forward`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ tabId, userId: auth.currentUser?.uid || '' }),
+            });
+            if (!res.ok) return;
+            const { finalUrl } = await res.json();
+            if (finalUrl) await navigateTab(finalUrl);
+        } catch (e) {
+            console.warn('[NavCtrl] forward error:', e);
+        }
+    }, [proxyBaseUrl, tabId, navigateTab]);
+
+    return { navigateWithGuard, navigateBack, navigateForward };
 }

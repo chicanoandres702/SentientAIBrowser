@@ -1,0 +1,58 @@
+name: "🚀 Feature Request (AIDDE Task)"
+description: "Create a new Task Issue bound to a Feature Milestone"
+title: "[TASK] "
+labels: ["task", "feature"]
+assignees: []
+body:
+  - type: input
+    id: milestone
+    attributes:
+      label: "Parent Feature (Milestone)"
+      description: "Which Feature/Milestone does this Task belong to?"
+      placeholder: "e.g. User Authentication"
+    validations:
+      required: true
+
+  - type: textarea
+    id: purpose
+    attributes:
+      label: "🎯 Purpose"
+      description: "Why does this task exist? Justify its necessity in the broader feature."
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: "📝 Description"
+      description: "Detailed explanation of what is being built or modified."
+    validations:
+      required: true
+
+  - type: textarea
+    id: system-flow
+    attributes:
+      label: "🔄 System Flow (Traceability)"
+      description: "Describe upstream and downstream data flow."
+      value: |
+        * **Upstream:** [Where is the data/trigger coming from?]
+        * **Downstream:** [Where is the data going / What is affected?]
+    validations:
+      required: true
+
+  - type: textarea
+    id: subtasks
+    attributes:
+      label: "☑️ Subtasks (Execution Checklist)"
+      description: "Granular atomic steps. Each becomes one commit."
+      value: |
+        - [ ] Subtask 1
+        - [ ] Subtask 2
+    validations:
+      required: true
+
+  - type: textarea
+    id: future
+    attributes:
+      label: "🚀 Future Aspirations & Tracing"
+      description: "Notes on scaling, future features, or tracing considerations."

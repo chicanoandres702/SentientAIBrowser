@@ -1,5 +1,5 @@
 // Feature: LLM Memory | Trace: src/features/llm/llm-decision.engine.ts
-import { logMissionOutcome, getRelevantOutcomes, MissionOutcome } from '../../utils/browser-sync-service';
+import { logMissionOutcome, getRelevantOutcomes, MissionOutcome } from '../../../shared/outcome-sync.service';
 import { db } from '../auth/firebase-config';
 import { collection, addDoc, serverTimestamp, query, where, limit, getDocs } from 'firebase/firestore';
 

@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, FlatList, TouchableOpacity, TextInput, ActivityIndicator } from 'react-native';
 import { auth } from '../../auth/firebase-config';
-import { listenToRoutines, syncRoutineToFirestore, RoutineItem } from '../../../utils/browser-sync-service';
+import { listenToRoutines, syncRoutineToFirestore, RoutineItem } from '../../../../shared/routine-sync.service';
 import { routineStyles as styles } from './RoutineManager.styles';
 
 interface Props {

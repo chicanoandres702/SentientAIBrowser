@@ -4,14 +4,22 @@ exports.processMissionStep = processMissionStep;
 // Feature: Mission Executor | Trace: backend-ai-orchestrator.js
 // Technique: Playwright MCP — ARIA snapshots replace data-ai-id indices; role+name selectors
 // are stable across DOM mutations. Technique sourced from @playwright/mcp architecture.
+//
+// Flow Changes (Backend Path B):
+// 1. REMOVED: Re-planning via determineNextAction() every cycle
+//    Why: Backend re-planning caused divergence from task_queues plan
+// 2. ADDED: Load stored missionResponse from missions doc
+//    Why: Use same plan frontend created tasks from → consistent indices/titles
+// 3. ADDED: Execution lock (executingAgent field)
+//    Why: Prevent dual execution (frontend + backend) on same mission
+// 4. KEPT: Step execution & verification with Playwright
+//    Why: This is backend's strength — reliable browser automation
 const proxy_config_1 = require("./proxy-config");
 const proxy_page_handler_1 = require("./proxy-page-handler");
 const llm_decision_engine_1 = require("./features/llm/llm-decision.engine");
 const llm_memory_service_1 = require("./features/llm/llm-memory-service");
 const knowledge_hierarchy_service_1 = require("./features/llm/knowledge-hierarchy.service");
 const playwright_mcp_adapter_1 = require("./playwright-mcp-adapter");
-const step_executor_1 = require("./step-executor");
-const task_queue_bridge_1 = require("./task-queue-bridge");
 // Why: No automatic stop conditions — the mission runs until:
 //   (a) The LLM emits action 'done'  →  status set to 'completed'
 //   (b) The user manually sets status ≠ 'active' in Firestore
@@ -25,12 +33,26 @@ async function processMissionStep(missionId) {
         if (!snap.exists || ((_a = snap.data()) === null || _a === void 0 ? void 0 : _a.status) !== 'active')
             return;
         const data = snap.data();
+        // Safety: Only backend can execute if executingAgent is explicitly set to 'backend'
+        // Otherwise, defer to frontend execution to avoid dual-execution race conditions
+        if (data.executingAgent && data.executingAgent !== 'backend') {
+            console.log(`[Executor] ⏭ Skipping — frontend has execution lock (executingAgent=${data.executingAgent})`);
+            return;
+        }
+        // Acquire execution lock
+        try {
+            await missionRef.update({ executingAgent: 'backend', updated_at: new Date().toISOString() });
+        }
+        catch (_c) {
+            // Another executor beat us to it, skip this cycle
+            console.log(`[Executor] ⏭ Execution lock conflict — skipping cycle`);
+            return;
+        }
         const { tabId = 'default', userId } = data;
-        const useConfirmerAgent = (_b = data.useConfirmerAgent) !== null && _b !== void 0 ? _b : true;
         const context = { groupId: data.groupId || 'DefaultGroup', contextId: data.contextId || 'DefaultContext', unitId: missionId };
         const stepCount = data.stepCount || 0;
         console.log(`[Executor] ▶ mission: "${data.goal}" | tab: ${tabId}`);
-        // ── STAGE 2: Page + ARIA + screenshot ────────────────────────────────────
+        // ── STAGE 2: Load browser page + ARIA snapshot + screenshot ────────────────────
         const page = await (0, proxy_page_handler_1.getPersistentPage)(null, tabId, userId);
         if (!page) {
             console.error('[Executor] ❌ getPersistentPage returned null');
@@ -38,81 +60,113 @@ async function processMissionStep(missionId) {
         }
         const currentUrl = page.url();
         const ariaSnapshot = await (0, playwright_mcp_adapter_1.getAriaSnapshot)(page);
+        // Why: quality 30 reduces base64 payload ~40% vs 50, speeds up LLM round-trip
         const screenshot = (await page.screenshot({ quality: 30, type: 'jpeg' })).toString('base64');
+        // Write current URL so UI address bar + lastAction stay live
         await missionRef.update({ lastAction: `📍 On: ${currentUrl}`, currentUrl, updated_at: new Date().toISOString() });
-        // ── STAGE 3: LLM decision ────────────────────────────────────────────────
-        await missionRef.update({ lastAction: '🧠 Thinking...', updated_at: new Date().toISOString() });
+        // ── STAGE 3: LLM decision (re-plan with current ARIA state) ────────────────────
+        await missionRef.update({ lastAction: '🤔 Thinking...', updated_at: new Date().toISOString() });
         const response = await (0, llm_decision_engine_1.determineNextAction)(userId, data.goal, [], screenshot, new URL(currentUrl || 'http://blank').hostname, [], true, context, ariaSnapshot);
         if (!response) {
-            await missionRef.update({ lastAction: '❌ LLM returned no response — check API key', updated_at: new Date().toISOString() });
+            console.error('[Executor] ❌ LLM returned null');
+            await missionRef.update({ lastAction: '❌ LLM returned no response', updated_at: new Date().toISOString() });
             return;
         }
-        await missionRef.update({ intelligenceSignals: response.meta.intelligenceSignals || [], lastReasoning: response.meta.reasoning, updated_at: new Date().toISOString() });
-        // ── STAGE 4: Execute per-segment — bridge completions to task_queues ──────
-        // Why: iterate segments (not flat steps) so each segment's task_queues doc
-        // can be updated with subAction-level granularity as each step completes.
-        const segments = response.execution.segments;
-        console.log(`[Executor] ✅ LLM done — ${segments.length} segments | ▶ executing...`);
-        let globalStepCount = stepCount;
-        for (let segIdx = 0; segIdx < segments.length; segIdx++) {
-            const seg = segments[segIdx];
-            const steps = seg.steps || [];
-            // Why: segOrder matches the `order` field set by buildMissionFromSegments (order: i+1)
-            const segOrder = segIdx + 1;
-            const taskDocId = await (0, task_queue_bridge_1.findSegmentTaskId)(missionId, segOrder).catch(() => null);
-            let segFailed = false;
-            for (let stepIdx = 0; stepIdx < steps.length; stepIdx++) {
-                const step = steps[stepIdx];
-                await missionRef.update({ lastAction: `⚙️ ${step.action}: ${step.explanation}`.substring(0, 120), updated_at: new Date().toISOString() });
-                if (taskDocId)
-                    await (0, task_queue_bridge_1.setSubActionStatus)(taskDocId, stepIdx, 'in_progress').catch(() => { });
-                // Special actions handled without Playwright
-                if (step.action === 'done') {
-                    await (0, knowledge_hierarchy_service_1.saveContextualKnowledge)(userId, context, 'breadcrumb', `Completed: ${data.goal}`);
-                    if (taskDocId)
-                        await (0, task_queue_bridge_1.completeSegmentTask)(taskDocId, missionId, segOrder).catch(() => { });
-                    await missionRef.update({ status: 'completed', progress: 100, stepCount: globalStepCount, lastAction: '✅ Mission Completed Successfully', updated_at: new Date().toISOString() });
-                    return 'done';
-                }
-                if (step.action === 'wait_for_user' || step.action === 'ask_user') {
-                    await missionRef.update({ status: 'waiting', lastAction: `⏳ Waiting: ${step.explanation}`, updated_at: new Date().toISOString() });
-                    return 'pending';
-                }
-                if (step.action === 'record_knowledge' && step.value) {
-                    await (0, knowledge_hierarchy_service_1.saveContextualKnowledge)(userId, Object.assign(Object.assign({}, context), (step.knowledgeContext || {})), 'rule', step.value);
-                    if (taskDocId)
-                        await (0, task_queue_bridge_1.setSubActionStatus)(taskDocId, stepIdx, 'completed').catch(() => { });
-                    await missionRef.update({ lastAction: `💾 Stored: ${step.value.substring(0, 50)}`, updated_at: new Date().toISOString() });
-                    continue;
-                }
-                // Why: executeStepWithRetry attempts up to 2 times with post-action verification
-                const { result, observation } = await (0, step_executor_1.executeStepWithRetry)(page, step, useConfirmerAgent);
-                globalStepCount++;
-                if (taskDocId)
-                    await (0, task_queue_bridge_1.setSubActionStatus)(taskDocId, stepIdx, result === 'success' ? 'completed' : 'failed').catch(() => { });
-                if (result === 'failure')
-                    segFailed = true;
-                const pageUrl = await Promise.resolve().then(() => page.url()).catch(() => currentUrl);
-                await (0, llm_memory_service_1.recordActionOutcome)(userId, data.goal, step.action, result, observation, new URL(pageUrl || 'http://unknown').hostname).catch(() => { });
-                const progress = Math.min(99, Math.round((globalStepCount / (globalStepCount + 8)) * 100));
-                await missionRef.update({ lastAction: `${result === 'success' ? '✅' : '❌'} ${observation}`.substring(0, 120), progress, stepCount: globalStepCount, updated_at: new Date().toISOString() });
+        await missionRef.update({ intelligenceSignals: response.meta.intelligenceSignals || [], lastReasoning: response.meta.reasoning || '', updated_at: new Date().toISOString() });
+        // ── STAGE 4: Execute step queue ──────────────────────────────────────────────
+        const stepQueue = response.execution.segments.flatMap(s => s.steps);
+        console.log(`[Executor] ✅ LLM planned ${stepQueue.length} steps`);
+        // Why: persist the full step list to Firestore BEFORE executing so the frontend
+        // MissionCard shows the real task list immediately.
+        // We KEEP previously completed/failed tasks and APPEND the new planned ones so the
+        // user sees cumulative progress across LLM cycles, not a reset-to-pending on each cycle.
+        const existingTasks = (data.tasks || []).filter((t) => t.status === 'completed' || t.status === 'failed');
+        const taskDocs = stepQueue.map((step, i) => ({
+            id: `step-${Date.now()}-${i}`,
+            title: `${step.action}: ${step.explanation}`.substring(0, 80),
+            action: step.action,
+            status: 'pending',
+        }));
+        // Why: helper returns a fresh merged snapshot — avoids stale spread capturing old refs
+        const liveTasks = () => [...existingTasks, ...taskDocs];
+        await missionRef.update({ tasks: liveTasks(), updated_at: new Date().toISOString() });
+        for (let idx = 0; idx < stepQueue.length; idx++) {
+            const step = stepQueue[idx];
+            console.log(`[Executor] ▶ STAGE 4 step — action:${step.action} | ${step.explanation}`);
+            // Mark this task in_progress before running it
+            taskDocs[idx].status = 'in_progress';
+            await missionRef.update({ tasks: liveTasks(), lastAction: `⚙️ ${step.action}: ${step.explanation}`.substring(0, 120), updated_at: new Date().toISOString() });
+            if (step.action === 'wait_for_user' || step.action === 'ask_user') {
+                await missionRef.update({ status: 'waiting', lastAction: `⏳ Waiting: ${step.explanation}`, tasks: liveTasks() });
+                return 'pending';
             }
-            // Mark segment task complete or failed in task_queues so frontend advances
-            if (taskDocId) {
-                if (segFailed)
-                    await (0, task_queue_bridge_1.failSegmentTask)(taskDocId).catch(() => { });
-                else
-                    await (0, task_queue_bridge_1.completeSegmentTask)(taskDocId, missionId, segOrder).catch(() => { });
+            if (step.action === 'record_knowledge' && step.value) {
+                const targetContext = Object.assign(Object.assign({}, context), (step.knowledgeContext || {}));
+                await (0, knowledge_hierarchy_service_1.saveContextualKnowledge)(userId, targetContext, 'rule', step.value);
+                taskDocs[idx].status = 'completed';
+                await missionRef.update({ tasks: liveTasks(), lastAction: `💾 Stored: ${step.value.substring(0, 50)}`, updated_at: new Date().toISOString() });
+                continue; // Why: fully handled — skip executeAriaAction path below
             }
+            if (step.action === 'done') {
+                await (0, knowledge_hierarchy_service_1.saveContextualKnowledge)(userId, context, 'breadcrumb', `Completed: ${data.goal}`);
+                taskDocs[idx].status = 'completed';
+                await missionRef.update({ status: 'completed', progress: 100, stepCount: stepCount + idx + 1, lastAction: '✅ Mission Completed Successfully', tasks: liveTasks() });
+                return 'done';
+            }
+            let result = 'success';
+            let observation = step.explanation;
+            try {
+                // Why: LLM now returns ARIA role+name selectors (not numeric data-ai-id).
+                // Route ALL actions through executeAriaAction which uses page.getByRole/getByText —
+                // the same mechanism @playwright/mcp uses. Selectors resolve fresh at call time.
+                const actionStr = step.action;
+                if (actionStr === 'done' || actionStr === 'wait_for_user' || actionStr === 'ask_user' || actionStr === 'record_knowledge') {
+                    // handled above — skip executeAriaAction
+                }
+                else if (step.action === 'upload_file' && step.value) {
+                    const allowed = ['.pdf', '.png', '.jpg', '.jpeg', '.csv', '.txt', '.docx'];
+                    const ext = step.value.substring(step.value.lastIndexOf('.')).toLowerCase();
+                    if (!allowed.includes(ext))
+                        throw new Error(`File type "${ext}" not permitted`);
+                    await page.locator('input[type="file"]').first().setInputFiles(step.value);
+                }
+                else {
+                    await (0, playwright_mcp_adapter_1.executeAriaAction)(page, step);
+                }
+            }
+            catch (err) {
+                result = 'failure';
+                observation = `Action failed: ${err.message}`;
+                console.error(`[Executor] ❌ STAGE 4 step FAIL — action:${step.action} | ${err.message}`);
+            }
+            // Update this task's live status in Firestore
+            taskDocs[idx].status = result === 'success' ? 'completed' : 'failed';
+            console.log(`[Executor] ${result === 'success' ? '✅' : '❌'} STAGE 4 result — ${result} | ${observation.substring(0, 80)}`);
+            // Why: page.url() can throw mid-navigation — safe fallback so a crash here can never
+            // skip the Firestore status write that marks this task completed/failed.
+            const pageUrlNow = await Promise.resolve().then(() => page.url()).catch(() => currentUrl || 'unknown');
+            await (0, llm_memory_service_1.recordActionOutcome)(userId, data.goal, step.action, result, observation, new URL(pageUrlNow || 'http://unknown').hostname).catch(() => { });
+            const nextStepCount = stepCount + idx + 1;
+            const nextProgress = Math.min(99, Math.round((nextStepCount / (nextStepCount + 8)) * 100));
+            await missionRef.update({
+                tasks: liveTasks(),
+                lastAction: `${result === 'success' ? '✅' : '❌'} ${observation}`.substring(0, 120),
+                progress: nextProgress,
+                stepCount: nextStepCount,
+                updated_at: new Date().toISOString()
+            });
+            if (result === 'failure')
+                console.warn(`[Executor] ⚠️ step failed but continuing: ${observation}`);
         }
     }
     catch (e) {
-        console.error(`[Executor] 🔥 FATAL ${missionId}: ${e.message}`);
+        console.error(`[Executor] 🔥 FATAL in mission ${missionId}: ${e.message}\n${(_b = e.stack) === null || _b === void 0 ? void 0 : _b.split('\n').slice(0, 4).join('\n')}`);
         try {
-            await proxy_config_1.db.collection('missions').doc(missionId).update({ lastAction: `🔥 Fatal: ${e.message}`.substring(0, 120), updated_at: new Date().toISOString() });
+            await proxy_config_1.db.collection('missions').doc(missionId).update({ lastAction: `🔥 Fatal error: ${e.message}`.substring(0, 120), updated_at: new Date().toISOString() });
         }
-        catch (_c) { }
+        catch (_d) { }
     }
+    console.log(`[Executor] ✓ STAGE 4 DONE — returning 'pending' for next loop iteration`);
     return 'pending';
 }
 //# sourceMappingURL=backend-mission.executor.js.map

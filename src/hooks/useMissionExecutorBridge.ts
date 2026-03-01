@@ -1,6 +1,5 @@
 // Feature: Core | Trace: README.md
 import { useEffect } from 'react';
-import { auth } from '../features/auth/firebase-config';
 import { missionTaskExecutor } from '../services/mission-task.executor';
 import { HeadlessWebViewRef } from '../components/HeadlessWebView';
 
@@ -34,27 +33,12 @@ export const useMissionExecutorBridge = (args: BridgeArgs): void => {
     ]);
 
     useEffect(() => {
-        // Why: backend mission loop is the source of truth in remote mirror/proxy mode.
-        // Running MissionTaskExecutor in the client at the same time creates duplicate
-        // writes and repeated start/stop churn.
-        if (args.isRemoteMirrorEnabled) {
-            return () => missionTaskExecutor.stop();
-        }
-
-        if (!auth.currentUser || !args.webViewRef.current) {
-            return () => missionTaskExecutor.stop();
-        }
-        missionTaskExecutor.start({
-            webViewRef: args.webViewRef,
-            setStatusMessage: args.setStatusMessage,
-            setActivePrompt: args.setActivePrompt,
-            setActiveUrl: args.setActiveUrl,
-            updateTask: args.updateTask,
-            remoteActions: args.remoteActions,
-        });
+        // Why: backend mission loop is the single writer for mission/task progression
+        // in BOTH remote and non-remote modes. Enabling the frontend executor creates
+        // race conditions (stale active task, flicker, status thrash).
+        missionTaskExecutor.stop();
         return () => missionTaskExecutor.stop();
     }, [
-        args.webViewRef,
         args.isRemoteMirrorEnabled,
     ]);
 };

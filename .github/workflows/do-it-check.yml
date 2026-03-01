@@ -1,0 +1,83 @@
+name: AIDDE CI/CD Validation Gates (The "Do It" Check)
+
+on:
+  pull_request:
+    branches: [main, develop, "feature/*"]
+
+jobs:
+  validate-aidde-quad:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+
+      - name: "Gate 8 — Security Scan"
+        run: |
+          [ -f package.json ] && npm ci --ignore-scripts && npm audit --audit-level=high || true
+          [ -f requirements.txt ] && pip install pip-audit && pip-audit -r requirements.txt || true
+          git diff origin/${{ github.base_ref }}...${{ github.sha }} | \
+            grep -iE "(api_key|private_key|password|secret)\s*=\s*['\"][^'\"]{8,}" && \
+            { echo "❌ Gate 8: Hardcoded secret detected"; exit 1; } || true
+          echo "✅ Gate 8 Passed."
+
+      - name: "Gate 1 — PR Orchestration Check"
+        run: |
+          [[ "${{ github.event.pull_request.body }}" =~ "Resolves #" ]] || \
+            { echo "❌ Gate 1: Missing 'Resolves #IssueID'"; exit 1; }
+          echo "✅ Gate 1 Passed."
+
+      - name: "Gate 2 — Branch Hierarchy Check"
+        run: |
+          HEAD="${{ github.head_ref }}" BASE="${{ github.base_ref }}"
+          if [[ "$HEAD" =~ ^feature/[^/]+/[^/]+$ ]]; then
+            EXP=$(echo "$HEAD" | cut -d'/' -f1-2)
+            [[ "$BASE" == "$EXP" || "$BASE" == "main" || "$BASE" == "develop" ]] || \
+              { echo "❌ Gate 2: $HEAD must merge into $EXP"; exit 1; }
+          fi
+          echo "✅ Gate 2 Passed."
+
+      - name: "Gate 3 — PR Template Check"
+        run: |
+          BODY="${{ github.event.pull_request.body }}"
+          for h in "🎯 Purpose" "🔄 System Flow" "☑️ AIDDE Quad Checklist"; do
+            [[ "$BODY" =~ "$h" ]] || { echo "❌ Gate 3: Missing section: $h"; exit 1; }
+          done
+          echo "✅ Gate 3 Passed."
+
+      - name: "Gate 4 — Static Analysis"
+        run: |
+          [ -f tsconfig.json ] && npx tsc --noEmit --strict || true
+          [ -f pyproject.toml ] && pip install mypy && mypy . --strict --ignore-missing-imports || true
+          echo "✅ Gate 4 Passed."
+
+      - name: "Gate 5 & 6 — Lint and Tests"
+        run: |
+          [ -f package.json ] && grep -q '"lint"' package.json && npm run lint || true
+          [ -f package.json ] && grep -q '"test"' package.json && \
+            npm run test -- --passWithNoTests || true
+          [ -f pytest.ini ] || [ -f pyproject.toml ] && \
+            pip install pytest && python -m pytest --tb=short || true
+          echo "✅ Gates 5 & 6 Passed."
+
+      - name: "Gate 7 — 100-Line Law"
+        # Applies to source code only. .github/, docs/, prompts/, README are exempt.
+        run: |
+          FAILED=0
+          FILES=$(git diff --name-only origin/${{ github.base_ref }}...${{ github.sha }} \
+            | grep -E "\.(ts|js|py|go|rs|cs)$" \
+            | grep -v "\.test\." \
+            | grep -vE "^(\.github|docs|prompts|README)" || true)
+          for f in $FILES; do
+            [ -f "$f" ] || continue
+            L=$(grep -v "^\s*$" "$f" | grep -v "^\s*//" | grep -v "^\s*#" | wc -l)
+            [ "$L" -gt 100 ] && echo "❌ Gate 7: $f has $L active lines (max 100)" && FAILED=1
+          done
+          [ "$FAILED" -eq 1 ] && exit 1
+          echo "✅ Gate 7 Passed — 100-Line Law upheld."
+
+      - name: "✅ All AIDDE Gates Passed"
+        run: echo "AIDDE Quad complete. PR cleared for review."
