@@ -4,7 +4,7 @@
  * [Child Task/Issue] Multi-tab workflow state management
  * [Subtask] add/select/remove workflows; register tabs into active workflow
  * [Upstream] useBrowserCapabilities -> [Downstream] WorkflowBar
- * [Law Check] 58 lines | Passed 100-Line Law
+ * [Law Check] 65 lines | Passed 100-Line Law
  */
 import { useState, useCallback } from 'react';
 import type { Workflow } from '../features/workflow/workflow.types';
@@ -24,12 +24,18 @@ export const useWorkflows = (initialTabId: string) => {
 
   const addWorkflow = useCallback((name?: string, tabId?: string): string => {
     const id = makeWfId();
-    const label = name ?? `Workspace ${makeWfId().slice(-4)}`;
-    setWorkflows(prev => [
-      ...prev.map(w => ({ ...w, isActive: false })),
-      { id, name: label, isActive: true, tabIds: tabId ? [tabId] : [] },
-    ]);
+    setWorkflows(prev => {
+      const label = name ?? `Workspace ${prev.length + 1}`;
+      return [
+        ...prev.map(w => ({ ...w, isActive: false })),
+        { id, name: label, isActive: true, tabIds: tabId ? [tabId] : [] },
+      ];
+    });
     return id;
+  }, []);
+
+  const renameWorkflow = useCallback((id: string, name: string) => {
+    setWorkflows(prev => prev.map(w => w.id === id ? { ...w, name: name.trim() || w.name } : w));
   }, []);
 
   const removeWorkflow = useCallback((id: string) => {
@@ -53,5 +59,5 @@ export const useWorkflows = (initialTabId: string) => {
     setWorkflows(prev => prev.map(w => ({ ...w, tabIds: w.tabIds.filter(i => i !== tabId) })));
   }, []);
 
-  return { workflows, activeWorkflowId, selectWorkflow, addWorkflow, removeWorkflow, addTabToWorkflow, removeTabFromAll };
+  return { workflows, activeWorkflowId, selectWorkflow, addWorkflow, renameWorkflow, removeWorkflow, addTabToWorkflow, removeTabFromAll };
 };

@@ -66,9 +66,10 @@ export const useBrowserTabs = (initialUrl: string) => {
         return () => { authUnsub(); tabUnsubRef.current?.(); };
     }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-    const addNewTab = useCallback(async (url: string, title = 'New Tab'): Promise<string> => {
+    const addNewTab = useCallback(async (url: string, title?: string): Promise<string> => {
         const id = `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-        const newTab: TabItem = { id, title, isActive: true, url };
+        const resolvedTitle = title ?? deriveTitleFromUrl(url);
+        const newTab: TabItem = { id, title: resolvedTitle, isActive: true, url };
         setTabs(prev => prev.map(t => ({ ...t, isActive: false })).concat(newTab));
         setActiveTabId(id); setActiveUrl(url);
         await syncNewTab(tabs, newTab);

@@ -54,6 +54,7 @@ export const MainLayout: React.FC<Props> = ({ s, theme, setTheme }) => {
                 onSelectWorkflow={s.selectWorkflow ?? (() => {})}
                 onAddWorkflow={() => s.createWorkspaceTab?.()}
                 onRemoveWorkflow={s.removeWorkflow ?? (() => {})}
+                onRenameWorkflow={s.renameWorkflow ?? (() => {})}
                 theme={theme}
             />
 

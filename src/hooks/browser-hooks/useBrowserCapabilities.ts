@@ -19,7 +19,7 @@ export const useBrowserCapabilities = () => {
     const s = useBrowserState();
     const { tabs, setTabs, activeUrl, setActiveUrl, navigateActiveTab, addNewTab: rawAddNewTab, closeTab: rawCloseTab, selectTab } = useBrowserTabs('about:blank');
     const { tasks, setTasks, addTask, updateTask, removeTask, clearTasks, editTask, reorderMissions, removeMissionTasks, removeTabTasks } = useTaskQueue();
-    const { workflows, activeWorkflowId, selectWorkflow, addWorkflow, removeWorkflow, addTabToWorkflow, removeTabFromAll } = useWorkflows('1');
+    const { workflows, activeWorkflowId, selectWorkflow, addWorkflow, renameWorkflow, removeWorkflow, addTabToWorkflow, removeTabFromAll } = useWorkflows('1');
     const webViewRef = useRef<HeadlessWebViewRef>(null!);
     const { width: winWidth } = useWindowDimensions();
     const previewWidth = Math.min(winWidth * 0.7, 1200);
@@ -43,7 +43,7 @@ export const useBrowserCapabilities = () => {
     // Why: atomically create a new workflow + first tab; uses rawAddNewTab so the tab
     // isn't double-registered — addWorkflow(tabId) registers it directly in the new workflow.
     const createWorkspaceTab = useCallback(async (): Promise<void> => {
-        const id = await rawAddNewTab('about:blank', 'New Tab');
+        const id = await rawAddNewTab('about:blank');
         addWorkflow(undefined, id);
     }, [rawAddNewTab, addWorkflow]);
 
@@ -66,6 +66,7 @@ export const useBrowserCapabilities = () => {
         activeWorkflowId,
         selectWorkflow,
         addWorkflow,
+        renameWorkflow,
         removeWorkflow,
         addTabToWorkflow,
         createWorkspaceTab,
