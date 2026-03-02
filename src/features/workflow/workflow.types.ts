@@ -12,6 +12,14 @@ export interface TabItem {
     url: string;
 }
 
+/** Named group of browser tabs — each workflow holds a set of tabIds. */
+export interface Workflow {
+    id: string;
+    name: string;
+    isActive: boolean;
+    tabIds: string[];
+}
+
 export interface WorkflowState {
     tabs: TabItem[];
     activeTabId: string;
