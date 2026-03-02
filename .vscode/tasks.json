@@ -197,7 +197,7 @@
             "command": "powershell",
             "args": [
                 "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command",
-                "$SA='firebase-adminsdk-fbsvc@sentient-ai-browser.iam.gserviceaccount.com'; $P='sentient-ai-browser'; @('roles/serviceusage.serviceUsageConsumer','roles/firebaserules.admin','roles/datastore.indexAdmin','roles/run.admin','roles/storage.admin','roles/iam.serviceAccountUser') | ForEach-Object { Write-Host \"Granting $_ ...\"; gcloud projects add-iam-policy-binding $P --member=serviceAccount:$SA --role=$_ --quiet 2>&1 | Select-String 'Updated IAM|ERROR' }; Write-Host 'Done. Allow ~60s for propagation.'"
+                "$SA='firebase-adminsdk-fbsvc@sentient-ai-browser.iam.gserviceaccount.com'; $P='sentient-ai-browser'; $CSA='184717935920-compute@developer.gserviceaccount.com'; @('roles/serviceusage.serviceUsageConsumer','roles/firebaserules.admin','roles/datastore.indexAdmin','roles/run.admin','roles/storage.admin') | ForEach-Object { Write-Host \"Granting $_ on project...\"; gcloud projects add-iam-policy-binding $P --member=serviceAccount:$SA --role=$_ --quiet 2>&1 | Select-String 'Updated IAM|ERROR' }; Write-Host 'Granting iam.serviceAccountUser on compute SA (required for Cloud Run)...'; gcloud iam service-accounts add-iam-policy-binding $CSA --project=$P --member=serviceAccount:$SA --role=roles/iam.serviceAccountUser --quiet 2>&1 | Select-String 'Updated IAM|ERROR'; Write-Host 'Done. Allow ~60s for propagation.'"
             ],
             "problemMatcher": [],
             "presentation": { "reveal": "always", "panel": "dedicated", "clear": true }
