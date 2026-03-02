@@ -18,7 +18,7 @@ export const SidebarContent: React.FC<{ s: any; theme: any }> = ({ s, theme }) =
             tabs={s.tabs}
             onSelectTab={s.selectTab}
             onCloseTab={s.closeTab}
-            onNewTab={() => s.addNewTab('https://www.google.com')}
+            onNewTab={() => s.addNewTab('about:blank')}
             theme={theme}
         />
         <TaskQueueUI tasks={s.tasks} theme={theme} addTask={s.addTask} removeTask={s.removeTask} clearTasks={s.clearTasks} editTask={s.editTask}

@@ -36,6 +36,6 @@ export const getActiveTab = (tabs: TabItem[]): TabItem | null =>
     tabs.find(t => t.isActive) || null;
 
 export const initialWorkflowState = (): WorkflowState => ({
-    tabs: [{ id: '1', title: 'New Tab', isActive: true, url: 'https://www.google.com' }],
+    tabs: [{ id: '1', title: 'New Tab', isActive: true, url: 'about:blank' }],
     activeTabId: '1',
 });

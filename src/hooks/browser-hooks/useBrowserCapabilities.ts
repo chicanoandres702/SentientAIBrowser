@@ -16,7 +16,7 @@ import { useTaskQueue } from '../useTaskQueue';
 /** Core browser capabilities — state, tabs, tasks, and dimensions */
 export const useBrowserCapabilities = () => {
     const s = useBrowserState();
-    const { tabs, setTabs, activeUrl, setActiveUrl, navigateActiveTab, addNewTab, closeTab, selectTab } = useBrowserTabs('https://www.google.com');
+    const { tabs, setTabs, activeUrl, setActiveUrl, navigateActiveTab, addNewTab, closeTab, selectTab } = useBrowserTabs('about:blank');
     const { tasks, setTasks, addTask, updateTask, removeTask, clearTasks, editTask, reorderMissions, removeMissionTasks, removeTabTasks } = useTaskQueue();
     const webViewRef = useRef<HeadlessWebViewRef>(null!);
     const { width: winWidth } = useWindowDimensions();

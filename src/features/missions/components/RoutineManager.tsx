@@ -33,7 +33,7 @@ export const RoutineManager: React.FC<Props> = ({ theme, onLaunchRoutine, curren
             await syncRoutineToFirestore({
                 id: Math.random().toString(36).substr(2, 9), userId: auth.currentUser.uid,
                 name: newName, description: `Routine for: ${currentGoal}`,
-                initialUrl: currentUrl || 'https://www.google.com',
+                initialUrl: currentUrl || 'about:blank',
                 steps: [currentGoal], createdAt: Date.now()
             });
             setNewName('');

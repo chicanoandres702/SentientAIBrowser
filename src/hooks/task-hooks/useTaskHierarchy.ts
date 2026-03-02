@@ -52,7 +52,7 @@ export const useTaskHierarchy = () => {
                         ? { ...t, status: 'in_progress' as TaskStatus, startTime: now, details: `Executing: ${t.title}`, progress: nextProgress, subActions: nextSubActions }
                         : t
                 );
-                updateTaskInFirestore(nextPending.id, { status: 'in_progress', details: `Executing: ${nextPending.title}`, progress: nextProgress }).catch(() => {});
+                updateTaskInFirestore(nextPending.id, { status: 'in_progress', details: `Executing: ${nextPending.title}`, progress: nextProgress, subActions: nextSubActions, startTime: now }).catch(() => {});
             }
         }
 

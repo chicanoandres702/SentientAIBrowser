@@ -60,10 +60,10 @@ export const useTaskPersistence = (
         } catch (e) { console.error('[TaskPersist] ❌ syncAdd failed:', e); }
     }, []);
 
-    const syncUpdate = useCallback(async (id: string, status: TaskStatus, details: string) => {
-        console.debug(`[TaskPersist] ✏️  syncUpdate id=${id} status=${status}`);
+    const syncUpdate = useCallback(async (id: string, updates: Partial<TaskItem>) => {
+        console.debug(`[TaskPersist] ✏️  syncUpdate id=${id} status=${updates.status}`);
         try {
-            await updateTaskInFirestore(id, { status, details });
+            await updateTaskInFirestore(id, updates);
         } catch (e) { console.error('[TaskPersist] ❌ syncUpdate failed:', e); }
     }, []);
 

@@ -48,8 +48,9 @@ export const useTaskQueue = () => {
     }, [setTasks, syncAdd]);
 
     const updateTask = useCallback(async (id: string, status: TaskStatus, details?: string) => {
-        let persistedStatus: TaskStatus = status;
-        let persistedDetails: string = details || '';
+        // Why: capture full updates outside the setTasks updater — mutating closure vars inside
+        // a React state updater is unsafe (concurrent mode may call it >1x).
+        let capturedUpdates: Partial<TaskItem> = { status, details: details || '' };
         setTasks(prev => {
             const now = Date.now();
             let updated = prev.map(t => {
@@ -59,14 +60,13 @@ export const useTaskQueue = () => {
                 const completedTime = normalizedStatus === 'completed' ? now : t.completedTime;
                 const progress = deriveProgress(normalizedStatus, nextSubActions, t.progress);
                 const startTime = (normalizedStatus === 'in_progress' && !t.startTime) ? now : t.startTime;
-                persistedStatus = normalizedStatus;
-                persistedDetails = details || t.details || '';
-                return { ...t, status: normalizedStatus, details: details || t.details, completedTime, progress, startTime, subActions: nextSubActions };
+                capturedUpdates = { status: normalizedStatus, details: details || t.details || '', subActions: nextSubActions, progress, completedTime, startTime };
+                return { ...t, ...capturedUpdates };
             });
             updated = advanceTaskHierarchy(updated, id, status, now, deriveProgress, advanceSubActions, updateTaskInFirestore);
             return updated;
         });
-        await syncUpdate(id, persistedStatus, persistedDetails);
+        await syncUpdate(id, capturedUpdates);
     }, [advanceSubActions, deriveProgress, advanceTaskHierarchy, syncUpdate]);
 
     const removeTask = useCallback(async (id: string) => {

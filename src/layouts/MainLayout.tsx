@@ -53,7 +53,7 @@ export const MainLayout: React.FC<Props> = ({ s, theme, setTheme }) => {
                     tabs={s.tabs}
                     onSelectTab={s.selectTab}
                     onCloseTab={s.closeTab}
-                    onNewTab={() => s.addNewTab('https://www.google.com')}
+                    onNewTab={() => s.addNewTab('about:blank')}
                     onCloseAll={s.closeWorkspace}
                     theme={theme}
                 />

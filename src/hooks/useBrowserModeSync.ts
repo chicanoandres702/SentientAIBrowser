@@ -6,7 +6,6 @@ export const useBrowserModeSync = (
     activeUrl: string,
     isRemoteMirrorEnabled: boolean,
     setIsScholarMode: (v: boolean) => void,
-    navigateActiveTab: (url: string) => Promise<void>,
 ): void => {
     useEffect(() => {
         const mode = detectModeFromUrl(activeUrl);
@@ -14,8 +13,4 @@ export const useBrowserModeSync = (
         else if (mode === 'survey') setIsScholarMode(false);
     }, [activeUrl, setIsScholarMode]);
 
-    useEffect(() => {
-        if (!isRemoteMirrorEnabled) return;
-        if (!activeUrl || activeUrl === 'about:blank') navigateActiveTab('https://www.google.com');
-    }, [isRemoteMirrorEnabled, activeUrl, navigateActiveTab]);
 };
