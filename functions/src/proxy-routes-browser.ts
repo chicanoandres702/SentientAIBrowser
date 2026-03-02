@@ -50,7 +50,7 @@ export function setupBrowserRoutes(app: Express): void {
                     const pageUrl = page.url();
                     domain = new URL(pageUrl || 'http://blank').hostname;
                     ariaSnapshot = await getAriaSnapshot(page);
-                    screenshotBase64 = (await page.screenshot({ quality: 30, type: 'jpeg' })).toString('base64');
+                    screenshotBase64 = (await page.screenshot({ quality: 30, type: 'jpeg', timeout: 8000 })).toString('base64');
                 }
             } catch {
                 if (url) {

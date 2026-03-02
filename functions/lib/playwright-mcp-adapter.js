@@ -2,6 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.getAriaSnapshot = getAriaSnapshot;
 exports.executeAriaAction = executeAriaAction;
+const proxy_cursor_1 = require("./proxy-cursor");
 /**
  * Get the ARIA accessibility snapshot of the current page.
  * This is what @playwright/mcp's browser_snapshot tool returns — a structured text
@@ -87,9 +88,11 @@ async function executeAriaAction(page, step) {
             console.warn(`[AriaAction] click failed (${clickErr.message.split('\n')[0]}), falling back to Enter`);
             await page.keyboard.press('Enter');
         }
+        await (0, proxy_cursor_1.injectCursorAt)(page, locator);
     }
     else if (action === 'type' && value !== undefined) {
         await locator.fill(value);
+        await (0, proxy_cursor_1.injectCursorAt)(page, locator);
     }
     // Wait for any navigation or DOM update to settle after the action
     await page.waitForLoadState('domcontentloaded', { timeout: 8000 }).catch(() => { });

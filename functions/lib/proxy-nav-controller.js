@@ -43,21 +43,20 @@ const BOT_CHECK_PATTERNS = [
 function isBotCheckUrl(url) {
     return BOT_CHECK_PATTERNS.some(p => p.test(url));
 }
-// Why: Auth-wall patterns — pages that need human MFA/OTP/SAML completion.
-// Executor MUST pause and yield to the user when it hits these — not loop.
+// Why: Auth-wall patterns — pages that need HUMAN input the LLM cannot replicate:
+// push-notification MFA, OTP codes, hardware keys, biometric prompts.
+// Do NOT include SAML/SSO login pages here — those are standard username/password forms
+// the LLM can fill when credentials are provided. Blocking on SAML prevents the LLM
+// from ever acting on those pages even when the user has given it login credentials.
 const AUTH_WALL_PATTERNS = [
-    /\/idp\/SSO\.saml2/i, // SAML SP-initiated SSO
-    /\/saml2?\//i, // Generic SAML endpoints
-    /pingid\/ppm\/auth/i, // PingOne / PingID MFA
+    /pingid\/ppm\/auth/i, // PingOne / PingID push MFA
     /\/pingid\//i, // Any PingID URL
     /\/mfa\//i,
     /\/otp\//i,
     /\/two-factor/i,
     /\/step-up/i,
-    /\/oauth2?\/authorize/i, // OAuth consent / login walls
-    /\/sso\/saml/i,
-    /login\.microsoftonline\.com/,
-    /accounts\.google\.com\/signin/,
+    /duosecurity\.com/i, // Duo Security MFA (used by Capella, many universities)
+    /\/duo[\/\-]/i, // Duo frame / duo-prompt embedded pages
     /appleid\.apple\.com/,
 ];
 function isAuthWallUrl(url) {
