@@ -4,6 +4,7 @@ import { Page, BrowserContext } from 'playwright';
 import { guardedNavigate, syncSettledUrl } from './proxy-nav-controller';
 import { loadSession, saveSession, sessionFilePath } from './proxy-session.service';
 import { attachConsoleListener, clearConsoleLogs } from './proxy-cdp.service';
+import { attachUrlWatcher, clearUrlWatcher } from './proxy-url-watcher';
 
 // Why: block heavy binary resources that waste bandwidth and slow down Playwright.
 // Images/fonts/media are irrelevant for the LLM's ARIA snapshot + screenshot flow.
@@ -150,6 +151,11 @@ export async function getPersistentPage(targetUrl: string | null, tabId: string,
     activeUserIds.set(tabId, userId);
     // Why: buffer console.log/error from the page for CDP /cdp/console endpoint
     attachConsoleListener(tabId, page);
+    // Why: attach the URL watcher BEFORE any navigation. Uses page.exposeFunction
+    // (CDP Runtime.addBinding) to call back into Node.js on every URL change —
+    // full HTTP navs (via DOMContentLoaded), SPA pushState/replaceState, and hash changes.
+    // This is more reliable and covers all cases vs. framenavigated alone.
+    await attachUrlWatcher(page, tabId, userId);
     // Why: keep settledUrls current for navigations the PAGE triggers itself (JS redirects,
     // meta-refresh, CAPTCHA auto-continue) — without this the dedup check in guardedNavigate
     // stays stale and re-navigates back into a bot-check loop.
@@ -228,6 +234,7 @@ export function closePage(id: string) {
     console.log(`[Page] 🗑️  closing tab=${id}`);
     closedTabs.add(id);
     clearConsoleLogs(id);  // free the per-tab console buffer
+    clearUrlWatcher(id);   // free URL watcher debounce state + last-url cache
     if (syncIntervals.has(id)) {
         clearInterval(syncIntervals.get(id)!);
         syncIntervals.delete(id);

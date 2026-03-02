@@ -58,7 +58,19 @@ export function useNavigationController(
                 return;
             }
 
-            const { finalUrl, isBotCheck }: NavResult & { isBotCheck?: boolean } = await res.json();
+            let parsed: NavResult & { isBotCheck?: boolean };
+            try {
+                parsed = await res.json();
+            } catch {
+                // Why: proxy returned a non-JSON body (HTML error page, cold-start splash).
+                // Falling back to the original URL would write an unresolved URL to Firestore,
+                // which causes the LLM to retry the same navigate task in a loop.
+                // Instead, fall back silently — the Firestore listener will re-sync on next cycle.
+                console.warn('[NavCtrl] proxy returned non-JSON body — skipping fallback nav to avoid loop');
+                return;
+            }
+
+            const { finalUrl, isBotCheck } = parsed;
 
             // Why: don't pause on bot-check — stealth headers may already bypass it and
             // refusing to write finalUrl desync the address bar from the real page.
@@ -70,7 +82,10 @@ export function useNavigationController(
             // This is what breaks the LLM retry loop
             await navigateTab(finalUrl);
         } catch (e) {
-            console.warn('[NavCtrl] navigate error, falling back:', e);
+            // Network-level failure (CORS, offline, DNS) — safe to fall back to raw nav.
+            // This is NOT a JSON parse error (those are handled above), so the proxy
+            // was never reached; the original URL is the best we can do.
+            console.warn('[NavCtrl] network error on navigate, falling back to raw nav:', e);
             await navigateTab(targetUrl);
         } finally {
             pendingRef.current = null;

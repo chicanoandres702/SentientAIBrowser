@@ -22,6 +22,12 @@ export const useTaskQueue = () => {
     const { setupAuthListener, syncAdd, syncUpdate, syncRemove } = useTaskPersistence(setTasks, isTaskEquivalent);
     const { advanceTaskHierarchy } = useTaskHierarchy();
     const taskUnsubRef = useRef<(() => void) | undefined>(undefined);
+    // Why: keep a live ref to tasks so updateTask can compute derived state synchronously
+    // BEFORE calling setTasks. React 18 batches setState, meaning the updater runs during
+    // the next render — AFTER await syncUpdate() has already fired. Reading from the ref
+    // avoids syncing Firestore with the stale initial { status, details } placeholder.
+    const tasksRef = useRef<typeof tasks>(tasks);
+    tasksRef.current = tasks;
 
     useEffect(() => {
         return setupAuthListener(taskUnsubRef);
@@ -48,25 +54,29 @@ export const useTaskQueue = () => {
     }, [setTasks, syncAdd]);
 
     const updateTask = useCallback(async (id: string, status: TaskStatus, details?: string) => {
-        // Why: capture full updates outside the setTasks updater — mutating closure vars inside
-        // a React state updater is unsafe (concurrent mode may call it >1x).
-        let capturedUpdates: Partial<TaskItem> = { status, details: details || '' };
+        // Why: compute the full update synchronously from the live ref BEFORE calling setTasks.
+        // React 18 automatic batching defers the setTasks updater to the next render cycle;
+        // awaiting syncUpdate after setTasks() would fire with stale initial values.
+        const now = Date.now();
+        const current = tasksRef.current.find(t => t.id === id);
+        const nextSubActions = current ? advanceSubActions(current.subActions, status, details || current.details) : undefined;
+        const completedTime = status === 'completed' ? now : current?.completedTime;
+        const progress = deriveProgress(status, nextSubActions, current?.progress);
+        const startTime = (status === 'in_progress' && !current?.startTime) ? now : current?.startTime;
+        const fullUpdate: Partial<TaskItem> = {
+            status,
+            details: details || current?.details || '',
+            subActions: nextSubActions,
+            progress,
+            completedTime,
+            startTime,
+        };
         setTasks(prev => {
-            const now = Date.now();
-            let updated = prev.map(t => {
-                if (t.id !== id) return t;
-                const nextSubActions = advanceSubActions(t.subActions, status, details || t.details);
-                const normalizedStatus: TaskStatus = status;
-                const completedTime = normalizedStatus === 'completed' ? now : t.completedTime;
-                const progress = deriveProgress(normalizedStatus, nextSubActions, t.progress);
-                const startTime = (normalizedStatus === 'in_progress' && !t.startTime) ? now : t.startTime;
-                capturedUpdates = { status: normalizedStatus, details: details || t.details || '', subActions: nextSubActions, progress, completedTime, startTime };
-                return { ...t, ...capturedUpdates };
-            });
+            let updated = prev.map(t => t.id === id ? { ...t, ...fullUpdate } : t);
             updated = advanceTaskHierarchy(updated, id, status, now, deriveProgress, advanceSubActions, updateTaskInFirestore);
             return updated;
         });
-        await syncUpdate(id, capturedUpdates);
+        await syncUpdate(id, fullUpdate);
     }, [advanceSubActions, deriveProgress, advanceTaskHierarchy, syncUpdate]);
 
     const removeTask = useCallback(async (id: string) => {
