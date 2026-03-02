@@ -188,6 +188,68 @@
                 "panel": "shared",
                 "focus": false
             }
+        },
+
+        // ── IAM: grant Firebase Admin SDK service account the roles needed for CI deploy ──
+        {
+            "label": "🔑 Fix IAM: Grant Firebase SA deploy roles",
+            "type": "shell",
+            "command": "powershell",
+            "args": [
+                "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command",
+                "$SA='firebase-adminsdk-fbsvc@sentient-ai-browser.iam.gserviceaccount.com'; $P='sentient-ai-browser'; @('roles/serviceusage.serviceUsageConsumer','roles/firebaserules.admin','roles/datastore.indexAdmin','roles/run.admin','roles/storage.admin','roles/iam.serviceAccountUser') | ForEach-Object { Write-Host \"Granting $_ ...\"; gcloud projects add-iam-policy-binding $P --member=serviceAccount:$SA --role=$_ --quiet 2>&1 | Select-String 'Updated IAM|ERROR' }; Write-Host 'Done. Allow ~60s for propagation.'"
+            ],
+            "problemMatcher": [],
+            "presentation": { "reveal": "always", "panel": "dedicated", "clear": true }
+        },
+
+        // ── Deploy: trigger GitHub Actions workflow ─────────────────────────
+        {
+            "label": "🚀 Deploy All (Firebase + Cloud Run)",
+            "type": "shell",
+            "command": "powershell",
+            "args": [
+                "-ExecutionPolicy", "Bypass",
+                "-File", "${workspaceFolder}/deploy-github.ps1",
+                "-Target", "all"
+            ],
+            "problemMatcher": [],
+            "presentation": { "reveal": "always", "panel": "dedicated", "clear": true },
+            "group": { "kind": "build", "isDefault": false }
+        },
+        {
+            "label": "☁️  Deploy Cloud Run only",
+            "type": "shell",
+            "command": "powershell",
+            "args": [
+                "-ExecutionPolicy", "Bypass",
+                "-File", "${workspaceFolder}/deploy-github.ps1",
+                "-Target", "cloudrun"
+            ],
+            "problemMatcher": [],
+            "presentation": { "reveal": "always", "panel": "dedicated", "clear": true }
+        },
+        {
+            "label": "🔥 Deploy Firestore Rules only",
+            "type": "shell",
+            "command": "powershell",
+            "args": [
+                "-ExecutionPolicy", "Bypass",
+                "-File", "${workspaceFolder}/deploy-github.ps1",
+                "-Target", "functions"
+            ],
+            "problemMatcher": [],
+            "presentation": { "reveal": "always", "panel": "dedicated", "clear": true }
+        },
+        // Compound: grant missing IAM roles first, then full deploy
+        {
+            "label": "🔑+🚀 Fix IAM then Deploy All",
+            "dependsOrder": "sequence",
+            "dependsOn": [
+                "🔑 Fix IAM: Grant Firebase SA deploy roles",
+                "🚀 Deploy All (Firebase + Cloud Run)"
+            ],
+            "problemMatcher": []
         }
     ]
 }
