@@ -250,6 +250,40 @@
                 "🚀 Deploy All (Firebase + Cloud Run)"
             ],
             "problemMatcher": []
+        },
+
+        // ── Direct deploy tasks (no GitHub Actions) ──────────────────────
+        {
+            "label": "🚀 Direct Deploy: All (Firebase + Cloud Run)",
+            "type": "shell",
+            "command": "powershell",
+            "args": ["-ExecutionPolicy","Bypass","-File","${workspaceFolder}/deploy-direct.ps1","-Target","all"],
+            "problemMatcher": [],
+            "presentation": { "reveal": "always", "panel": "dedicated", "clear": true }
+        },
+        {
+            "label": "☁️  Direct Deploy: Cloud Run only",
+            "type": "shell",
+            "command": "powershell",
+            "args": ["-ExecutionPolicy","Bypass","-File","${workspaceFolder}/deploy-direct.ps1","-Target","cloudrun"],
+            "problemMatcher": [],
+            "presentation": { "reveal": "always", "panel": "dedicated", "clear": true }
+        },
+        {
+            "label": "🔥 Direct Deploy: Firestore Rules only",
+            "type": "shell",
+            "command": "powershell",
+            "args": ["-ExecutionPolicy","Bypass","-File","${workspaceFolder}/deploy-direct.ps1","-Target","rules"],
+            "problemMatcher": [],
+            "presentation": { "reveal": "always", "panel": "dedicated", "clear": true }
+        },
+        {
+            "label": "☁️  Direct Deploy: Cloud Run (skip TS build)",
+            "type": "shell",
+            "command": "powershell",
+            "args": ["-ExecutionPolicy","Bypass","-File","${workspaceFolder}/deploy-direct.ps1","-Target","cloudrun","-SkipBuild"],
+            "problemMatcher": [],
+            "presentation": { "reveal": "always", "panel": "dedicated", "clear": true }
         }
     ]
 }
