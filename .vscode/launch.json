@@ -224,6 +224,53 @@
             "cwd": "${workspaceFolder}",
             "console": "integratedTerminal",
             "preLaunchTask": "🔑 Fix IAM: Grant Firebase SA deploy roles"
+        },
+
+        // ── Direct deploy — no GitHub Actions, pushes straight from machine ──
+        {
+            "name": "🚀 Direct Deploy: All (Firebase + Cloud Run)",
+            "type": "node",
+            "request": "launch",
+            "runtimeExecutable": "powershell",
+            "runtimeArgs": ["-ExecutionPolicy","Bypass","-File","${workspaceFolder}/deploy-direct.ps1","-Target","all"],
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "☁️  Direct Deploy: Cloud Run only",
+            "type": "node",
+            "request": "launch",
+            "runtimeExecutable": "powershell",
+            "runtimeArgs": ["-ExecutionPolicy","Bypass","-File","${workspaceFolder}/deploy-direct.ps1","-Target","cloudrun"],
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "🔥 Direct Deploy: Firestore Rules only",
+            "type": "node",
+            "request": "launch",
+            "runtimeExecutable": "powershell",
+            "runtimeArgs": ["-ExecutionPolicy","Bypass","-File","${workspaceFolder}/deploy-direct.ps1","-Target","rules"],
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "☁️  Direct Deploy: Cloud Run (skip TS build)",
+            "type": "node",
+            "request": "launch",
+            "runtimeExecutable": "powershell",
+            "runtimeArgs": ["-ExecutionPolicy","Bypass","-File","${workspaceFolder}/deploy-direct.ps1","-Target","cloudrun","-SkipBuild"],
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "☁️  Direct Deploy: Cloud Run (force Cloud Build)",
+            "type": "node",
+            "request": "launch",
+            "runtimeExecutable": "powershell",
+            "runtimeArgs": ["-ExecutionPolicy","Bypass","-File","${workspaceFolder}/deploy-direct.ps1","-Target","cloudrun","-UseCloudBuild"],
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal"
         }
     ],
     "compounds": [
