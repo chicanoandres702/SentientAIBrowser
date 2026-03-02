@@ -139,6 +139,16 @@ export async function getPersistentPage(targetUrl: string | null, tabId: string,
       const existingContexts = browser.contexts();
       context = existingContexts[0] ?? await browser.newContext();
       console.log(`[CDP] Using real Chrome profile context (${existingContexts.length} context(s) available)`);
+
+      // Why: reuse an already-open tab instead of calling context.newPage() which opens
+      // a new blank tab in the user's live Chrome every time the proxy asks for a page.
+      // Match by URL if we have a target; otherwise take the active (last focused) page.
+      const existingPages = context.pages();
+      const match = targetUrl
+        ? existingPages.find(p => p.url().includes(targetUrl) || targetUrl.includes(p.url()))
+        : undefined;
+      page = match ?? existingPages[existingPages.length - 1] ?? await context.newPage();
+      console.log(`[CDP] Reusing page url=${page.url()} (${existingPages.length} open tab(s))`);
     } else {
       // Why: restore prior session (cookies + localStorage) so logins persist across Cloud Run
       // restarts and cold starts — user never has to log in again after the first session.
@@ -155,7 +165,8 @@ export async function getPersistentPage(targetUrl: string | null, tabId: string,
       // Why: hide navigator.webdriver + add fake plugin/language signals before any page script runs
       await context.addInitScript(STEALTH_INIT_SCRIPT);
     }
-    page = await context.newPage();
+    // In normal mode create a new page; CDP mode already assigned page above.
+    if (!page) page = await context.newPage();
     await setupRequestBlocking(page);
     activePages.set(tabId, page);
     activeContexts.set(tabId, context);
