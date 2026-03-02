@@ -30,8 +30,8 @@ export const buildMissionFromSegments = async (
     const MISSION_SCHEMA_VERSION = 2;
     const now = Date.now();
     const segments = missionResponse.execution.segments;
-    const missionId = now.toString();
-    const runId = runIdOverride || `run_${missionId}`;
+    const missionId = `${now}_${Math.random().toString(36).slice(2, 8)}`;
+    const runId = runIdOverride || `run_${now}_${Math.random().toString(36).slice(2, 8)}`;
     const workflowId = tabId;
     const workspaceId = auth.currentUser?.uid || 'anonymous';
 
