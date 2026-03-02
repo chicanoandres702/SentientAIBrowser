@@ -1,5 +1,5 @@
-# deploy-github.ps1
-# Trigger the GitHub Actions deploy workflow via the gh CLI.
+﻿# deploy-github.ps1
+# Trigger the GitHub Actions deploy workflow -- pure gh CLI, no external tools.
 # Usage:  .\deploy-github.ps1 [all|hosting|functions|cloudrun]
 # Requires: gh CLI authenticated  (gh auth login)
 
@@ -10,24 +10,7 @@ param(
 
 $ErrorActionPreference = 'Stop'
 
-# ── Resolve repo from git remote ─────────────────────────────
-$RemoteUrl = git remote get-url origin 2>$null
-if (-not $RemoteUrl) {
-    Write-Error "No git remote 'origin' found. Is this a git repo?"
-    exit 1
-}
-# Normalise SSH → OWNER/REPO  (handles both https and git@ formats)
-$Repo = $RemoteUrl -replace '.*github\.com[:/]', '' -replace '\.git$', ''
-
-Write-Host ""
-Write-Host "=================================================" -ForegroundColor Cyan
-Write-Host "  GitHub Actions Deploy" -ForegroundColor Cyan
-Write-Host "  Repo   : $Repo" -ForegroundColor Cyan
-Write-Host "  Target : $Target" -ForegroundColor Yellow
-Write-Host "=================================================" -ForegroundColor Cyan
-Write-Host ""
-
-# ── Check gh is installed & authenticated ────────────────────
+# -- Verify gh CLI is installed and authenticated
 if (-not (Get-Command gh -ErrorAction SilentlyContinue)) {
     Write-Error "gh CLI not found. Install from https://cli.github.com and run 'gh auth login'."
     exit 1
@@ -38,7 +21,22 @@ if ($LASTEXITCODE -ne 0) {
     exit 1
 }
 
-# ── Trigger the workflow ──────────────────────────────────────
+# -- Resolve repo via gh (no raw git dependency)
+$Repo = gh repo view --json nameWithOwner -q .nameWithOwner 2>$null
+if (-not $Repo) {
+    Write-Error "Could not resolve GitHub repo. Ensure you are inside a cloned GitHub repository."
+    exit 1
+}
+
+Write-Host ""
+Write-Host "=================================================" -ForegroundColor Cyan
+Write-Host "  GitHub Actions Deploy"                          -ForegroundColor Cyan
+Write-Host "  Repo   : $Repo"                                -ForegroundColor Cyan
+Write-Host "  Target : $Target"                              -ForegroundColor Yellow
+Write-Host "=================================================" -ForegroundColor Cyan
+Write-Host ""
+
+# -- Trigger the workflow
 Write-Host "Triggering workflow deploy.yml (target=$Target)..." -ForegroundColor Green
 gh workflow run deploy.yml --repo $Repo --field target=$Target
 
@@ -48,18 +46,30 @@ if ($LASTEXITCODE -ne 0) {
 }
 
 Write-Host ""
-Write-Host "Workflow triggered! Waiting for it to appear..." -ForegroundColor Green
-Start-Sleep -Seconds 3
+Write-Host "Workflow triggered -- fetching run ID..." -ForegroundColor Green
+Start-Sleep -Seconds 4
 
-# ── Tail the latest run ──────────────────────────────────────
+# -- Show recent runs
 Write-Host ""
 Write-Host "Latest runs:" -ForegroundColor Cyan
 gh run list --repo $Repo --workflow deploy.yml --limit 3
 
+# -- Stream live logs via gh run watch
+$RunId = gh run list --repo $Repo --workflow deploy.yml --limit 1 --json databaseId -q '.[0].databaseId'
+if ($RunId) {
+    Write-Host ""
+    Write-Host "Streaming logs (Ctrl+C to detach)..." -ForegroundColor Green
+    gh run watch $RunId --repo $Repo --exit-status
+    if ($LASTEXITCODE -ne 0) {
+        Write-Error "Workflow run failed. See logs above."
+        exit $LASTEXITCODE
+    }
+} else {
+    Write-Host "Could not find run ID -- watch manually:" -ForegroundColor DarkGray
+    Write-Host "  gh run watch --repo $Repo" -ForegroundColor DarkGray
+}
+
+# -- Open Actions tab in browser via gh browse
 Write-Host ""
-Write-Host "Watch live logs with:" -ForegroundColor DarkGray
-Write-Host "  gh run watch --repo $Repo" -ForegroundColor DarkGray
-Write-Host ""
-$RunsUrl = "https://github.com/$Repo/actions/workflows/deploy.yml"
-Write-Host "Open in browser: $RunsUrl" -ForegroundColor DarkGray
-Start-Process $RunsUrl
+Write-Host "Opening Actions in browser..." -ForegroundColor DarkGray
+gh browse --repo $Repo -- actions

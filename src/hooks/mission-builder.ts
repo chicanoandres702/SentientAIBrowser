@@ -7,6 +7,7 @@ interface MissionBuilderDeps {
     addTask: (title: string, status: any, details?: string, extra?: Partial<TaskItem>) => Promise<any>;
     setStatusMessage: (m: string) => void;
     useConfirmerAgent?: boolean;
+    runtimeGeminiApiKey?: string;
 }
 
 const buildMissionHeaderTitle = (prompt: string, firstSegmentName?: string): string => {
@@ -95,6 +96,7 @@ export const buildMissionFromSegments = async (
                 startedAt: now, updatedAt: now, schemaVersion: MISSION_SCHEMA_VERSION,
                 createdAt: now, missionResponse,
                 useConfirmerAgent: deps.useConfirmerAgent ?? true,
+                runtimeApiKey: deps.runtimeGeminiApiKey || '',
             });
         } catch (e) { console.error('Failed to save mission:', e); }
     }

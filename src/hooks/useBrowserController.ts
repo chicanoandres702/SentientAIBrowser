@@ -16,7 +16,8 @@ export const useBrowserController = (
     setIsPaused: (p: boolean) => void,
     isDaemonRunning: boolean,
     setIsDaemonRunning: (r: boolean) => void,
-    PROXY_BASE_URL: string
+    PROXY_BASE_URL: string,
+    runtimeGeminiApiKey?: string,
 ) => {
     const handleExecutePrompt = async (prompt: string, tabId: string, _userId: string, useConfirmerAgent = true) => {
         const runId = `run_${Date.now()}`;
@@ -31,7 +32,11 @@ export const useBrowserController = (
             const token = await auth.currentUser?.getIdToken();
             const response = await fetch(`${PROXY_BASE_URL}/agent/plan`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token || 'anonymous'}` },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token || 'anonymous'}`,
+                    ...(runtimeGeminiApiKey ? { 'X-Gemini-Api-Key': runtimeGeminiApiKey } : {}),
+                },
                 body: JSON.stringify({ prompt, tabId, ...getSchemaPayload() }),
             });
             if (response.ok) {
@@ -55,7 +60,7 @@ export const useBrowserController = (
 
         // 3. Build mission tasks
         if (missionResponse?.execution?.segments) {
-            await buildMissionFromSegments(prompt, missionResponse, llmError, tabId, runId, { addTask, setStatusMessage, useConfirmerAgent });
+            await buildMissionFromSegments(prompt, missionResponse, llmError, tabId, runId, { addTask, setStatusMessage, useConfirmerAgent, runtimeGeminiApiKey });
         } else {
             setStatusMessage('Planner returned invalid mission format');
             return;

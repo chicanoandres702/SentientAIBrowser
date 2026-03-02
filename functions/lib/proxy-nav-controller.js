@@ -3,6 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.clearNav = exports.getSettledUrl = exports.isNavLocked = void 0;
 exports.syncSettledUrl = syncSettledUrl;
 exports.isBotCheckUrl = isBotCheckUrl;
+exports.isAuthWallUrl = isAuthWallUrl;
 exports.guardedNavigate = guardedNavigate;
 const proxy_config_1 = require("./proxy-config");
 // Per-tab navigation lock — only one active page.goto at a time
@@ -41,6 +42,26 @@ const BOT_CHECK_PATTERNS = [
 ];
 function isBotCheckUrl(url) {
     return BOT_CHECK_PATTERNS.some(p => p.test(url));
+}
+// Why: Auth-wall patterns — pages that need human MFA/OTP/SAML completion.
+// Executor MUST pause and yield to the user when it hits these — not loop.
+const AUTH_WALL_PATTERNS = [
+    /\/idp\/SSO\.saml2/i, // SAML SP-initiated SSO
+    /\/saml2?\//i, // Generic SAML endpoints
+    /pingid\/ppm\/auth/i, // PingOne / PingID MFA
+    /\/pingid\//i, // Any PingID URL
+    /\/mfa\//i,
+    /\/otp\//i,
+    /\/two-factor/i,
+    /\/step-up/i,
+    /\/oauth2?\/authorize/i, // OAuth consent / login walls
+    /\/sso\/saml/i,
+    /login\.microsoftonline\.com/,
+    /accounts\.google\.com\/signin/,
+    /appleid\.apple\.com/,
+];
+function isAuthWallUrl(url) {
+    return AUTH_WALL_PATTERNS.some(p => p.test(url));
 }
 /**
  * Navigate with lock + redirect resolution.

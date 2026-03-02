@@ -15,7 +15,7 @@ import { applyInteractiveResponse, buildWebViewUrl } from './sentient-browser.ut
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 export const useSentientBrowser = (_theme?: unknown) => {
   const cap = useBrowserCapabilities();
-  const { heuristics, session, knowledge, navigation, cursor, manual } = useBrowserIntegration(cap.activeUrl, cap.activeTabId, cap.navigateActiveTab, cap.setTasks, cap.tasks);
+  const { heuristics, session, knowledge, navigation, cursor, manual } = useBrowserIntegration(cap.activeUrl, cap.activeTabId, cap.navigateActiveTab, cap.setTasks, cap.tasks, cap.s.PROXY_BASE_URL);
   const { closeMission } = useMissionCleanup({ removeMissionTasks: cap.removeMissionTasks, closeTab: cap.closeTab, PROXY_BASE_URL: cap.s.PROXY_BASE_URL });
   const { closeTabWithCleanup } = useTabCleanup({ removeTabTasks: cap.removeTabTasks, closeTab: cap.closeTab, PROXY_BASE_URL: cap.s.PROXY_BASE_URL, tasks: cap.tasks });
   
@@ -40,7 +40,7 @@ export const useSentientBrowser = (_theme?: unknown) => {
     if (anyJustCompleted) reassess();
   }, [cap.tasks, reassess]);
 
-  const { handleExecutePrompt, toggleDaemon, handleReload } = useBrowserController(cap.webViewRef, cap.addTask, cap.s.setActivePrompt, cap.s.setTaskStartTime, cap.s.setStatusMessage, cap.s.setIsPaused, cap.s.isDaemonRunning, cap.s.setIsDaemonRunning, cap.s.PROXY_BASE_URL);
+  const { handleExecutePrompt, toggleDaemon, handleReload } = useBrowserController(cap.webViewRef, cap.addTask, cap.s.setActivePrompt, cap.s.setTaskStartTime, cap.s.setStatusMessage, cap.s.setIsPaused, cap.s.isDaemonRunning, cap.s.setIsDaemonRunning, cap.s.PROXY_BASE_URL, cap.s.runtimeGeminiApiKey);
   const webViewUrl = buildWebViewUrl(cap.s.useProxy, cap.s.PROXY_BASE_URL, cap.activeUrl, cap.activeTab?.id);
   
   const { handleDomMapReceived: onDomMap } = useDomDecision(cap.s.activePrompt, cap.activeUrl, cap.s.retryCount, cap.updateTask, cap.tasks.map(t => t.id), cap.webViewRef, cap.setActiveUrl, navigation.navigateWithGuard, cap.s.setBlockedReason, cap.s.setIsBlockedModalVisible, cap.s.setStatusMessage, cap.s.setIsPaused, cap.s.lookedUpDocs, cap.s.setInteractiveRequest, cap.s.setIsInteractiveModalVisible, cap.s.isThinking, cap.s.setIsThinking, cap.s.PROXY_BASE_URL, cap.s.isScholarMode, cap.tasks, reassess, heuristics.preStepCheck, heuristics.postStepRecord, cursor.cursorActions, undefined, cap.s.runtimeGeminiApiKey, cap.s.isPaused);
@@ -99,6 +99,8 @@ export const useSentientBrowser = (_theme?: unknown) => {
     handleManualClick: manual.handleManualClick,
     handleManualType: manual.handleManualType,
     handleManualKeyPress: manual.handleManualKeyPress,
+    handleManualMouseMove: manual.handleManualMouseMove,
+    handleManualScroll: manual.handleManualScroll,
     closeMission,
     closeWorkspace,
   };
