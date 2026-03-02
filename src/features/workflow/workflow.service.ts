@@ -5,7 +5,7 @@
  * [Law Check] 48 lines | Passed
  */
 
-import { doc, setDoc, getDocs, collection, onSnapshot, deleteDoc, updateDoc } from 'firebase/firestore';
+import { doc, setDoc, collection, onSnapshot, deleteDoc, updateDoc } from 'firebase/firestore';
 import { db } from '../auth/firebase-config';
 import { TabItem } from './workflow.types';
 

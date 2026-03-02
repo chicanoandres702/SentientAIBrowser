@@ -4,7 +4,7 @@ import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import * as Animatable from 'react-native-animatable';
 import { LinearGradient } from 'expo-linear-gradient';
 import { AppTheme } from '../../App';
-import { Scanline } from './Scanline';
+import { Scanline } from '@features/browser';
 import { uiColors } from '../features/ui/theme/ui.theme';
 import { resolveDomainAccent } from '../features/ui/theme/domain-accent.utils';
 import { LayoutSwitcherInline } from './settings/LayoutSwitcher';

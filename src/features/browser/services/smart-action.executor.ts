@@ -1,7 +1,7 @@
 // Feature: Browser | Why: Smart action execution with overlay recovery — web-ui-1's smart_click pattern
 // Retries failed actions after clearing overlays, with exponential backoff
 
-import { HeadlessWebViewRef } from '../../../components/HeadlessWebView';
+import { HeadlessWebViewRef } from '@features/browser';
 import { VIEW_CLEARING_STAGES } from './view-clearing.pipeline';
 
 interface SmartActionContext {

@@ -23,7 +23,7 @@ const SubActionIcon = ({ action }: { action: string }) => {
     return <Text style={{ fontSize: 10, width: 16 }}>{icon}</Text>;
 };
 
-export const MobileTaskCard: React.FC<Props> = ({ item, accentColor, removeTask, editTask, index }) => {
+export const MobileTaskCard: React.FC<Props> = ({ item, accentColor, removeTask, editTask: _editTask, index }) => {
     const [expanded, setExpanded] = useState(false);
     const cfg = STATUS_CFG[item.status];
     const hasSubActions = item.subActions && item.subActions.length > 0;

@@ -1,5 +1,4 @@
 // Feature: UI | Why: Design tokens — spacing, radius, shadows, timing
-import { Platform } from 'react-native';
 
 /** Border-radius tokens */
 export const uiRadius = Object.freeze({

@@ -8,49 +8,25 @@ exports.setupDomMapRoute = setupDomMapRoute;
 const proxy_page_handler_1 = require("./proxy-page-handler");
 const proxy_route_utils_1 = require("./proxy-route.utils");
 const proxy_dom_map_1 = require("./proxy-dom-map");
-/** POST /proxy/action — execute click/type on a persistent page */
+const playwright_mcp_1 = require("./features/playwright-mcp");
 function setupActionRoute(app) {
     app.post('/proxy/action', async (req, res) => {
         (0, proxy_route_utils_1.applyCorsHeaders)(res);
         const { url, action, id, value, tabId = 'default', role, name: ariaName, text: ariaText } = req.body;
-        let page = proxy_page_handler_1.activePages.get(tabId) || await (0, proxy_page_handler_1.getPersistentPage)(url, tabId).catch(() => null);
+        const page = proxy_page_handler_1.activePages.get(tabId) || (await (0, proxy_page_handler_1.getPersistentPage)(url, tabId).catch(() => null));
         if (!page)
             return res.status(500).json({ error: 'Session died' });
         try {
-            // Why: ARIA selectors (role+name) are preferred — Playwright MCP style, stable across DOM mutations.
-            // data-ai-id is the legacy fallback for HeadlessWebView sessions.
-            const resolveLocator = () => {
-                if (role)
-                    return page.getByRole(role, ariaName ? { name: ariaName, exact: false } : undefined);
-                if (ariaName)
-                    return page.getByLabel(ariaName, { exact: false });
-                if (ariaText)
-                    return page.getByText(ariaText, { exact: false });
-                if (id)
-                    return page.locator(`[data-ai-id="${id}"]`);
-                throw new Error('No element selector provided (need role, name, text, or id)');
-            };
-            const locator = resolveLocator();
-            if (action === 'click') {
-                await locator.first().scrollIntoViewIfNeeded({ timeout: 3000 }).catch(() => { });
-                await locator.first().click({ timeout: 8000 });
-            }
-            else if (action === 'type') {
-                await locator.first().click({ timeout: 5000 });
-                await locator.first().fill(value || '');
-                if (value === null || value === void 0 ? void 0 : value.length)
-                    await page.keyboard.press('Enter');
-            }
-            await page.waitForLoadState('domcontentloaded', { timeout: 2000 }).catch(() => { });
+            const finalUrl = await (0, playwright_mcp_1.executeAriaAction)(page, { action: action, role: role, ariaName: ariaName, ariaText: ariaText, id: id, value: value });
             await (0, proxy_page_handler_1.captureAndSyncTab)(tabId);
-            res.json({ success: true, finalUrl: page.url() });
+            return res.json({ success: true, finalUrl });
         }
         catch (e) {
-            res.status(500).json({ error: e.message });
+            return res.status(500).json({ error: e.message });
         }
     });
 }
-/** GET /screenshot — capture current page as base64 jpeg */
+/** GET /screenshot — capture page as base64 jpeg */
 function setupScreenshotRoute(app) {
     app.get('/screenshot', async (req, res) => {
         try {
@@ -59,7 +35,7 @@ function setupScreenshotRoute(app) {
             const url = req.query.url;
             const page = await (0, proxy_route_utils_1.resolvePage)(tabId, url);
             if (!page)
-                return res.status(url ? 503 : 400).json({ error: url ? 'Session unavailable' : 'url required' });
+                return res.status(url ? 503 : 404).json({ error: url ? 'Session unavailable' : 'No active session for this tabId' });
             if (page.isClosed())
                 return res.status(503).json({ error: 'Session closed' });
             const buf = await page.screenshot({ quality: 70, type: 'jpeg' });
@@ -80,7 +56,7 @@ function setupScreenshotStreamRoute(app) {
         (0, proxy_route_utils_1.applyCorsHeaders)(res);
         const page = await (0, proxy_route_utils_1.resolvePage)(tabId, url);
         if (!page) {
-            res.status(url ? 503 : 400).end();
+            res.status(url ? 503 : 404).end();
             return;
         }
         res.writeHead(200, {
@@ -116,11 +92,8 @@ function setupCoordClickRoute(app) {
         try {
             const urlBefore = page.url();
             await page.mouse.click(Number(x), Number(y));
-            // Wait briefly for any navigation the click may have triggered to settle
             await page.waitForLoadState('domcontentloaded', { timeout: 2000 }).catch(() => { });
-            // Sync immediately — don't wait for the 5s periodic interval
             await (0, proxy_page_handler_1.captureAndSyncTab)(tabId);
-            // Why: save cookies immediately if click triggered a navigation (e.g. login form submit)
             if (page.url() !== urlBefore)
                 await (0, proxy_page_handler_1.saveSessionForTab)(tabId);
             return res.json({ success: true, finalUrl: page.url() });
@@ -139,7 +112,7 @@ function setupDomMapRoute(app) {
             const url = req.query.url;
             const page = await (0, proxy_route_utils_1.resolvePage)(tabId, url);
             if (!page)
-                return res.status(url ? 503 : 400).json({ error: url ? 'Session unavailable' : 'url required' });
+                return res.status(url ? 503 : 404).json({ error: url ? 'Session unavailable' : 'No active session for this tabId' });
             if (page.isClosed())
                 return res.status(503).json({ error: 'Session closed' });
             try {

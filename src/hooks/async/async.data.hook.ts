@@ -8,8 +8,8 @@
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { tryAsync } from '../core/core.error.utils';
-import { logger } from '../core/core.logger.service';
+import { tryAsync } from '../../features/core/core.error.utils';
+import { logger } from '../../features/core/core.logger.service';
 
 export interface AsyncState<T> {
   data: T | null;

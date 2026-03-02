@@ -1,6 +1,6 @@
 // Feature: Tasks | Why: Hierarchical task tree grouping — groups tasks under parent missions for tree rendering
 import { useMemo } from 'react';
-import { TaskItem, TaskStatus } from '../../features/tasks/types';
+import { TaskItem } from '../../features/tasks/types';
 import type { FilterType, SortMode } from '../../hooks/useFilteredTasks';
 import { STATUS_ORDER } from './task-filter.utils';
 

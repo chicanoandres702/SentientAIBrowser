@@ -3,7 +3,7 @@ import React from 'react';
 import { View, Text, ScrollView, StyleSheet } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { TaskItem } from '../types';
-import { Scanline } from '../../../components/Scanline';
+import { Scanline } from '@features/browser';
 import { SentinelTaskItem } from './SentinelTaskItem';
 import { styles } from './SentinelTaskQueue/SentinelTaskQueue.styles';
 

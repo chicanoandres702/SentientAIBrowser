@@ -8,7 +8,7 @@
  */
 import { useRef } from 'react';
 import { useWindowDimensions } from 'react-native';
-import { HeadlessWebViewRef } from '../../components/HeadlessWebView';
+import { HeadlessWebViewRef } from '@features/browser';
 import { useBrowserState } from '../useBrowserState';
 import { useBrowserTabs } from '../useBrowserTabs';
 import { useTaskQueue } from '../useTaskQueue';

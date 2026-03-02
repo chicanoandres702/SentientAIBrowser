@@ -1,7 +1,7 @@
 // Feature: Navigation | Why: Direct navigate endpoint — gives frontend redirect-aware results
 import { Express } from 'express';
 import { applyCorsHeaders, getUserIdFromReq } from './proxy-route.utils';
-import { activePages, getPersistentPage, closePage } from './proxy-page-handler';
+import { activePages, getPersistentPage, closePage, closeAllPagesForUser } from './proxy-page-handler';
 import { guardedNavigate, isNavLocked } from './proxy-nav-controller';
 import { db } from './proxy-config';
 
@@ -118,11 +118,28 @@ export function setupNavRoute(app: Express): void {
         applyCorsHeaders(res);
         const { tabId } = req.params;
         try {
-            closePage(tabId); // clears interval + closes page + closes context
-            // Also purge from Firestore so there is no stale doc if the client's
-            // removeTabFromFirestore call races with the last captureAndSync write
+            closePage(tabId);
             try { await db.collection('browser_tabs').doc(tabId).delete(); } catch { /* non-fatal */ }
             return res.json({ success: true, tabId });
+        } catch (e: any) {
+            return res.status(500).json({ error: e.message });
+        }
+    });
+
+    /**
+     * DELETE /proxy/close-all
+     * Body: { userId }
+     * Closes every active Playwright session for the given user, stops all sync intervals,
+     * and removes the tab docs from Firestore — called when the user exits a workspace.
+     */
+    app.options('/proxy/close-all', (_req, res) => { applyCorsHeaders(res); res.sendStatus(204); });
+    app.delete('/proxy/close-all', async (req, res): Promise<any> => {
+        applyCorsHeaders(res);
+        const userId = getUserIdFromReq(req);
+        if (!userId || userId === 'anonymous') return res.status(401).json({ error: 'userId required' });
+        try {
+            closeAllPagesForUser(userId);
+            return res.json({ success: true, message: `All sessions closed for ${userId}` });
         } catch (e: any) {
             return res.status(500).json({ error: e.message });
         }

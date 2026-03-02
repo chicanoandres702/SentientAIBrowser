@@ -1,6 +1,6 @@
 // Feature: UI | Why: Header styles — tokenized via ui.primitives
 import { StyleSheet, Platform } from 'react-native';
-import { BASE, webGlass, webInteractive, webShadow } from '../features/ui/theme/ui.primitives';
+import { BASE, webGlass, webInteractive } from '../features/ui/theme/ui.primitives';
 
 export const styles = StyleSheet.create({
   headerContainer: {

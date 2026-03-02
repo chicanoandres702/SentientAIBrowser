@@ -54,8 +54,8 @@ export const withErrorBoundary = <P extends object>(Component: React.ComponentTy
     }
 
     render() {
-      const { hasError, error } = this.state;
-      const { onError, fallback, ...componentProps } = this.props;
+      const { hasError } = this.state;
+      const { onError: _onError, fallback, ...componentProps } = this.props;
       if (hasError) {
         return <View>{fallback || <Text>Something went wrong</Text>}</View>;
       }
@@ -69,7 +69,7 @@ export interface WithLoadingProps {
   fallback?: React.ReactNode;
 }
 
-export const withLoading = <P extends object>(Component: React.ComponentType<P>, context: string = 'withLoading') => {
+export const withLoading = <P extends object>(Component: React.ComponentType<P>, _context: string = 'withLoading') => {
   return (props: P & WithLoadingProps) => {
     const { isLoading, fallback, ...componentProps } = props;
     if (isLoading) {

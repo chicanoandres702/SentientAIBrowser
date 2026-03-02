@@ -4,12 +4,14 @@
  * [Upstream] Firestore → [Downstream] Task operations
  * [Extracted From] useTaskQueue.ts to reduce complexity
  */
-import { useState, useRef, useEffect, useCallback } from 'react';
-import { TaskItem, TaskStatus } from '../tasks/types';
+import { useState, useRef, useEffect } from 'react';
+import { TaskItem } from '../tasks/types';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth } from '../auth/firebase-config';
-import { listenToTasks, syncTaskToFirestore, updateTaskInFirestore, removeTaskFromFirestore } from '../../utils/task-sync-service';
-import { areSubActionsEqual, isTaskEquivalent } from '../../hooks/task-queue.utils';
+import {
+  listenToTasks,
+} from './services';
+import { isTaskEquivalent } from '../../hooks/task-queue.utils';
 
 export const useTaskQueueState = () => {
   const [tasks, setTasks] = useState<TaskItem[]>([]);

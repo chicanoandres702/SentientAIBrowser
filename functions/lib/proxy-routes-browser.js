@@ -3,7 +3,9 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.setupBrowserRoutes = setupBrowserRoutes;
 const proxy_page_handler_1 = require("./proxy-page-handler");
 const llm_decision_engine_1 = require("./features/llm/llm-decision.engine");
+const llm_mission_planner_1 = require("./features/llm/llm-mission-planner");
 const playwright_mcp_adapter_1 = require("./playwright-mcp-adapter");
+const proxy_routes_proxy_1 = require("./proxy-routes-proxy");
 const proxy_routes_action_1 = require("./proxy-routes-action");
 const proxy_routes_agent_1 = require("./proxy-routes-agent");
 const proxy_routes_nav_1 = require("./proxy-routes-nav");
@@ -61,7 +63,10 @@ function setupBrowserRoutes(app) {
                 : prompt;
             const missionResponse = await (0, llm_decision_engine_1.determineNextAction)(userId, promptWithSchema, [], screenshotBase64, domain, [], false, undefined, ariaSnapshot, runtimeApiKey);
             if (!missionResponse) {
-                return res.status(502).json({ error: 'Mission planning failed: no response from decision engine' });
+                // Why: runtime key absent — fall back to server env-key planner so planning
+                // always returns a result even when the user hasn't set a key in Settings.
+                const fallback = await (0, llm_mission_planner_1.generateLLMPlanResponse)(promptWithSchema, schemaPrompt !== null && schemaPrompt !== void 0 ? schemaPrompt : undefined);
+                return res.json(fallback);
             }
             return res.json({ missionResponse });
         }
@@ -83,5 +88,6 @@ function setupBrowserRoutes(app) {
     (0, proxy_routes_research_1.setupDeepResearchRoutes)(app);
     (0, proxy_routes_cdp_1.setupCdpRoutes)(app);
     (0, proxy_routes_external_1.setupExternalRoutes)(app); // GET /api/render, GET /api/extract
+    (0, proxy_routes_proxy_1.setupProxyRoute)(app); // GET /proxy?url=...&tabId=... (webview relay + session sync)
 }
 //# sourceMappingURL=proxy-routes-browser.js.map

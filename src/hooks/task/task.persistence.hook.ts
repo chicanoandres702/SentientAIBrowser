@@ -10,7 +10,7 @@
 import { useEffect, useCallback } from 'react';
 import { logger } from '../../features/core/core.logger.service';
 
-export const useTaskPersistence = (tasks: Record<string, unknown>, setTasks: (t: Record<string, unknown>) => void) => {
+export const useTaskPersistence = (_tasks: Record<string, unknown>, _setTasks: (t: Record<string, unknown>) => void) => {
   const setupListener = useCallback(() => {
     logger.debug('useTaskPersistence', 'Setting up Firestore listener');
 

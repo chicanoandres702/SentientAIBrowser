@@ -9,7 +9,7 @@
 
 import { useCallback } from 'react';
 
-export const useTaskStateManagement = (tasks: Record<string, unknown>) => {
+export const useTaskStateManagement = (_tasks: Record<string, unknown>) => {
   const areSubActionsEqual = useCallback((a: unknown[], b: unknown[]): boolean => {
     if (a.length !== b.length) return false;
     return a.every((item, idx) => JSON.stringify(item) === JSON.stringify(b[idx]));

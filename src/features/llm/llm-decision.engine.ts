@@ -24,8 +24,13 @@ export interface MissionResponse {
 
 export const determineNextAction = async (
   prompt: string, domMap: any[], screenshotBase64?: string,
-  domain?: string, lookedUpDocs: any[] = [], isScholarMode: boolean = false, context?: KnowledgeContext,
+  domain?: string, lookedUpDocs: any[] = [], isScholarMode: boolean = false, context?: KnowledgeContext, runtimeGeminiApiKey?: string,
 ): Promise<MissionResponse | null> => {
+  if (!runtimeGeminiApiKey) {
+    console.error('[LLM] Runtime Gemini API key required. Set key in Settings > LLM OVERRIDE.');
+    return null;
+  }
+
   console.log('Sending DOM map to LLM. Domain:', domain, 'Scholar:', isScholarMode, 'Nodes:', domMap.length);
 
   const lessons = await getLessonsLearned(auth.currentUser?.uid || 'anonymous', prompt);
@@ -42,7 +47,7 @@ ${JSON.stringify(domMap, null, 2)}
 `;
 
   try {
-    const genAI = new GoogleGenerativeAI(process.env.EXPO_PUBLIC_GEMINI_API_KEY || '');
+    const genAI = new GoogleGenerativeAI(runtimeGeminiApiKey);
     const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
     const parts: any[] = [{ text: DECISION_SYSTEM_INSTRUCTION + '\n\n' + userPayload }];
 

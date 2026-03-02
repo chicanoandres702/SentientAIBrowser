@@ -4,7 +4,7 @@ import { View, Text, TextInput, TouchableOpacity } from 'react-native';
 import * as Animatable from 'react-native-animatable';
 import { TaskItem, TaskStatus, SubAction } from '../../features/tasks/types';
 import { styles } from './TaskQueueUI.styles';
-import { TaskProgressBar } from './TaskProgressBar';
+import { TaskProgressBar } from '@features/tasks';
 import { getElapsedTime, getStatusBadge, taskItemLocalStyles as ls, subStyles } from './TaskItemView.styles';
 
 interface Props {

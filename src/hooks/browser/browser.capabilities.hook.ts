@@ -16,7 +16,7 @@ export const useBrowserCapabilities = (state: {
   isLoading: boolean;
   setIsLoading: (loading: boolean) => void;
 }) => {
-  const { tabs, setTabs, isLoading, setIsLoading } = state;
+  const { tabs, setIsLoading } = state;
 
   const getCurrentTab = useCallback((): any => {
     return tabs[0] || null;

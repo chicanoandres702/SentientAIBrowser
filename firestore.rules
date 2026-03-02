@@ -12,6 +12,11 @@ service cloud.firestore {
       return request.auth.uid == userId;
     }
 
+    // User Settings: Each user owns their own document (keyed by uid)
+    match /users/{userId} {
+      allow read, write: if isAuthenticated() && isOwner(userId);
+    }
+
     // Survey Memory rules: Users can read all (sharing intelligence), 
     // but only write/update their own entries or increment weights.
     match /survey_memory/{document} {
@@ -35,10 +40,10 @@ service cloud.firestore {
 
     // Browser Tabs: Sync across devices
     match /browser_tabs/{document} {
-      allow read: if isAuthenticated() && isOwner(resource.data.user_id);
+      allow read: if isAuthenticated() && (resource == null || isOwner(resource.data.user_id));
       allow create: if isAuthenticated() && isOwner(request.resource.data.user_id);
       allow update: if isAuthenticated() && isOwner(resource.data.user_id) && isOwner(request.resource.data.user_id);
-      allow delete: if isAuthenticated() && isOwner(resource.data.user_id);
+      allow delete: if isAuthenticated() && (resource == null || isOwner(resource.data.user_id));
     }
 
     // Missions: Persistent AI missions

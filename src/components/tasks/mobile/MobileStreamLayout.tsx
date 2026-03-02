@@ -9,7 +9,7 @@ import { AppTheme } from '../../../../App';
 import { uiColors } from '../../../features/ui/theme/ui.theme';
 import { useHierarchicalTasks, useActiveMission, getTaskStats, SortMode, HierarchyRow } from '../task-filter.utils';
 import { MobileTaskCard } from './MobileTaskCard';
-import { m, MOBILE } from './mobile-task.styles';
+import { m } from './mobile-task.styles';
 import { BASE } from '../../../features/ui/theme/ui.primitives';
 import { streamStyles as s } from './MobileStreamLayout.styles';
 import { streamExtraStyles as sx } from './MobileStreamLayout.extra.styles';

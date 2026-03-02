@@ -5,10 +5,12 @@ exports.getPersistentPage = getPersistentPage;
 exports.closePage = closePage;
 exports.captureAndSyncTab = captureAndSyncTab;
 exports.saveSessionForTab = saveSessionForTab;
+exports.closeAllPagesForUser = closeAllPagesForUser;
 // Feature: Page Lifecycle | Trace: README.md
 const proxy_config_1 = require("./proxy-config");
 const proxy_nav_controller_1 = require("./proxy-nav-controller");
 const proxy_session_service_1 = require("./proxy-session.service");
+const proxy_cdp_service_1 = require("./proxy-cdp.service");
 // Why: block heavy binary resources that waste bandwidth and slow down Playwright.
 // Images/fonts/media are irrelevant for the LLM's ARIA snapshot + screenshot flow.
 const BLOCKED_EXTENSIONS = [
@@ -24,7 +26,27 @@ const syncIntervals = new Map();
 // Why: tombstone set — once a tab is closed, captureAndSync will never re-write its Firestore doc.
 // Fixes the race where an in-flight captureAndSync finishes after closePage clears the interval.
 const closedTabs = new Set();
+// Why: redirect-settling guard — natural redirects (JS, meta-refresh, link clicks) fire multiple
+// framenavigated events in a chain. If captureAndSync fires mid-chain it snapshots an intermediate
+// URL and writes it to Firestore, which the frontend reads as the "current" URL and re-navigates
+// to — restarting the redirect loop. We debounce: block captureAndSync for 1.5s after the last
+// framenavigated event so only the final settled URL reaches Firestore.
+const redirectingTabs = new Set();
+const redirectDebounceTimers = new Map();
 let firestoreAvailable = true;
+// Why: detect pages that require human interaction (2FA, CAPTCHA, auth challenges).
+// When on these pages we extend the redirect-debounce to 60 s so captureAndSync
+// doesn't fire mid-verification and the LLM agent knows to sit still.
+const TFA_URL_PATTERNS = [
+    '/mfa', '/2fa', '/two-factor', '/otp', '/verify',
+    '/challenge', '/checkpoint', 'totp', 'step-up',
+    '/signin/v2/challenge', 'accounts.google.com/signin',
+    'login.microsoftonline.com', 'appleid.apple.com',
+];
+const is2FAPage = (url) => {
+    const lower = url.toLowerCase();
+    return TFA_URL_PATTERNS.some(p => lower.includes(p));
+};
 // Why: Stealth headers — make Playwright look like a real Chrome user.
 // Without these, Google/Cloudflare instantly detect navigator.webdriver and show CAPTCHAs.
 const STEALTH_UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36';
@@ -65,25 +87,40 @@ async function setupRequestBlocking(page) {
 }
 async function captureAndSync(tabId, userId, page, context) {
     // Why: tombstone check — prevents an in-flight tick from re-creating a closed tab's Firestore doc
-    if (closedTabs.has(tabId))
+    if (closedTabs.has(tabId)) {
+        console.debug(`[CaptureSync] ⛔ skip tombstoned tab ${tabId}`);
         return;
-    if (!firestoreAvailable)
+    }
+    if (!firestoreAvailable) {
+        console.debug(`[CaptureSync] ⛔ skip – Firestore unavailable`);
         return;
+    }
+    // Why: skip mid-redirect — framenavigated debounce hasn't cleared yet, meaning a redirect chain
+    // is still in progress. Syncing now would snapshot an intermediate URL and create a loop where
+    // Firestore holds the wrong URL and the frontend/AI re-navigates back to it.
+    if (redirectingTabs.has(tabId)) {
+        console.debug(`[CaptureSync] ⏳ skip – tab ${tabId} still redirecting`);
+        return;
+    }
     // Why: never broadcast about:blank — prevents overwriting a real URL with a transitional blank state
     const currentUrl = page.url();
-    if (!currentUrl || currentUrl === 'about:blank' || currentUrl === 'about:newtab')
+    if (!currentUrl || currentUrl === 'about:blank' || currentUrl === 'about:newtab') {
+        console.debug(`[CaptureSync] ⛔ skip blank/newtab for ${tabId}`);
         return;
+    }
+    console.debug(`[CaptureSync] 📸 capturing tab=${tabId} url=${currentUrl}`);
     try {
         const screenshot = (await page.screenshot({ quality: 60, type: 'jpeg' })).toString('base64');
-        await proxy_config_1.db.collection('browser_tabs').doc(tabId).set(Object.assign(Object.assign({ id: tabId, screenshot: `data:image/jpeg;base64,${screenshot}`, url: page.url(), title: (await page.title()) || 'Loading...', source: 'proxy' }, (userId && userId !== 'default' ? { user_id: userId, isActive: true } : {})), { last_sync: new Date().toISOString() }), { merge: true });
+        await proxy_config_1.db.collection('browser_tabs').doc(tabId).set(Object.assign(Object.assign({ id: tabId, screenshot: `data:image/jpeg;base64,${screenshot}`, url: page.url(), title: (await page.title()) || 'Loading...', source: 'proxy' }, (userId && userId !== 'default' ? { user_id: userId } : {})), { last_sync: new Date().toISOString() }), { merge: true });
+        console.debug(`[CaptureSync] ✅ wrote tab=${tabId} url=${currentUrl} user=${userId}`);
     }
     catch (e) {
         if (e.message.includes('credentials') || e.message.includes('Could not load the default')) {
             firestoreAvailable = false;
-            console.warn(`[Proxy] Firestore sync disabled (no credentials). Screenshots available via /screenshot route.`);
+            console.warn(`[CaptureSync] ⚠️ Firestore sync disabled (no credentials). Screenshots available via /screenshot route.`);
         }
         else if (!e.message.includes('Target closed') && !e.message.includes('Execution context was destroyed')) {
-            console.error(`[Proxy] Sync failed:`, e.message);
+            console.error(`[CaptureSync] ❌ Sync failed tab=${tabId}:`, e.message);
         }
     }
 }
@@ -111,22 +148,56 @@ async function getPersistentPage(targetUrl, tabId, userId = 'default') {
         exports.activePages.set(tabId, page);
         exports.activeContexts.set(tabId, context);
         activeUserIds.set(tabId, userId);
+        // Why: buffer console.log/error from the page for CDP /cdp/console endpoint
+        (0, proxy_cdp_service_1.attachConsoleListener)(tabId, page);
         // Why: keep settledUrls current for navigations the PAGE triggers itself (JS redirects,
         // meta-refresh, CAPTCHA auto-continue) — without this the dedup check in guardedNavigate
         // stays stale and re-navigates back into a bot-check loop.
+        // Debounce: mark tab as redirecting so captureAndSync won't fire mid-chain and snapshot
+        // an intermediate URL that would cause Firestore to loop back to the wrong destination.
         page.on('framenavigated', (frame) => {
-            if (frame === page.mainFrame())
-                (0, proxy_nav_controller_1.syncSettledUrl)(tabId, frame.url());
+            if (frame !== page.mainFrame())
+                return;
+            const url = frame.url();
+            (0, proxy_nav_controller_1.syncSettledUrl)(tabId, url);
+            // Why: 2FA/auth pages require user interaction for 45s+. Holding the debounce
+            // for 60 s prevents the sync from clearing mid-verification and stops the LLM
+            // from acting on a stale mid-redirect screenshot.
+            const debounceMs = is2FAPage(url) ? 60000 : 1500;
+            const is2FA = debounceMs === 60000;
+            console.debug(`[NavEvent] framenavigated tab=${tabId} url=${url} debounce=${debounceMs}ms${is2FA ? ' ⚠️2FA-PAGE' : ''}`);
+            redirectingTabs.add(tabId);
+            const existing = redirectDebounceTimers.get(tabId);
+            if (existing)
+                clearTimeout(existing);
+            const timer = setTimeout(() => {
+                redirectingTabs.delete(tabId);
+                redirectDebounceTimers.delete(tabId);
+                // Why: immediately capture + save after debounce clears — ensures post-2FA auth cookies
+                // and the final settled URL reach Firestore right away, not at the next 5s tick.
+                const p = exports.activePages.get(tabId);
+                const ctx = exports.activeContexts.get(tabId);
+                const uid = activeUserIds.get(tabId) || 'default';
+                if (p && ctx && !closedTabs.has(tabId)) {
+                    console.debug(`[NavEvent] ✅ debounce cleared tab=${tabId} — triggering immediate capture`);
+                    captureAndSync(tabId, uid, p, ctx);
+                    if (uid !== 'default')
+                        (0, proxy_session_service_1.saveSession)(uid, ctx).catch(() => { });
+                }
+            }, debounceMs);
+            redirectDebounceTimers.set(tabId, timer);
         });
         // Why: save immediately when the server sets new cookies (login, consent, auth tokens)
         // so the session isn't lost if the container recycles before the next interval tick.
         page.on('response', (response) => {
             if (response.headers()['set-cookie']) {
+                console.debug(`[Session] 🍪 set-cookie detected on ${response.url()} — saving session for ${userId}`);
                 (0, proxy_session_service_1.saveSession)(userId, context).catch(() => { });
             }
         });
         // Why: save on every full page load — covers SPAs that update localStorage after hydration
         page.on('load', () => {
+            console.debug(`[Session] 📄 page load — saving session for ${userId} url=${page.url()}`);
             (0, proxy_session_service_1.saveSession)(userId, context).catch(() => { });
         });
         if (userId && userId !== 'default') {
@@ -136,6 +207,7 @@ async function getPersistentPage(targetUrl, tabId, userId = 'default') {
         // than the previous 20s to reduce cookie loss window on container recycle.
         let sessionTickCount = 0;
         const interval = setInterval(() => {
+            console.debug(`[Interval] tick tab=${tabId} tick#${sessionTickCount + 1} url=${page.url()}`);
             captureAndSync(tabId, userId, page, context);
             sessionTickCount++;
             if (sessionTickCount % 2 === 0)
@@ -156,11 +228,19 @@ async function getPersistentPage(targetUrl, tabId, userId = 'default') {
 }
 function closePage(id) {
     // Why: mark closed FIRST — any concurrent captureAndSync still awaiting screenshot will bail
+    console.log(`[Page] 🗑️  closing tab=${id}`);
     closedTabs.add(id);
+    (0, proxy_cdp_service_1.clearConsoleLogs)(id); // free the per-tab console buffer
     if (syncIntervals.has(id)) {
         clearInterval(syncIntervals.get(id));
         syncIntervals.delete(id);
     }
+    // Clean up redirect debounce state
+    if (redirectDebounceTimers.has(id)) {
+        clearTimeout(redirectDebounceTimers.get(id));
+        redirectDebounceTimers.delete(id);
+    }
+    redirectingTabs.delete(id);
     // Why: save session before closing so cookies survive tab close + Cloud Run recycling
     const userId = activeUserIds.get(id);
     const context = exports.activeContexts.get(id);
@@ -200,4 +280,14 @@ async function saveSessionForTab(tabId) {
 // Why: Playwright is the central command center.
 // Navigation is driven exclusively by direct API calls (POST /proxy/navigate, etc.).
 // Firestore is write-only from this process — used to broadcast state to the frontend.
+/**
+ * Close every proxy Playwright session for a given user.
+ * Called when the user explicitly exits their workspace so no orphaned containers linger.
+ */
+function closeAllPagesForUser(userId) {
+    for (const [tabId, uid] of activeUserIds.entries()) {
+        if (uid === userId)
+            closePage(tabId);
+    }
+}
 //# sourceMappingURL=proxy-page-handler.js.map

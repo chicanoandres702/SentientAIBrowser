@@ -2,8 +2,11 @@
 import { auth } from '../features/auth/firebase-config';
 import { TabItem } from '../features/workflow/workflow.types';
 import {
-    syncTabToFirestore, updateTabInFirestore, removeTabFromFirestore, batchUpdateTabs
-} from '../utils/browser-sync-service';
+  syncTabToFirestore,
+  updateTabInFirestore,
+  removeTabFromFirestore,
+  batchUpdateTabs,
+} from '@features/browser';
 
 /** Sync initial default tab to Firestore on mount */
 export const syncInitialTab = async (tab: TabItem) => {

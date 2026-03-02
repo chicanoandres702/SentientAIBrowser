@@ -17,7 +17,7 @@ interface Props {
 async function generalizeSteps(goal: string, rawSteps: string[], proxyBaseUrl: string): Promise<string[]> {
   if (!proxyBaseUrl || !auth.currentUser) return rawSteps;
   try { const token = await auth.currentUser.getIdToken(); const res = await fetch(`${proxyBaseUrl}/agent/plan`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ prompt: `Convert specific to generic: ${goal} // ${rawSteps.join(' → ')}`, tabId: 'default' }) });
-    if (!res.ok) return rawSteps; const d = await res.json(); const segs = (d?.missionResponse?.execution?.segments || []) as unknown[]; const names = segs.map((s: unknown) => (s as unknown & { name?: string }).name).filter(Boolean);
+      if (!res.ok) return rawSteps; const d = await res.json(); const segs = (d?.missionResponse?.execution?.segments || []) as unknown[]; const names = segs.map((s: unknown) => (s as unknown & { name?: string }).name).filter(Boolean) as string[];
     return names.length > 0 ? names : rawSteps; } catch { return rawSteps; }
 }
 

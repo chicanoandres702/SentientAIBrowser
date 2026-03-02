@@ -6,7 +6,7 @@
  * [Upstream] Browser state -> [Downstream] Remote mirror + mission executor
  * [Law Check] 42 lines | Passed 100-Line Law
  */
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo } from 'react';
 import { useRemoteMirror } from '../../features/remote-mirror/useRemoteMirror';
 import { sendRemoteAction } from '../../features/remote-mirror/remote-mirror.service';
 import { useMissionExecutorBridge } from '../useMissionExecutorBridge';

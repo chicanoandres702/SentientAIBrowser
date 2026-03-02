@@ -32,6 +32,11 @@ export const determineNextAction = async (
   ariaSnapshot?: string,
   apiKeyOverride?: string,
 ): Promise<MissionResponse | null> => {
+  if (!apiKeyOverride) {
+    console.error('[LLM] ❌ STAGE 3 FAIL — Runtime Gemini API key required. Must be provided in request header (x-gemini-api-key). Set key in Settings > LLM OVERRIDE.');
+    return null;
+  }
+
   console.log('Sending page state to LLM. Domain:', domain, 'Scholar:', isScholarMode, 'ARIA:', !!ariaSnapshot, 'DOM:', domMap.length);
 
   const lessons = await getLessonsLearned(userId || 'anonymous', prompt);
@@ -53,11 +58,8 @@ ${pageContext}
 `;
 
   try {
-    // Why: prefer GOOGLE_API_KEY (Cloud Run server-side), fall back to EXPO_ for compatibility.
-    const geminiKey = apiKeyOverride || process.env.GOOGLE_API_KEY || process.env.EXPO_PUBLIC_GEMINI_API_KEY || '';
-    if (!geminiKey) { console.error('[LLM] ❌ STAGE 3 FAIL — no API key in env (GOOGLE_API_KEY / EXPO_PUBLIC_GEMINI_API_KEY)'); return null; }
-    console.log(`[LLM] ✅ STAGE 3 — key present (${geminiKey.substring(0, 8)}...), calling gemini-2.5-flash`);
-    const genAI = new GoogleGenerativeAI(geminiKey);
+    console.log(`[LLM] ✅ STAGE 3 — using runtime key (${apiKeyOverride.substring(0, 8)}...), calling gemini-2.5-flash`);
+    const genAI = new GoogleGenerativeAI(apiKeyOverride);
     const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
     const parts: any[] = [{ text: DECISION_SYSTEM_INSTRUCTION + '\n\n' + userPayload }];
 

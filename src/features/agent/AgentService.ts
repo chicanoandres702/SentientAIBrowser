@@ -1,7 +1,6 @@
 // Feature: Agent | Trace: src/features/agent/trace.md
 import { db, auth } from '../auth/firebase-config';
 import { collection, addDoc, serverTimestamp, query, where, onSnapshot } from 'firebase/firestore';
-import { TaskItem, TaskStatus } from '../tasks/types';
 import { planTacticalSteps } from '../llm/llm-task-planner.engine';
 
 /**
@@ -14,12 +13,12 @@ export class AgentService {
     /**
      * Starts a new mission by planning tactical steps and syncing to Firestore.
      */
-    public static async startMission(goal: string, tabId: string): Promise<any> {
+    public static async startMission(goal: string, tabId: string, runtimeGeminiApiKey?: string): Promise<any> {
         const userId = auth.currentUser?.uid || 'anonymous';
         console.log(`[AgentService] Starting mission: ${goal}`);
 
         // 1. Plan tactical steps using the LLM (High-Fidelity)
-        const missionResponse = await planTacticalSteps(goal);
+        const missionResponse = await planTacticalSteps(goal, runtimeGeminiApiKey);
         const steps = missionResponse?.execution.segments.flatMap(s => s.steps.map(step => step.explanation)) || [goal];
 
         // 2. Create mission document

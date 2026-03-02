@@ -46,10 +46,10 @@ export const useTaskHierarchy = (tasks: Record<string, unknown>, setTasks: (t: R
 
       const nextSibling: any = getNextSibling(completedTaskId);
       if (nextSibling) {
-        setTasks((prev) => ({
-          ...prev,
-          [nextSibling.id]: { ...prev[nextSibling.id], status: 'pending' },
-        }));
+        setTasks({
+          ...tasks,
+          [nextSibling.id]: { ...(tasks[nextSibling.id] as any), status: 'pending' },
+        });
         logger.info('useTaskHierarchy', 'Advanced to next sibling', { siblingId: nextSibling.id });
       }
     },

@@ -1,13 +1,19 @@
 // Feature: Tasks | Trace: src/hooks/useTaskQueueOperations.ts
 import { useCallback } from 'react';
 import { TaskItem, TaskStatus } from '../features/tasks/types';
-import { syncTaskToFirestore, updateTaskInFirestore, removeTaskFromFirestore } from '../utils/task-sync-service';
+import { auth } from '../features/auth/firebase-config';
+import {
+  syncTaskToFirestore,
+  updateTaskInFirestore,
+  removeTaskFromFirestore,
+} from '@features/task-queue/services/task-queue.sync.service';
 
 export const useTaskQueueOperations = (isAuthenticated: boolean) => {
   const addTask = useCallback(async (title: string, missionId?: string, workflowId?: string, workspaceId?: string): Promise<TaskItem | undefined> => {
     if (!isAuthenticated) return;
     const newTask: TaskItem = {
       id: Math.random().toString(36).slice(2, 11),
+      tabId: 'default',
       title: title.trim(),
       status: 'pending' as TaskStatus,
       progress: 0,
@@ -16,7 +22,9 @@ export const useTaskQueueOperations = (isAuthenticated: boolean) => {
       workflowId,
       workspaceId,
     };
-    await syncTaskToFirestore(newTask);
+    if (auth.currentUser) {
+      await syncTaskToFirestore(newTask, auth.currentUser.uid);
+    }
     return newTask;
   }, [isAuthenticated]);
 

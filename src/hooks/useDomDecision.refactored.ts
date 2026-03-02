@@ -7,7 +7,7 @@
  */
 
 import React, { useCallback } from 'react';
-import { HeadlessWebViewRef } from '../components/HeadlessWebView';
+import { HeadlessWebViewRef } from '@features/browser';
 import { TaskItem } from '../features/tasks/types';
 import { useDecisionRouter } from './useDecisionRouter';
 import { getCurrentNonMissionTask } from './dom-decision.utils';

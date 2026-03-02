@@ -125,6 +125,60 @@
             "request": "launch",
             "runtimeExecutable": "${workspaceFolder}/debug-local-cloud.bat",
             "console": "integratedTerminal"
+        },
+
+        // ── GitHub Actions Deploy ──────────────────────────────
+        {
+            "name": "🚀 GitHub Deploy: All",
+            "type": "node",
+            "request": "launch",
+            "runtimeExecutable": "powershell",
+            "runtimeArgs": [
+                "-ExecutionPolicy", "Bypass",
+                "-File", "${workspaceFolder}/deploy-github.ps1",
+                "-Target", "all"
+            ],
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "🔥 GitHub Deploy: Hosting Only",
+            "type": "node",
+            "request": "launch",
+            "runtimeExecutable": "powershell",
+            "runtimeArgs": [
+                "-ExecutionPolicy", "Bypass",
+                "-File", "${workspaceFolder}/deploy-github.ps1",
+                "-Target", "hosting"
+            ],
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "⚡ GitHub Deploy: Functions Only",
+            "type": "node",
+            "request": "launch",
+            "runtimeExecutable": "powershell",
+            "runtimeArgs": [
+                "-ExecutionPolicy", "Bypass",
+                "-File", "${workspaceFolder}/deploy-github.ps1",
+                "-Target", "functions"
+            ],
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "☁️ GitHub Deploy: Cloud Run Only",
+            "type": "node",
+            "request": "launch",
+            "runtimeExecutable": "powershell",
+            "runtimeArgs": [
+                "-ExecutionPolicy", "Bypass",
+                "-File", "${workspaceFolder}/deploy-github.ps1",
+                "-Target", "cloudrun"
+            ],
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal"
         }
     ],
     "compounds": [

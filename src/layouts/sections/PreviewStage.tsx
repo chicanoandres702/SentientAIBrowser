@@ -3,10 +3,10 @@ import React, { Suspense, lazy } from 'react';
 import { View } from 'react-native';
 import * as Animatable from 'react-native-animatable';
 import { BrowserPreview } from '../../components/BrowserPreview';
-import { HeadlessWebView } from '../../components/HeadlessWebView';
-import { VirtualCursor } from '../../components/VirtualCursor';
-import { RemoteMirrorPreview } from '../../components/RemoteMirrorPreview';
-import { KeyboardCapture } from '../../components/KeyboardCapture';
+import { HeadlessWebView } from '../../features/browser/browser.headless-webview.component';
+import { VirtualCursor } from '@features/browser';
+import { RemoteMirrorPreview } from '@features/browser';
+import { KeyboardCapture } from '@features/browser';
 import { uiColors } from '../../features/ui/theme/ui.theme';
 import { styles } from '../../../App.styles';
 

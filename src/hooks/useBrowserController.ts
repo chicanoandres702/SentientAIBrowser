@@ -1,9 +1,9 @@
 // Feature: Core | Why: Manual browser controls — prompt execution, daemon toggle, reload
 import React from 'react';
-import { HeadlessWebViewRef } from '../components/HeadlessWebView';
+import { HeadlessWebViewRef } from '../features/browser/browser.headless-webview.component';
 import { registerBackgroundFetchAsync, unregisterBackgroundFetchAsync } from '../features/background-tasks/background-scanner.service';
 import { auth } from '../features/auth/firebase-config';
-import { getSchemaPayload } from '../utils/schema-context';
+import { getSchemaPayload } from '@features/planning';
 import { TaskItem } from '../features/tasks/types';
 import { buildMissionFromSegments } from './mission-builder';
 

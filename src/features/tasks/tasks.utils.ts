@@ -49,8 +49,9 @@ export const sortByStatus = (tasks: TaskItem[]): TaskItem[] => {
 export const groupByMission = (tasks: TaskItem[]): Map<string, TaskItem[]> => {
     const groups = new Map<string, TaskItem[]>();
     for (const task of tasks) {
-        if (!groups.has(task.missionId)) groups.set(task.missionId, []);
-        groups.get(task.missionId)!.push(task);
+        const mId = task.missionId || 'unassigned';
+        if (!groups.has(mId)) groups.set(mId, []);
+        groups.get(mId)!.push(task);
     }
     return groups;
 };

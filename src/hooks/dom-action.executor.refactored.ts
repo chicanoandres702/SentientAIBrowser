@@ -7,7 +7,7 @@
  */
 
 import React from 'react';
-import { HeadlessWebViewRef } from '../components/HeadlessWebView';
+import { HeadlessWebViewRef } from '@features/browser';
 import { normalizeStep } from '../features/dom-actions/dom-action.normalizer';
 import { executeTerminalActions } from './executeTerminalActions';
 import { executeNavigationActions } from './executeNavigationActions';
@@ -46,7 +46,7 @@ interface ActionContext {
 }
 
 export const executeDomAction = async (rawStep: unknown, ctx: ActionContext): Promise<boolean> => {
-  const step = normalizeStep(rawStep);
+  const step = normalizeStep(rawStep as any);
 
   const terminalResult = await executeTerminalActions(step, {
     setInteractiveRequest: ctx.setInteractiveRequest,
@@ -58,7 +58,7 @@ export const executeDomAction = async (rawStep: unknown, ctx: ActionContext): Pr
   if (terminalResult) return true;
 
   const navigationResult = await executeNavigationActions(step, {
-    webViewRef: ctx.webViewRef,
+    webViewRef: ctx.webViewRef as any,
     navigateActiveTab: ctx.navigateActiveTab,
     setActiveUrl: ctx.setActiveUrl,
     setStatusMessage: ctx.setStatusMessage,
@@ -66,7 +66,7 @@ export const executeDomAction = async (rawStep: unknown, ctx: ActionContext): Pr
   if (navigationResult) return true;
 
   const interactiveResult = await executeInteractiveActions(step, {
-    webViewRef: ctx.webViewRef,
+    webViewRef: ctx.webViewRef as any,
     setStatusMessage: ctx.setStatusMessage,
     cursorActions: ctx.cursorActions,
     remoteActions: ctx.remoteActions,

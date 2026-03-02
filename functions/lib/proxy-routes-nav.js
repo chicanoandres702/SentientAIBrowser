@@ -118,14 +118,32 @@ function setupNavRoute(app) {
         (0, proxy_route_utils_1.applyCorsHeaders)(res);
         const { tabId } = req.params;
         try {
-            (0, proxy_page_handler_1.closePage)(tabId); // clears interval + closes page + closes context
-            // Also purge from Firestore so there is no stale doc if the client's
-            // removeTabFromFirestore call races with the last captureAndSync write
+            (0, proxy_page_handler_1.closePage)(tabId);
             try {
                 await proxy_config_1.db.collection('browser_tabs').doc(tabId).delete();
             }
             catch ( /* non-fatal */_a) { /* non-fatal */ }
             return res.json({ success: true, tabId });
+        }
+        catch (e) {
+            return res.status(500).json({ error: e.message });
+        }
+    });
+    /**
+     * DELETE /proxy/close-all
+     * Body: { userId }
+     * Closes every active Playwright session for the given user, stops all sync intervals,
+     * and removes the tab docs from Firestore — called when the user exits a workspace.
+     */
+    app.options('/proxy/close-all', (_req, res) => { (0, proxy_route_utils_1.applyCorsHeaders)(res); res.sendStatus(204); });
+    app.delete('/proxy/close-all', async (req, res) => {
+        (0, proxy_route_utils_1.applyCorsHeaders)(res);
+        const userId = (0, proxy_route_utils_1.getUserIdFromReq)(req);
+        if (!userId || userId === 'anonymous')
+            return res.status(401).json({ error: 'userId required' });
+        try {
+            (0, proxy_page_handler_1.closeAllPagesForUser)(userId);
+            return res.json({ success: true, message: `All sessions closed for ${userId}` });
         }
         catch (e) {
             return res.status(500).json({ error: e.message });

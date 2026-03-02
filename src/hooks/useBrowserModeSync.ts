@@ -1,6 +1,6 @@
 // Feature: Core | Trace: README.md
 import { useEffect } from 'react';
-import { detectModeFromUrl } from '../utils/mode-detector';
+import { detectModeFromUrl } from '@features/missions/missions.mode-detector.service';
 
 export const useBrowserModeSync = (
     activeUrl: string,

@@ -37,6 +37,9 @@ exports.setupCdpRoutes = setupCdpRoutes;
 const http = __importStar(require("http"));
 const proxy_config_1 = require("./proxy-config");
 const proxy_route_utils_1 = require("./proxy-route.utils");
+const proxy_page_handler_1 = require("./proxy-page-handler");
+const proxy_cdp_service_1 = require("./proxy-cdp.service");
+const proxy_page_handler_2 = require("./proxy-page-handler");
 const CDP_BASE = `http://127.0.0.1:${proxy_config_1.REMOTE_DEBUGGING_PORT}`;
 /** Proxy a local CDP HTTP endpoint and return its JSON.
  *  Calls getBrowser() first so Chrome is guaranteed to be running. */
@@ -129,6 +132,48 @@ function setupCdpRoutes(app) {
         }
         catch (e) {
             res.status(503).json({ error: e.message });
+        }
+    });
+    /**
+     * GET /cdp/cookies/:tabId
+     * Returns all cookies for the given tab's browser context.
+     * Use this to inspect and debug session cookies (incl. HttpOnly) after login / 2FA.
+     */
+    app.get('/cdp/cookies/:tabId', async (req, res) => {
+        (0, proxy_route_utils_1.applyCorsHeaders)(res);
+        const { tabId } = req.params;
+        const page = proxy_page_handler_1.activePages.get(tabId);
+        if (!page)
+            return res.status(404).json({ error: 'Tab not found', tabId });
+        const cookies = await (0, proxy_cdp_service_1.getTabCookies)(page);
+        return res.json({ tabId, count: cookies.length, cookies });
+    });
+    /**
+     * GET /cdp/console/:tabId
+     * Drains and returns buffered console.log/error/warn entries for a tab.
+     * Useful for debugging AI agent decisions and site-side errors live.
+     */
+    app.get('/cdp/console/:tabId', (req, res) => {
+        (0, proxy_route_utils_1.applyCorsHeaders)(res);
+        const { tabId } = req.params;
+        const logs = (0, proxy_cdp_service_1.drainConsoleLogs)(tabId);
+        return res.json({ tabId, count: logs.length, logs });
+    });
+    /**
+     * POST /cdp/session/save
+     * Body: { tabId }
+     * Force-persists the current browser session (cookies + localStorage) to Firestore.
+     * Call this right after manually completing 2FA / login so the session survives restarts.
+     */
+    app.post('/cdp/session/save', async (req, res) => {
+        (0, proxy_route_utils_1.applyCorsHeaders)(res);
+        const { tabId = 'default' } = req.body || {};
+        try {
+            await (0, proxy_page_handler_2.saveSessionForTab)(tabId);
+            return res.json({ success: true, tabId, message: 'Session saved to all 3 tiers' });
+        }
+        catch (e) {
+            return res.status(500).json({ error: e.message });
         }
     });
 }

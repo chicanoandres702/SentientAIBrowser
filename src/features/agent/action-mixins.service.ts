@@ -1,7 +1,7 @@
 // Feature: Agent | Why: Register core browser actions into the action registry — web-ui-1's Mixin pattern
 // Separated from registry to keep each file focused and under 100 lines
 
-import { actionRegistry, ActionParams, ActionResult } from './action-registry.service';
+import { actionRegistry, ActionResult } from './action-registry.service';
 
 /** Navigation actions — from web-ui-1's NavigationActionsMixin */
 export const registerNavigationActions = (): void => {
