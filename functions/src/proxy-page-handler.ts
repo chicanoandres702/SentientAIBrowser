@@ -1,7 +1,7 @@
 // Feature: Page Lifecycle | Trace: README.md
 import { getBrowser, db, isCdpMode } from './proxy-config';
 import { Page, BrowserContext } from 'playwright';
-import { guardedNavigate, syncSettledUrl } from './proxy-nav-controller';
+import { guardedNavigate, syncSettledUrl, isAuthWallUrl } from './proxy-nav-controller';
 import { loadSession, saveSession, sessionFilePath } from './proxy-session.service';
 import { attachConsoleListener, clearConsoleLogs } from './proxy-cdp.service';
 import { attachUrlWatcher, clearUrlWatcher } from './proxy-url-watcher';
@@ -43,9 +43,10 @@ const redirectingTabs = new Set<string>();
 const redirectDebounceTimers = new Map<string, ReturnType<typeof setTimeout>>();
 let firestoreAvailable = true;
 
-// Why: detect pages that require human interaction (2FA, CAPTCHA, auth challenges).
+// Why: detect pages that require human interaction (2FA, CAPTCHA, SAML, auth challenges).
 // When on these pages we extend the redirect-debounce to 60 s so captureAndSync
 // doesn't fire mid-verification and the LLM agent knows to sit still.
+// Uses isAuthWallUrl from proxy-nav-controller to stay consistent with the executor's guard.
 const TFA_URL_PATTERNS = [
     '/mfa', '/2fa', '/two-factor', '/otp', '/verify',
     '/challenge', '/checkpoint', 'totp', 'step-up',
@@ -54,7 +55,7 @@ const TFA_URL_PATTERNS = [
 ];
 const is2FAPage = (url: string): boolean => {
     const lower = url.toLowerCase();
-    return TFA_URL_PATTERNS.some(p => lower.includes(p));
+    return isAuthWallUrl(url) || TFA_URL_PATTERNS.some(p => lower.includes(p));
 };
 
 // Why: Stealth headers — make Playwright look like a real Chrome user.
@@ -106,7 +107,14 @@ async function captureAndSync(tabId: string, userId: string, page: Page, context
   // Why: never broadcast about:blank — prevents overwriting a real URL with a transitional blank state
   const currentUrl = page.url();
   if (!currentUrl || currentUrl === 'about:blank' || currentUrl === 'about:newtab') { console.debug(`[CaptureSync] ⛔ skip blank/newtab for ${tabId}`); return; }
-  console.debug(`[CaptureSync] 📸 capturing tab=${tabId} url=${currentUrl}`);
+  // Why: auth-wall URLs (SAML, OAuth, MFA) contain expiring tokens that must never be
+  // persisted to Firestore. If written, the frontend Firestore listener updates missions.tabUrl
+  // to the SAML URL → processMissionStep reads it back → getPersistentPage skips re-nav
+  // (exact URL match) → isAuthWallUrl fires indefinitely → permanent deadlock.
+  // We still broadcast WS so the frontend shows the live screenshot, but we do NOT write to
+  // browser_tabs so the last good URL is preserved in Firestore.
+  const isAuthWall = isAuthWallUrl(currentUrl);
+  console.debug(`[CaptureSync] 📸 capturing tab=${tabId} url=${currentUrl}${isAuthWall ? ' ⚠️AUTH-WALL (Firestore write suppressed)' : ''}`);
   try {
     const screenshot = (await page.screenshot({ quality: 60, type: 'jpeg' })).toString('base64');
     const title = (await page.title()) || 'Loading...';
@@ -115,6 +123,12 @@ async function captureAndSync(tabId: string, userId: string, page: Page, context
     // which eliminates the redirect-echo loop that previously caused AI re-navigation loops.
     broadcastTabSync(tabId, { type: 'url',        tabId, url: currentUrl,                   title });
     broadcastTabSync(tabId, { type: 'screenshot', tabId, data: `data:image/jpeg;base64,${screenshot}`, url: currentUrl });
+    // Why: skip Firestore write for auth-wall URLs — prevents expiring SAML tokens from
+    // propagating to missions.tabUrl and creating a deadlock on resume.
+    if (isAuthWall) {
+      console.debug(`[CaptureSync] ⛔ skipped Firestore write for auth-wall url=${currentUrl}`);
+      return;
+    }
     await db.collection('browser_tabs').doc(tabId).set({
       id: tabId,
       screenshot: `data:image/jpeg;base64,${screenshot}`,
