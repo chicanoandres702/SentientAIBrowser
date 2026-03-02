@@ -55,10 +55,13 @@ export const runCloudDecision = async (args: CloudDecisionArgs): Promise<void> =
         console.log(`[CloudDecision] ✅ response ${res.status} in ${Date.now() - fetchStart}ms action=${decision?.execution?.action ?? decision?.action ?? 'none'} hasExecution=${!!decision.execution}`);
         // Why: check AFTER the await — user may have paused while fetch was in flight
         if (pauseRef?.current) { console.debug('[CloudDecision] ⏸️  paused after fetch — aborting'); setStatusMessage('Paused'); setIsThinking(false); return; }
-        if (applyLoginGate(decision, setStatusMessage, setIsPaused, setBlockedReason, setIsBlockedModalVisible)) {
-            // Why: reaching a login/auth-wall page IS the successful outcome of a navigate task.
-            // Without this, the task stays stuck in_progress forever because applyLoginGate
-            // returns early before updateTask is ever called (e.g. campus.capella.edu → SSO page).
+        // Why: only apply the login gate when the LLM has NO execution plan.
+        // If decision.execution is also present, the LLM already knows what to do on this
+        // page (e.g. fill credentials, click sign in) — pausing would break that flow.
+        // We only hard-stop when isLoginPage:true + no plan, meaning human MFA/CAPTCHA needed.
+        const isLoginBlock = decision?.isLoginPage && !decision.execution;
+        if (isLoginBlock && applyLoginGate(decision, setStatusMessage, setIsPaused, setBlockedReason, setIsBlockedModalVisible)) {
+            // Why: reaching an auth wall IS the successful outcome of a navigate task.
             if (currentTask) {
                 const isNavTask =
                     currentTask.title.toLowerCase().includes('navigate') ||
