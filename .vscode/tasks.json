@@ -1,4 +1,4 @@
-{
+﻿{
     "version": "2.0.0",
     "tasks": [
         {
@@ -97,7 +97,7 @@
             }
         },
         {
-            "label": "🔍 Validate Sentient Code (Watch)",
+            "label": "ðŸ” Validate Sentient Code (Watch)",
             "type": "shell",
             "command": "node",
             "args": ["validate-sentient-code.js"],
@@ -128,7 +128,7 @@
             }
         },
         {
-            "label": "🔄 Sync GitHub Tree (Watch)",
+            "label": "ðŸ”„ Sync GitHub Tree (Watch)",
             "type": "shell",
             "command": "node",
             "args": ["sync-gh-tree.js"],
@@ -159,7 +159,7 @@
             }
         },
         {
-            "label": "🎼 Orchestrator Service (Watch)",
+            "label": "ðŸŽ¼ Orchestrator Service (Watch)",
             "type": "shell",
             "command": "node",
             "args": ["orchestrator.service.js"],
@@ -190,22 +190,22 @@
             }
         },
 
-        // ── IAM: grant Firebase Admin SDK service account the roles needed for CI deploy ──
+        // â”€â”€ IAM: grant Firebase Admin SDK service account the roles needed for CI deploy â”€â”€
         {
-            "label": "🔑 Fix IAM: Grant Firebase SA deploy roles",
+            "label": "ðŸ”‘ Fix IAM: Grant Firebase SA deploy roles",
             "type": "shell",
             "command": "powershell",
             "args": [
                 "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command",
-                "$SA='firebase-adminsdk-fbsvc@sentient-ai-browser.iam.gserviceaccount.com'; $P='sentient-ai-browser'; $CSA='184717935920-compute@developer.gserviceaccount.com'; @('roles/serviceusage.serviceUsageConsumer','roles/firebaserules.admin','roles/datastore.indexAdmin','roles/run.admin','roles/storage.admin') | ForEach-Object { Write-Host \"Granting $_ on project...\"; gcloud projects add-iam-policy-binding $P --member=serviceAccount:$SA --role=$_ --quiet 2>&1 | Select-String 'Updated IAM|ERROR' }; Write-Host 'Granting iam.serviceAccountUser on compute SA (required for Cloud Run)...'; gcloud iam service-accounts add-iam-policy-binding $CSA --project=$P --member=serviceAccount:$SA --role=roles/iam.serviceAccountUser --quiet 2>&1 | Select-String 'Updated IAM|ERROR'; Write-Host 'Done. Allow ~60s for propagation.'"
+                "$SA='firebase-adminsdk-fbsvc@sentient-ai-browser.iam.gserviceaccount.com'; $P='sentient-ai-browser'; $CSA='184717935920-compute@developer.gserviceaccount.com'; @('roles/serviceusage.serviceUsageConsumer','roles/firebaserules.admin','roles/datastore.indexAdmin','roles/run.admin','roles/storage.admin','roles/artifactregistry.writer') | ForEach-Object { Write-Host \"Granting $_ on project...\"; gcloud projects add-iam-policy-binding $P --member=serviceAccount:$SA --role=$_ --quiet 2>&1 | Select-String 'Updated IAM|ERROR' }; Write-Host 'Granting iam.serviceAccountUser on compute SA (required for Cloud Run)...'; gcloud iam service-accounts add-iam-policy-binding $CSA --project=$P --member=serviceAccount:$SA --role=roles/iam.serviceAccountUser --quiet 2>&1 | Select-String 'Updated IAM|ERROR'; Write-Host 'Done. Allow ~60s for propagation.'"
             ],
             "problemMatcher": [],
             "presentation": { "reveal": "always", "panel": "dedicated", "clear": true }
         },
 
-        // ── Deploy: trigger GitHub Actions workflow ─────────────────────────
+        // â”€â”€ Deploy: trigger GitHub Actions workflow â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         {
-            "label": "🚀 Deploy All (Firebase + Cloud Run)",
+            "label": "ðŸš€ Deploy All (Firebase + Cloud Run)",
             "type": "shell",
             "command": "powershell",
             "args": [
@@ -218,7 +218,7 @@
             "group": { "kind": "build", "isDefault": false }
         },
         {
-            "label": "☁️  Deploy Cloud Run only",
+            "label": "â˜ï¸  Deploy Cloud Run only",
             "type": "shell",
             "command": "powershell",
             "args": [
@@ -230,7 +230,7 @@
             "presentation": { "reveal": "always", "panel": "dedicated", "clear": true }
         },
         {
-            "label": "🔥 Deploy Firestore Rules only",
+            "label": "ðŸ”¥ Deploy Firestore Rules only",
             "type": "shell",
             "command": "powershell",
             "args": [
@@ -243,18 +243,18 @@
         },
         // Compound: grant missing IAM roles first, then full deploy
         {
-            "label": "🔑+🚀 Fix IAM then Deploy All",
+            "label": "ðŸ”‘+ðŸš€ Fix IAM then Deploy All",
             "dependsOrder": "sequence",
             "dependsOn": [
-                "🔑 Fix IAM: Grant Firebase SA deploy roles",
-                "🚀 Deploy All (Firebase + Cloud Run)"
+                "ðŸ”‘ Fix IAM: Grant Firebase SA deploy roles",
+                "ðŸš€ Deploy All (Firebase + Cloud Run)"
             ],
             "problemMatcher": []
         },
 
-        // ── Direct deploy tasks (no GitHub Actions) ──────────────────────
+        // â”€â”€ Direct deploy tasks (no GitHub Actions) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         {
-            "label": "🚀 Direct Deploy: All (Firebase + Cloud Run)",
+            "label": "ðŸš€ Direct Deploy: All (Firebase + Cloud Run)",
             "type": "shell",
             "command": "powershell",
             "args": ["-ExecutionPolicy","Bypass","-File","${workspaceFolder}/deploy-direct.ps1","-Target","all"],
@@ -262,7 +262,7 @@
             "presentation": { "reveal": "always", "panel": "dedicated", "clear": true }
         },
         {
-            "label": "☁️  Direct Deploy: Cloud Run only",
+            "label": "â˜ï¸  Direct Deploy: Cloud Run only",
             "type": "shell",
             "command": "powershell",
             "args": ["-ExecutionPolicy","Bypass","-File","${workspaceFolder}/deploy-direct.ps1","-Target","cloudrun"],
@@ -270,7 +270,7 @@
             "presentation": { "reveal": "always", "panel": "dedicated", "clear": true }
         },
         {
-            "label": "🔥 Direct Deploy: Firestore Rules only",
+            "label": "ðŸ”¥ Direct Deploy: Firestore Rules only",
             "type": "shell",
             "command": "powershell",
             "args": ["-ExecutionPolicy","Bypass","-File","${workspaceFolder}/deploy-direct.ps1","-Target","rules"],
@@ -278,7 +278,7 @@
             "presentation": { "reveal": "always", "panel": "dedicated", "clear": true }
         },
         {
-            "label": "☁️  Direct Deploy: Cloud Run (skip TS build)",
+            "label": "â˜ï¸  Direct Deploy: Cloud Run (skip TS build)",
             "type": "shell",
             "command": "powershell",
             "args": ["-ExecutionPolicy","Bypass","-File","${workspaceFolder}/deploy-direct.ps1","-Target","cloudrun","-SkipBuild"],
