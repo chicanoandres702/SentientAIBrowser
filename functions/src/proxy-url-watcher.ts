@@ -76,6 +76,25 @@ export async function attachUrlWatcher(page: Page, tabId: string, userId: string
         // without relying on a separate framenavigated handler.
         window.addEventListener('DOMContentLoaded', notify, { once: true });
     })();`);
+
+    // Why: addInitScript only runs on FUTURE navigations. When attaching to an existing
+    // page (CDP mode with a real already-loaded Chrome tab), the init script never runs
+    // on the current document. Evaluate the patch directly so we get the current URL
+    // immediately and pushState/replaceState are hooked right now — no reload required.
+    await page.evaluate(`(function () {
+        if (window.__pwUrlSyncPatched) return;
+        window.__pwUrlSyncPatched = true;
+        function notify() {
+            if (typeof __pwUrlSync === 'function') __pwUrlSync(location.href);
+        }
+        var _push = history.pushState.bind(history);
+        var _replace = history.replaceState.bind(history);
+        history.pushState = function() { _push.apply(history, arguments); notify(); };
+        history.replaceState = function() { _replace.apply(history, arguments); notify(); };
+        window.addEventListener('hashchange', notify);
+        window.addEventListener('popstate', notify);
+        notify(); // push current URL to Firestore immediately
+    })();`).catch(() => {}); // swallow if context not ready yet (about:blank, crashed tabs)
 }
 
 /** Remove watcher state when a tab is closed — prevents memory leak on long-running containers. */
