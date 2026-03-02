@@ -16,8 +16,9 @@ export interface TabCleanupDeps {
 export const useTabCleanup = ({ removeTabTasks, closeTab, PROXY_BASE_URL, tasks }: TabCleanupDeps) => {
   const closeTabWithCleanup = useCallback(
     async (id: string) => {
-      // Cancel any running missions on this tab
-      const missionTasksForTab = tasks.filter((t) => t.isMission && t.tabId === id);
+      // Why: only cancel mission tasks scoped to THIS tab (no workflowId).
+      // Workflow-scoped missions survive tab closure so other tabs in the workflow can continue.
+      const missionTasksForTab = tasks.filter((t) => t.isMission && t.tabId === id && !t.workflowId);
       if (missionTasksForTab.length > 0) {
         try {
           const { doc: fsDoc, updateDoc: fsUpdate } = await import('firebase/firestore');

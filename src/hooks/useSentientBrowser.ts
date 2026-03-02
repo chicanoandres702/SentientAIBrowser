@@ -35,7 +35,10 @@ export const useSentientBrowser = (_theme?: unknown) => {
   const prevTaskStatuses = useRef<Record<string, string>>({});
   useEffect(() => {
     const prev = prevTaskStatuses.current;
-    const anyJustCompleted = cap.tasks.some(t => !t.isMission && t.status === 'completed' && prev[t.id] !== 'completed');
+    // Why: !t.missionId guard — mission CHILD tasks are !isMission but DO have missionId.
+    // Without this, every backend mission step completing fires reassess() and injects
+    // new standalone tasks mid-mission, causing the queue to fight itself and appear stuck.
+    const anyJustCompleted = cap.tasks.some(t => !t.isMission && !t.missionId && t.status === 'completed' && prev[t.id] !== 'completed');
     prevTaskStatuses.current = Object.fromEntries(cap.tasks.map(t => [t.id, t.status]));
     if (anyJustCompleted) reassess();
   }, [cap.tasks, reassess]);
@@ -57,6 +60,13 @@ export const useSentientBrowser = (_theme?: unknown) => {
     for (const tab of cap.tabs) await closeTabWithCleanup(tab.id).catch(() => {});
   }, [cap.s.PROXY_BASE_URL, cap.tabs, closeTabWithCleanup]);
 
+  // Why: removing a workflow also purges all missions/tasks scoped to it so the sidebar
+  // doesn't show orphaned mission cards from a deleted workflow.
+  const removeWorkflow = useCallback((id: string) => {
+    cap.removeWorkflowTasks(id).catch(() => {});
+    cap.removeWorkflow(id);
+  }, [cap.removeWorkflowTasks, cap.removeWorkflow]); // eslint-disable-line react-hooks/exhaustive-deps
+
   return {
     ...cap.s,
     tabs: cap.tabs,
@@ -76,7 +86,7 @@ export const useSentientBrowser = (_theme?: unknown) => {
     activeWorkflowId: cap.activeWorkflowId,
     selectWorkflow: cap.selectWorkflow,
     renameWorkflow: cap.renameWorkflow,
-    removeWorkflow: cap.removeWorkflow,
+    removeWorkflow,
     createWorkspaceTab: cap.createWorkspaceTab,
     addTabToWorkflow: cap.addTabToWorkflow,
     webViewUrl,
@@ -94,7 +104,7 @@ export const useSentientBrowser = (_theme?: unknown) => {
     handleExecutePrompt: async (p: string) => {
       const seedUrl = cap.activeUrl || 'about:blank';
       const newTabId = await cap.addNewTab(seedUrl, 'Mission');
-      return handleExecutePrompt(p, newTabId, auth.currentUser?.uid || 'anonymous', cap.s.useConfirmerAgent ?? true, seedUrl);
+      return handleExecutePrompt(p, newTabId, auth.currentUser?.uid || 'anonymous', cap.s.useConfirmerAgent ?? true, seedUrl, cap.activeWorkflowId);
     },
     toggleDaemon,
     handleInteractiveResponse,

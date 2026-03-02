@@ -21,9 +21,13 @@ export const SidebarContent: React.FC<{ s: any; theme: any }> = ({ s, theme }) =
             onNewTab={() => s.addNewTab('about:blank')}
             theme={theme}
         />
-        <TaskQueueUI tasks={s.tasks} theme={theme} addTask={s.addTask} removeTask={s.removeTask} clearTasks={s.clearTasks} editTask={s.editTask}
+        <TaskQueueUI
+            tasks={s.activeWorkflowId
+                ? s.tasks.filter((t: any) => t.workflowId === s.activeWorkflowId || (!t.workflowId && t.tabId === s.activeTabId))
+                : s.tasks}
+            theme={theme} addTask={s.addTask} removeTask={s.removeTask} clearTasks={s.clearTasks} editTask={s.editTask}
             isPaused={s.isPaused} onPause={() => s.setIsPaused(true)} onResume={() => s.setIsPaused(false)}
-            onActivateTask={(id) => s.updateTask(id, 'in_progress')}
+            onActivateTask={(id: string) => s.updateTask(id, 'in_progress')}
             reorderMissions={s.reorderMissions} proxyBaseUrl={s.PROXY_BASE_URL}
             onCloseMission={s.closeMission} activeTabId={s.activeTabId} />
         <PromptInterface onExecutePrompt={s.handleExecutePrompt} theme={theme} />
@@ -75,8 +79,11 @@ export const LayoutSidebar: React.FC<SidebarProps> = ({
 
 export const MobileSidebar: React.FC<{ s: any; theme: any }> = ({ s, theme }) => {
     const colors = uiColors(theme);
-    // Filter tasks to only show those for the active tab/workflow
-    const filteredTasks = s.activeTabId ? s.tasks.filter((t: any) => t.tabId === s.activeTabId) : s.tasks;
+    // Why: show tasks for the whole active workflow, not just the single active tab.
+    // Falls back to all tasks if no workflowId is set (legacy tasks before this change).
+    const filteredTasks = s.activeWorkflowId
+        ? s.tasks.filter((t: any) => t.workflowId === s.activeWorkflowId || (!t.workflowId && t.tabId === s.activeTabId))
+        : s.tasks;
 
     return (
         <View style={[appStyles.mobileSidebarOverlay, { backgroundColor: colors.bg }]}>

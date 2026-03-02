@@ -5,6 +5,7 @@ import { guardedNavigate, syncSettledUrl } from './proxy-nav-controller';
 import { loadSession, saveSession, sessionFilePath } from './proxy-session.service';
 import { attachConsoleListener, clearConsoleLogs } from './proxy-cdp.service';
 import { attachUrlWatcher, clearUrlWatcher } from './proxy-url-watcher';
+import { broadcastTabSync, setFrameProvider } from './proxy-tab-sync.broker';
 
 // Why: block heavy binary resources that waste bandwidth and slow down Playwright.
 // Images/fonts/media are irrelevant for the LLM's ARIA snapshot + screenshot flow.
@@ -17,6 +18,17 @@ export const activeContexts = new Map<string, BrowserContext>();
 export const activePages = new Map<string, Page>();
 // Why: track userId per tab so closePage and captureAndSyncTab can save/restore the right session
 const activeUserIds = new Map<string, string>();
+
+// Why: register a frame getter with the broker so it can drive the 5fps streaming interval
+// without needing to import proxy-page-handler (which would create a circular dep).
+setFrameProvider(async (tabId) => {
+    const page = activePages.get(tabId);
+    if (!page || page.isClosed()) return null;
+    try {
+        const buf = await page.screenshot({ quality: 60, type: 'jpeg' });
+        return { data: `data:image/jpeg;base64,${buf.toString('base64')}`, url: page.url() };
+    } catch { return null; }
+});
 // Why: store interval IDs so closePage can clear them — prevents ghost re-creation of closed tabs
 const syncIntervals = new Map<string, ReturnType<typeof setInterval>>();
 // Why: tombstone set — once a tab is closed, captureAndSync will never re-write its Firestore doc.
@@ -97,14 +109,17 @@ async function captureAndSync(tabId: string, userId: string, page: Page, context
   console.debug(`[CaptureSync] 📸 capturing tab=${tabId} url=${currentUrl}`);
   try {
     const screenshot = (await page.screenshot({ quality: 60, type: 'jpeg' })).toString('base64');
+    const title = (await page.title()) || 'Loading...';
+    // Why: WebSocket broadcast reaches the client in <10ms — server is the URL authority.
+    // The client updates the address bar from this event WITHOUT writing back to Firestore,
+    // which eliminates the redirect-echo loop that previously caused AI re-navigation loops.
+    broadcastTabSync(tabId, { type: 'url',        tabId, url: currentUrl,                   title });
+    broadcastTabSync(tabId, { type: 'screenshot', tabId, data: `data:image/jpeg;base64,${screenshot}`, url: currentUrl });
     await db.collection('browser_tabs').doc(tabId).set({
-      id: tabId,  // Why: listenToTabs maps data.id — must match the doc ID for address bar updates
+      id: tabId,
       screenshot: `data:image/jpeg;base64,${screenshot}`,
-      url: page.url(), title: (await page.title()) || 'Loading...',
-      source: 'proxy', // Why: signals the listener to skip — breaks self-echo loop
-      // Why: user_id is needed so listenToTabs WHERE user_id=={uid} returns this tab.
-      // isActive is intentionally OMITTED — only the frontend sets it.
-      // Proxy writing isActive:true on every sync caused the wrong tab to appear as active.
+      url: currentUrl, title,
+      source: 'proxy',
       ...(userId && userId !== 'default' ? { user_id: userId } : {}),
       last_sync: new Date().toISOString()
     }, { merge: true });

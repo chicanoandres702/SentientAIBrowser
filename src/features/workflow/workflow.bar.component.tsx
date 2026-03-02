@@ -29,7 +29,7 @@ export const WorkflowBar: React.FC<Props> = React.memo(({ workflows, onSelectWor
   const startRename = (wf: Workflow) => { setEditingId(wf.id); setEditName(wf.name); };
   const commitRename = () => { if (editingId) onRenameWorkflow(editingId, editName); setEditingId(null); };
   return (
-    <View style={[wbs.bar, { borderBottomColor: colors.border, backgroundColor: colors.surface ?? colors.bg }]}>
+    <View style={[wbs.bar, { borderBottomColor: colors.border, backgroundColor: colors.bgSurface ?? colors.bg }]}>
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -40,7 +40,7 @@ export const WorkflowBar: React.FC<Props> = React.memo(({ workflows, onSelectWor
             key={wf.id}
             style={[
               wbs.pill,
-              { borderColor: wf.isActive ? colors.accent + '70' : colors.border, backgroundColor: wf.isActive ? colors.accent + '15' : colors.inputBg ?? colors.bg },
+              { borderColor: wf.isActive ? colors.accent + '70' : colors.border, backgroundColor: wf.isActive ? colors.accent + '15' : colors.panel ?? colors.bg },
             ]}
             onPress={() => onSelectWorkflow(wf.id)}
             activeOpacity={0.75}

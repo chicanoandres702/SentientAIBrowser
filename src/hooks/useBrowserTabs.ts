@@ -119,5 +119,17 @@ export const useBrowserTabs = (initialUrl: string) => {
         }, NAV_DEBOUNCE_MS);
     }, [activeTabId]);
 
-    return { tabs, setTabs, activeTabId, activeUrl, setActiveUrl, navigateActiveTab, addNewTab, closeTab, selectTab };
+    // Why: WebSocket-sourced update from the server (server is URL authority).
+    // Does NOT call syncNavigate — avoids writing the URL back to Firestore which would
+    // create the redirect-echo loop (server writes → Firestore → client reads → re-navigates).
+    const applyServerSync = useCallback((syncTabId: string, url: string, title: string) => {
+        if (!url || url === 'about:blank' || url === 'about:newtab') return;
+        // Block the next Firestore onSnapshot from overwriting this WS-sourced state.
+        isSyncingRef.current = true;
+        setTabs(prev => prev.map(t => t.id === syncTabId ? { ...t, url, title: title || deriveTitleFromUrl(url) } : t));
+        if (syncTabId === activeTabId) setActiveUrl(prev => prev === url ? prev : url);
+        setTimeout(() => { isSyncingRef.current = false; }, 800);
+    }, [activeTabId]);
+
+    return { tabs, setTabs, activeTabId, activeUrl, setActiveUrl, navigateActiveTab, addNewTab, closeTab, selectTab, applyServerSync };
 };

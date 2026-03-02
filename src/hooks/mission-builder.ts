@@ -26,6 +26,7 @@ export const buildMissionFromSegments = async (
     runIdOverride: string | null,
     deps: MissionBuilderDeps,
     tabUrl?: string,
+    workflowId?: string,
 ) => {
     const ACTION_DURATION_MS = 15000;
     const MISSION_SCHEMA_VERSION = 2;
@@ -33,7 +34,9 @@ export const buildMissionFromSegments = async (
     const segments = missionResponse.execution.segments;
     const missionId = `${now}_${Math.random().toString(36).slice(2, 8)}`;
     const runId = runIdOverride || `run_${now}_${Math.random().toString(36).slice(2, 8)}`;
-    const workflowId = tabId;
+    // Why: workflowId scopes the mission to the whole workflow (all tabs), not just the tab
+    // that triggered execution. This lets any tab in the workflow advance the same mission.
+    const resolvedWorkflowId = workflowId || tabId;
     const workspaceId = auth.currentUser?.uid || 'anonymous';
 
     const missionCardTitle = buildMissionHeaderTitle(prompt, segments?.[0]?.name);
@@ -41,7 +44,7 @@ export const buildMissionFromSegments = async (
     // Top-level mission card (pinned header)
     await deps.addTask(missionCardTitle, 'in_progress', `${segments.length} tasks planned`, {
         id: missionId, isMission: true, missionId, progress: 0,
-        runId, tabId, workflowId, workspaceId, order: 0, source: 'planner', startTime: now,
+        runId, tabId, workflowId: resolvedWorkflowId, workspaceId, order: 0, source: 'planner', startTime: now,
     });
 
     // One visible task per segment — steps become hidden sub-actions
@@ -66,7 +69,7 @@ export const buildMissionFromSegments = async (
                 missionId,
                 runId,
                 tabId,
-                workflowId,
+                workflowId: resolvedWorkflowId,
                 workspaceId,
                 order: i + 1,
                 source: 'planner',
@@ -80,7 +83,7 @@ export const buildMissionFromSegments = async (
             allMissionTasks.push({
                 id: taskId + '-' + Math.random().toString(36).slice(2, 8),
                 title: segName, action: step.action || 'Unknown action',
-                status: 'pending', segment: segName, explanation: step.explanation, runId, tabId, workflowId, workspaceId, ...step,
+                status: 'pending', segment: segName, explanation: step.explanation, runId, tabId, workflowId: resolvedWorkflowId, workspaceId, ...step,
             });
         }
     }
