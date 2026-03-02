@@ -11,7 +11,7 @@ const NAV_DEBOUNCE_MS = 400; // coalesce rapid URL changes (address-bar typing, 
 
 export type { TabItem };
 
-const DEFAULT_URL = 'https://www.google.com';
+const DEFAULT_URL = 'about:blank';
 
 const deriveTitleFromUrl = (url: string) => {
     try { return new URL(url).hostname.replace(/^www\./, '') || 'New Tab'; }
@@ -82,7 +82,7 @@ export const useBrowserTabs = (initialUrl: string) => {
         setTabs(prev => {
             const next = prev.filter(t => t.id !== id);
             if (next.length === 0) {
-                const home: TabItem = { id: '1', title: 'Google', isActive: true, url: DEFAULT_URL };
+                const home: TabItem = { id: '1', title: 'New Tab', isActive: true, url: DEFAULT_URL };
                 setActiveTabId('1'); setActiveUrl(home.url);
                 return [home];
             }
