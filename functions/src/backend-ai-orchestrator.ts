@@ -1,3 +1,9 @@
+/*
+ * [Parent Feature/Milestone] Backend Execution
+ * [Child Task/Issue] fix: one active mission per user — no parallel executor chaos
+ * [Subtask] Per-user latest-mission tracking + stale-mission auto-abandon on startup
+ * [Law Check] 62 lines | Passed 100-Line Law
+ */
 // Feature: Backend Orchestrator | Trace: README.md
 import { db } from './proxy-config';
 import { runMissionLoop } from './backend-mission-loop';
@@ -6,14 +12,14 @@ class BackendAIOrchestrator {
     private isListening: boolean = false;
     /** Missions currently being driven by a loop — in-process mutex against concurrent re-entry */
     private processingMissions = new Set<string>();
-
     /**
-     * start: Local Firestore listener (fallback when Cloud Functions are not available).
-     * Why: We only react to 'added' events (new missions) plus 'modified' events that
-     * transition a mission back to 'active' (resume). We intentionally IGNORE 'modified'
-     * events triggered by our own missionRef.update() calls inside processMissionStep —
-     * those would spawn concurrent overlapping loops for the same mission.
+     * Latest missionId per userId — ensures only the NEWEST mission runs per user.
+     * Why: onSnapshot fires 'added' for ALL active missions at startup (including stale ones
+     * from previous sessions). Without this guard, every old mission starts its own loop,
+     * creating parallel executors that fight over the same Playwright tabs.
      */
+    private latestMissionPerUser = new Map<string, string>();
+
     start() {
         if (this.isListening) return;
         this.isListening = true;
@@ -24,13 +30,25 @@ class BackendAIOrchestrator {
                 snapshot.docChanges().forEach((change) => {
                     const missionId = change.doc.id;
                     const data = change.doc.data();
+                    const userId: string = data.userId || 'anonymous';
 
                     if (change.type === 'added') {
-                        // Why: 'added' fires for new missions AND for active missions present at startup.
+                        // missionId is a timestamp string — larger = newer
+                        const prev = this.latestMissionPerUser.get(userId);
+                        if (prev && prev > missionId) {
+                            // This 'added' is an OLDER stale mission; auto-abandon it
+                            console.log(`[Orchestrator] 🗑 Abandoning stale mission ${missionId} (newer: ${prev})`);
+                            db.collection('missions').doc(missionId)
+                                .update({ status: 'completed', lastAction: '⏹ Abandoned — superseded by newer mission' })
+                                .catch(() => {});
+                            return;
+                        }
+                        this.latestMissionPerUser.set(userId, missionId);
                         this.runLoop(missionId, data);
                     } else if (change.type === 'modified' && data.status === 'active') {
-                        // Why: Only start a loop on an explicit resume, never from our own writes.
+                        // Only resume if no loop is already running for this mission
                         if (!this.processingMissions.has(missionId)) {
+                            this.latestMissionPerUser.set(userId, missionId);
                             this.runLoop(missionId, data);
                         }
                     }
@@ -49,7 +67,7 @@ class BackendAIOrchestrator {
             console.error(`[Orchestrator] Loop error for ${missionId}:`, e.message));
     }
 
-    /** processMission: Kept for backward compatibility with Cloud Function triggers. */
+    /** processMission: Kept for backward compatibility. */
     async processMission(missionId: string, data: any) {
         await runMissionLoop(missionId, data.goal, this.processingMissions);
     }
