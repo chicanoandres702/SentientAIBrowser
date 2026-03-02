@@ -77,6 +77,21 @@ let browserInstance: Browser | null = null;
 // and the second Chrome fails to bind --remote-debugging-port=9222 → 180s timeout → proxy down.
 let launchInProgress: Promise<Browser> | null = null;
 
+/**
+ * LOCAL_CDP_URL — set to the Chrome DevTools WebSocket endpoint to use the user's
+ * real Chrome profile instead of a headless Playwright instance.
+ *
+ * Example: LOCAL_CDP_URL=http://localhost:9222
+ *
+ * Why: When connected, Playwright attaches over CDP and inherits all cookies,
+ * localStorage, saved passwords, and active sessions from the running browser.
+ * This means no login walls while the developer is actively using the proxy.
+ */
+const LOCAL_CDP_URL = process.env.LOCAL_CDP_URL || '';
+
+/** True when running in local CDP-attach mode (user's real Chrome). */
+export const isCdpMode = (): boolean => Boolean(LOCAL_CDP_URL);
+
 export async function getBrowser(): Promise<Browser> {
     if (browserInstance?.isConnected()) return browserInstance;
 
@@ -85,12 +100,21 @@ export async function getBrowser(): Promise<Browser> {
 
     launchInProgress = (async () => {
         try {
-            browserInstance = await chromium.launch({
-                headless: true,
-                args: [...CHROME_DEFAULT_ARGS],
-            });
-            console.log('[Proxy] Browser launched successfully');
-            return browserInstance;
+            if (LOCAL_CDP_URL) {
+                // Why: connectOverCDP attaches to the user's already-running Chrome via the
+                // DevTools WebSocket. Playwright inherits all cookies + sessions from the real
+                // profile — no login prompts while the user is connected.
+                console.log(`[Proxy] Attaching to local Chrome via CDP: ${LOCAL_CDP_URL}`);
+                browserInstance = await chromium.connectOverCDP(LOCAL_CDP_URL);
+                console.log('[Proxy] ✅ Attached to local Chrome — using real profile cookies');
+            } else {
+                browserInstance = await chromium.launch({
+                    headless: true,
+                    args: [...CHROME_DEFAULT_ARGS],
+                });
+                console.log('[Proxy] Browser launched successfully');
+            }
+            return browserInstance!;
         } finally {
             launchInProgress = null; // Release lock whether launch succeeded or failed
         }
