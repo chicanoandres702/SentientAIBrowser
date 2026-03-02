@@ -2,6 +2,7 @@
 import { Express } from 'express';
 import { getPersistentPage, activePages, captureAndSyncTab, saveSessionForTab } from './proxy-page-handler';
 import { applyCorsHeaders, resolvePage } from './proxy-route.utils';
+import { getCachedFrame } from './proxy-tab-sync.broker';
 import { buildDomMap } from './proxy-dom-map';
 import { executeAriaAction } from './features/playwright-mcp';
 
@@ -27,7 +28,7 @@ export function setupScreenshotRoute(app: Express) {
 
 /** GET /screenshot/stream — SSE stream of base64 screenshots */
 export function setupScreenshotStreamRoute(app: Express) {
-  const STREAM_INTERVAL_MS = 800;
+  const STREAM_INTERVAL_MS = 300; // fast poll — usually serves from cache, not page.screenshot()
   app.get('/screenshot/stream', async (req, res) => {
     const tabId = (req.query.tabId as string) || 'default';
     const url = req.query.url as string | undefined;
@@ -42,16 +43,24 @@ export function setupScreenshotStreamRoute(app: Express) {
       'X-Accel-Buffering': 'no',
     });
     res.flushHeaders?.();
+    // Why: SSE comment heartbeat keeps the connection alive through load-balancers
+    //      and Android WebView proxies that drop idle connections after ~30s.
+    const heartbeat = setInterval(() => res.write(':heartbeat\n\n'), 15000);
     const timer = setInterval(async () => {
       try {
         if (page.isClosed()) throw new Error('Session closed');
-        const buf = await page!.screenshot({ quality: 65, type: 'jpeg' });
-        res.write(`data: data:image/jpeg;base64,${buf.toString('base64')}\n\n`);
+        // Why: prefer broker cache — avoids a concurrent page.screenshot() alongside the
+        //      4fps frame stream. Only falls back to a live capture if cache is >600ms stale.
+        const cached = getCachedFrame(tabId);
+        const frameData = (cached && (Date.now() - cached.ts) < 600)
+          ? cached.data
+          : `data:image/jpeg;base64,${(await page.screenshot({ quality: 60, type: 'jpeg', timeout: 4000, fullPage: false })).toString('base64')}`;
+        res.write(`data: ${frameData}\n\n`);
       } catch (e: any) {
         res.write(`event: error\ndata: ${e.message}\n\n`);
       }
     }, STREAM_INTERVAL_MS);
-    req.on('close', () => clearInterval(timer));
+    req.on('close', () => { clearInterval(timer); clearInterval(heartbeat); });
   });
 }
 

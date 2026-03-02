@@ -46,4 +46,4 @@ $env:BROWSER = "chrome"
 $env:NODE_OPTIONS = "--dns-result-order=ipv4first"
 $env:EXPO_NO_CACHE = "1"
 $env:EXPO_OFFLINE = "1"
-npx expo start -c --web --port $Port
+npx expo start -c --web --http --port $Port

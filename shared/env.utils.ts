@@ -5,25 +5,30 @@ import { Platform } from 'react-native';
  * Utility to identify the current environment and provide appropriate configuration.
  */
 export const getEnvConfig = () => {
-    const isFirebaseHosted = typeof window !== 'undefined' &&
-        (window.location.hostname.includes('firebaseapp.com') ||
-         window.location.hostname.includes('web.app'));
+    // Why: check the actual hostname so local dev (localhost / 127.0.0.1) correctly
+    // uses the local proxy, while hosted builds (Firebase / web.app) hit Cloud Run.
+    // The previous check `|| Platform.OS === 'web'` was always true on web and caused
+    // local dev to always hit Cloud Run — making run-web.ps1's local proxy unreachable.
+    const hostname = typeof window !== 'undefined' ? window.location.hostname : '';
+    const isFirebaseHosted = hostname.includes('firebaseapp.com') || hostname.includes('web.app');
+    const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '';
 
     // Production proxy on Cloud Run (Playwright + Chromium)
     const productionProxy = 'https://sentient-proxy-184717935920.us-central1.run.app';
 
-    // Why: Playwright/Chromium only runs on Cloud Run — there is no local equivalent for web.
-    // Use the Cloud Run proxy for ALL web builds (localhost dev included).
-    // Local proxy address is only relevant for Android/iOS native where a local server can be
-    // started alongside the simulator.
+    // Why: Android emulator maps 10.0.2.2 → host machine localhost.
+    // iOS sim and web local dev both reach the local proxy via localhost.
     const localProxy = Platform.OS === 'android' ? 'http://10.0.2.2:3000' : 'http://localhost:3000';
 
-    const isProduction = isFirebaseHosted || Platform.OS === 'web';
+    // Why: native apps always use local proxy (no window.location);
+    //      web uses local proxy only when running on localhost (dev server),
+    //      and Cloud Run for any publicly hosted build.
+    const isProduction = Platform.OS === 'web' ? isFirebaseHosted && !isLocalhost : false;
 
     return {
         isProduction,
-        proxyBaseUrl: isProduction ? productionProxy : localProxy,
+        proxyBaseUrl: isProduction ? productionProxy : (Platform.OS === 'web' && !isLocalhost ? productionProxy : localProxy),
         isWeb: Platform.OS === 'web',
-        isNative: Platform.OS !== 'web'
+        isNative: Platform.OS !== 'web',
     };
 };

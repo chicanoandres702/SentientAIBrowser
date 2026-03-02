@@ -88,9 +88,7 @@ export const MobileSidebar: React.FC<{ s: any; theme: any }> = ({ s, theme }) =>
     return (
         <View style={[appStyles.mobileSidebarOverlay, { backgroundColor: colors.bg }]}>
             <View style={ss.mobileSidebarHeader}>
-                <Text style={[ss.mobileSidebarTitle, { color: colors.textMuted }]}>
-                    COMMAND PANEL
-                </Text>
+                <Text style={[ss.mobileSidebarTitle, { color: colors.textMuted }]}>COMMAND PANEL</Text>
                 <TouchableOpacity
                     style={[ss.mobileSidebarClose, { borderColor: colors.border }]}
                     onPress={() => s.setIsSidebarVisible(false)}

@@ -1,3 +1,4 @@
+// Feature: Browser Remote Mirror | Trace: src/features/browser/hooks/use-remote-mirror-interaction.ts
 /*
  * [Parent Feature/Milestone] Browser Remote Mirror
  * [Child Task/Issue] fix: wire mouse-move, scroll, and pseudo-cursor to Playwright backend

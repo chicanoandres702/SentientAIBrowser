@@ -106,20 +106,11 @@ export const useSentientBrowser = (_theme?: unknown) => {
       const newTabId = await cap.addNewTab(seedUrl, 'Mission');
       return handleExecutePrompt(p, newTabId, auth.currentUser?.uid || 'anonymous', cap.s.useConfirmerAgent ?? true, seedUrl, cap.activeWorkflowId);
     },
-    toggleDaemon,
-    handleInteractiveResponse,
-    webViewRef: cap.webViewRef,
+    toggleDaemon, handleInteractiveResponse, webViewRef: cap.webViewRef,
     handleDomMapReceived: (map: any) => { handleDomMapReceived(map); onDomMap(map); },
-    handleReload,
-    cursor: cursor.cursor,
-    cursorActions: cursor.cursorActions,
-    remoteMirror,
-    handleManualClick: manual.handleManualClick,
-    handleManualType: manual.handleManualType,
-    handleManualKeyPress: manual.handleManualKeyPress,
-    handleManualMouseMove: manual.handleManualMouseMove,
-    handleManualScroll: manual.handleManualScroll,
-    closeMission,
-    closeWorkspace,
+    handleReload, cursor: cursor.cursor, cursorActions: cursor.cursorActions, remoteMirror,
+    handleManualClick: manual.handleManualClick, handleManualType: manual.handleManualType,
+    handleManualKeyPress: manual.handleManualKeyPress, handleManualMouseMove: manual.handleManualMouseMove,
+    handleManualScroll: manual.handleManualScroll, closeMission, closeWorkspace,
   };
 };

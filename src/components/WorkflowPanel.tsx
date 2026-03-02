@@ -7,7 +7,7 @@
  * [Law Check] 77 lines | Passed 100-Line Law
  */
 
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { ScrollView, View, Text, TouchableOpacity } from 'react-native';
 import type { TaskItem } from '../features/tasks';
 import type { AppTheme } from '../../App';
@@ -54,9 +54,18 @@ export const WorkflowPanel: React.FC<Props> = ({
   const [saveModal, setSaveModal] = useState<SaveModal>(null);
   const { mission, taskList, completedCount, total, pct, isActive } = useWorkflowPanel(tasks, activeTabId);
   const barColor = pct === 100 ? '#00ffaa' : accent;
+  const scrollRef = useRef<ScrollView>(null);
+  const yOffsets = useRef<Record<string, number>>({});
+  const activeTaskId = taskList.find(t => t.status === 'in_progress')?.id;
+  // Why: scroll to the in_progress card whenever the active task advances
+  useEffect(() => {
+    if (activeTaskId !== undefined && yOffsets.current[activeTaskId] !== undefined) {
+      scrollRef.current?.scrollTo({ y: yOffsets.current[activeTaskId], animated: true });
+    }
+  }, [activeTaskId]);
 
   return (
-    <ScrollView contentContainerStyle={wp.scrollContent} showsVerticalScrollIndicator={false}>
+    <ScrollView ref={scrollRef} contentContainerStyle={wp.scrollContent} showsVerticalScrollIndicator={false}>
       <View style={wp.headerRow}>
         <View>
           <Text style={[wp.headerTitle, { color: accent }]}>TASKS</Text>
@@ -88,7 +97,9 @@ export const WorkflowPanel: React.FC<Props> = ({
         <>
           <Text style={wp.sectionLabel}>TASKS</Text>
           {taskList.map((t) => (
-            <WorkflowTaskRow key={t.id} item={t} accentColor={accent} removeTask={removeTask} />
+            <View key={t.id} onLayout={e => { yOffsets.current[t.id] = e.nativeEvent.layout.y; }}>
+              <WorkflowTaskRow item={t} accentColor={accent} removeTask={removeTask} />
+            </View>
           ))}
         </>
       )}

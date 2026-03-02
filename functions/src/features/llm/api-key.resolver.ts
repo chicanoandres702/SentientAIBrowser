@@ -1,3 +1,4 @@
+// Feature: LLM | Trace: functions/src/features/llm/api-key.resolver.ts
 /*
  * [Parent Feature/Milestone] Backend Executor
  * [Child Task/Issue] fix: pass Gemini API key to autonomous executor loop
