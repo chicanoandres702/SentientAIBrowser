@@ -142,6 +142,20 @@
             "console": "integratedTerminal"
         },
         {
+            "name": "� GitHub Deploy: All (NoPush)",
+            "type": "node",
+            "request": "launch",
+            "runtimeExecutable": "powershell",
+            "runtimeArgs": [
+                "-ExecutionPolicy", "Bypass",
+                "-File", "${workspaceFolder}/deploy-github.ps1",
+                "-Target", "all",
+                "-NoPush"
+            ],
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal"
+        },
+        {
             "name": "🔥 GitHub Deploy: Hosting Only",
             "type": "node",
             "request": "launch",
@@ -155,7 +169,7 @@
             "console": "integratedTerminal"
         },
         {
-            "name": "⚡ GitHub Deploy: Functions Only",
+            "name": "⚡ GitHub Deploy: Firestore Rules Only",
             "type": "node",
             "request": "launch",
             "runtimeExecutable": "powershell",
@@ -179,6 +193,37 @@
             ],
             "cwd": "${workspaceFolder}",
             "console": "integratedTerminal"
+        },
+
+        // ── IAM fix — run this once if you get 403 Permission Denied ──
+        // This grants the Firebase Admin SDK service account all required
+        // deploy roles (serviceUsageConsumer, firebaserules.admin, etc.)
+        {
+            "name": "🔑 Fix IAM: Grant Firebase SA deploy roles",
+            "type": "node",
+            "request": "launch",
+            "runtimeExecutable": "powershell",
+            "runtimeArgs": [
+                "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command",
+                "$SA='firebase-adminsdk-fbsvc@sentient-ai-browser.iam.gserviceaccount.com'; $P='sentient-ai-browser'; @('roles/serviceusage.serviceUsageConsumer','roles/firebaserules.admin','roles/datastore.indexAdmin','roles/run.admin','roles/storage.admin','roles/iam.serviceAccountUser') | ForEach-Object { Write-Host \"Granting $_ ...\"; gcloud projects add-iam-policy-binding $P --member=serviceAccount:$SA --role=$_ --quiet }; Write-Host 'IAM grant complete. Allow ~60s for propagation then re-run deploy.'"
+            ],
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "🔑+🚀 Fix IAM then Deploy All",
+            "type": "node",
+            "request": "launch",
+            "runtimeExecutable": "powershell",
+            "runtimeArgs": [
+                "-ExecutionPolicy", "Bypass",
+                "-File", "${workspaceFolder}/deploy-github.ps1",
+                "-Target", "all",
+                "-NoPush"
+            ],
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal",
+            "preLaunchTask": "🔑 Fix IAM: Grant Firebase SA deploy roles"
         }
     ],
     "compounds": [
@@ -186,6 +231,10 @@
             "name": "Web + Chrome Debug",
             "configurations": ["Web (Development)", "Web with Debug"],
             "stopOnEntry": false
+        },
+        {
+            "name": "🔑+🚀 Fix IAM → Deploy All",
+            "configurations": ["🔑+🚀 Fix IAM then Deploy All"]
         }
     ]
 }
