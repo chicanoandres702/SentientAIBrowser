@@ -20,6 +20,9 @@ class BackendAIOrchestrator {
      */
     private latestMissionPerUser = new Map<string, string>();
 
+    /** Parse epoch-ms from a missionId that may be "timestamp_randomsuffix" or plain "timestamp". */
+    private static tsOf(id: string): number { return parseInt(id.split('_')[0], 10) || 0; }
+
     start() {
         if (this.isListening) return;
         this.isListening = true;
@@ -33,9 +36,9 @@ class BackendAIOrchestrator {
                     const userId: string = data.userId || 'anonymous';
 
                     if (change.type === 'added') {
-                        // missionId is a timestamp string — larger = newer
+                        // Compare epoch-ms prefix so random suffix doesn't break ordering
                         const prev = this.latestMissionPerUser.get(userId);
-                        if (prev && prev > missionId) {
+                        if (prev && BackendAIOrchestrator.tsOf(prev) > BackendAIOrchestrator.tsOf(missionId)) {
                             // This 'added' is an OLDER stale mission; auto-abandon it
                             console.log(`[Orchestrator] 🗑 Abandoning stale mission ${missionId} (newer: ${prev})`);
                             db.collection('missions').doc(missionId)

@@ -20,7 +20,7 @@ export const useBrowserController = (
     runtimeGeminiApiKey?: string,
 ) => {
     const handleExecutePrompt = async (prompt: string, tabId: string, _userId: string, useConfirmerAgent = true) => {
-        const runId = `run_${Date.now()}`;
+        const runId = `run_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
         setActivePrompt(prompt);
         setTaskStartTime(Date.now());
 
