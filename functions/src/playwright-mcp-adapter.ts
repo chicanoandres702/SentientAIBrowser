@@ -2,6 +2,7 @@
 // locators under the hood. We expose the same primitives directly on our persistent page
 // so backend-mission.executor never touches fragile index-based data-ai-id attributes again.
 import { Page } from 'playwright';
+import { injectCursorAt } from './proxy-cursor';
 
 export interface AriaStep {
     action: 'click' | 'type' | 'navigate' | 'wait' | 'done' | 'wait_for_user' | 'ask_user' | 'record_knowledge' | 'upload_file' | 'lookup_documentation' | string;
@@ -97,8 +98,10 @@ export async function executeAriaAction(page: Page, step: AriaStep): Promise<voi
             console.warn(`[AriaAction] click failed (${clickErr.message.split('\n')[0]}), falling back to Enter`);
             await page.keyboard.press('Enter');
         }
+        await injectCursorAt(page, locator);
     } else if (action === 'type' && value !== undefined) {
         await locator.fill(value);
+        await injectCursorAt(page, locator);
     }
 
     // Wait for any navigation or DOM update to settle after the action

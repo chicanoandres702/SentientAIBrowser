@@ -54,6 +54,8 @@ const AUTH_WALL_PATTERNS = [
     /\/otp\//i,
     /\/two-factor/i,
     /\/step-up/i,
+    /duosecurity\.com/i,        // Duo Security MFA (used by Capella, many universities)
+    /\/duo[\/\-]/i,             // Duo frame / duo-prompt embedded pages
     /appleid\.apple\.com/,
 ];
 

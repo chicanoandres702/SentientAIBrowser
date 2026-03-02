@@ -1,15 +1,24 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.processMissionStep = processMissionStep;
-// Feature: Mission Executor | Trace: backend-ai-orchestrator.js
+// Feature: Mission Executor | Why: Orchestration shell — guards, ARIA snapshot, LLM call.
+// Step execution is delegated to backend-step.executor (100-Line Law).
+// Every state transition broadcasts over WebSocket for sub-100ms UI feedback.
+/*
+ * [Parent Feature/Milestone] Backend Execution
+ * [Child Task/Issue] Slim mission orchestrator post step-executor extraction
+ * [Subtask] Guards + LLM + task doc bootstrap; delegates loop to executeStepQueue
+ * [Upstream] BackendAIOrchestrator -> [Downstream] executeStepQueue + Firestore + WS
+ * [Law Check] 78 lines | Passed 100-Line Law
+ */
 const proxy_config_1 = require("./proxy-config");
 const proxy_page_handler_1 = require("./proxy-page-handler");
 const llm_decision_engine_1 = require("./features/llm/llm-decision.engine");
-const llm_memory_service_1 = require("./features/llm/llm-memory-service");
-const knowledge_hierarchy_service_1 = require("./features/llm/knowledge-hierarchy.service");
 const playwright_mcp_adapter_1 = require("./playwright-mcp-adapter");
 const api_key_resolver_1 = require("./features/llm/api-key.resolver");
 const proxy_nav_controller_1 = require("./proxy-nav-controller");
+const proxy_tab_sync_broker_1 = require("./proxy-tab-sync.broker");
+const backend_step_executor_1 = require("./backend-step.executor");
 async function processMissionStep(missionId) {
     var _a;
     try {
@@ -18,25 +27,23 @@ async function processMissionStep(missionId) {
         if (!snap.exists || ((_a = snap.data()) === null || _a === void 0 ? void 0 : _a.status) !== 'active')
             return;
         const data = snap.data();
+        // Why: frontend may hold execution lock (e.g. manual user action). Yield immediately.
         if (data.executingAgent && data.executingAgent !== 'backend') {
-            console.log(`[Executor] ⏭ Skipping — frontend has execution lock`);
+            console.log('[Executor] ⏭ Skipping — non-backend agent has execution lock');
             return;
         }
         try {
             await missionRef.update({ executingAgent: 'backend', updated_at: new Date().toISOString() });
         }
         catch (_b) {
-            console.log(`[Executor] ⏭ Execution lock conflict — skipping cycle`);
+            console.log('[Executor] ⏭ Execution lock conflict — skipping cycle');
             return;
         }
         const { tabId = 'default', userId } = data;
-        // Why: API key is written to missions doc by frontend (mission-builder.ts runtimeApiKey field).
-        // This is the fastest and most reliable path — no extra Firestore round-trip needed.
-        // Fall back to user settings doc, then to server env vars (local dev / Cloud Run GOOGLE_API_KEY).
         const apiKey = data.runtimeApiKey || await (0, api_key_resolver_1.resolveGeminiApiKey)(userId);
         if (!apiKey) {
-            console.error('[Executor] ❌ No Gemini API key — set one in Settings > LLM OVERRIDE');
-            await missionRef.update({ lastAction: '❌ No Gemini API key — set one in Settings > LLM OVERRIDE', updated_at: new Date().toISOString() });
+            (0, proxy_tab_sync_broker_1.broadcastStatus)(tabId, '❌ No Gemini API key — set one in Settings');
+            await missionRef.update({ lastAction: '❌ No Gemini API key — add one in Settings > LLM OVERRIDE', updated_at: new Date().toISOString() });
             return;
         }
         const context = { groupId: data.groupId || 'DefaultGroup', contextId: data.contextId || 'DefaultContext', unitId: missionId };
@@ -48,131 +55,53 @@ async function processMissionStep(missionId) {
             return;
         }
         const currentUrl = page.url();
-        // ── REDIRECT / AUTH-WALL GUARD ─────────────────────────────────────────────
-        // Why: If the page is on a bot-check or auth wall the LLM can't break out —
-        // every cycle will navigate back and hit the same redirect. Pause immediately
-        // so the user can complete the CAPTCHA/MFA, then resume manually.
         if ((0, proxy_nav_controller_1.isBotCheckUrl)(currentUrl)) {
-            console.warn(`[Executor] 🤖 Bot-check detected at ${currentUrl} — pausing mission`);
+            (0, proxy_tab_sync_broker_1.broadcastStatus)(tabId, '🤖 Bot check detected — complete then resume');
             await missionRef.update({ status: 'waiting', lastAction: '🤖 Bot check / CAPTCHA — complete in browser then resume', updated_at: new Date().toISOString() });
             return 'pending';
         }
         if ((0, proxy_nav_controller_1.isAuthWallUrl)(currentUrl)) {
-            console.warn(`[Executor] 🔐 Auth wall detected at ${currentUrl} — pausing mission`);
-            await missionRef.update({ status: 'waiting', lastAction: '🔐 Auth / MFA required — complete login then resume', currentUrl, updated_at: new Date().toISOString() });
+            (0, proxy_tab_sync_broker_1.broadcastStatus)(tabId, '🔐 Auth required — complete login then resume');
+            // Why: persist pre-auth returnUrl so resume navigates to original dest, not the expired SAML/SSO URL
+            const returnUrl = data.authWallReturnUrl || startUrl || currentUrl;
+            await missionRef.update({ status: 'waiting', lastAction: '🔐 Auth / MFA required — complete login then resume', currentUrl, authWallReturnUrl: returnUrl, updated_at: new Date().toISOString() });
             return 'pending';
         }
-        // Stuck-redirect detector: if URL unchanged for 4 executor cycles, pause.
-        // Why: catches any other redirect loops not covered by the explicit patterns above.
         const prevUrl = data.lastExecutorUrl;
         const sameCount = (prevUrl === currentUrl) ? ((data.sameUrlCycles || 0) + 1) : 0;
         await missionRef.update({ lastExecutorUrl: currentUrl, sameUrlCycles: sameCount, updated_at: new Date().toISOString() });
         if (sameCount >= 4) {
-            console.warn(`[Executor] 🔁 Redirect loop — same URL ${sameCount} cycles: ${currentUrl}`);
-            await missionRef.update({ status: 'waiting', lastAction: `🔁 Redirect loop detected — stuck at ${new URL(currentUrl || 'http://x').hostname}. Check the page and resume.`, sameUrlCycles: 0, updated_at: new Date().toISOString() });
+            (0, proxy_tab_sync_broker_1.broadcastStatus)(tabId, `🔁 Stuck at ${new URL(currentUrl || 'http://x').hostname} — check and resume`);
+            await missionRef.update({ status: 'waiting', lastAction: `🔁 Redirect loop at ${new URL(currentUrl || 'http://x').hostname} — check the page and resume`, sameUrlCycles: 0, updated_at: new Date().toISOString() });
             return 'pending';
         }
         const ariaSnapshot = await (0, playwright_mcp_adapter_1.getAriaSnapshot)(page);
-        // Why: quality 30 reduces base64 payload ~40% vs 50, speeds up LLM round-trip
-        const screenshot = (await page.screenshot({ quality: 30, type: 'jpeg' })).toString('base64');
-        // Write current URL so UI address bar + lastAction stay live
+        const screenshot = await page.screenshot({ quality: 30, type: 'jpeg', timeout: 8000 })
+            .then(buf => buf.toString('base64'))
+            .catch(() => { console.warn('[Executor] ⏱ screenshot timeout — proceeding with ARIA only'); return ''; });
         await missionRef.update({ lastAction: `📍 On: ${currentUrl}`, currentUrl, updated_at: new Date().toISOString() });
-        // ── STAGE 3: LLM decision (re-plan with current ARIA state) ────────────────────
+        (0, proxy_tab_sync_broker_1.broadcastStatus)(tabId, '🤔 Thinking...');
         await missionRef.update({ lastAction: '🤔 Thinking...', updated_at: new Date().toISOString() });
         const response = await (0, llm_decision_engine_1.determineNextAction)(userId, data.goal, [], screenshot, new URL(currentUrl || 'http://blank').hostname, [], true, context, ariaSnapshot, apiKey);
         if (!response) {
-            console.error('[Executor] ❌ LLM returned null');
             await missionRef.update({ lastAction: '❌ LLM returned no response', updated_at: new Date().toISOString() });
             return;
         }
         await missionRef.update({ intelligenceSignals: response.meta.intelligenceSignals || [], lastReasoning: response.meta.reasoning || '', updated_at: new Date().toISOString() });
-        // ── STAGE 4: Execute step queue ──────────────────────────────────────────────
-        const stepQueue = response.execution.segments.flatMap(s => s.steps);
-        console.log(`[Executor] ✅ LLM planned ${stepQueue.length} steps`);
-        // Why: persist the full step list to Firestore BEFORE executing so the frontend
-        // MissionCard shows the real task list immediately.
-        // We KEEP previously completed/failed tasks and APPEND the new planned ones so the
-        // user sees cumulative progress across LLM cycles, not a reset-to-pending on each cycle.
+        const stepQueue = response.execution.segments.flatMap((s) => s.steps);
         const existingTasks = (data.tasks || []).filter((t) => t.status === 'completed' || t.status === 'failed');
         const taskDocs = stepQueue.map((step, i) => ({
-            id: `step-${Date.now()}-${i}`,
-            title: `${step.action}: ${step.explanation}`.substring(0, 80),
-            action: step.action,
-            status: 'pending',
+            id: `step-${Date.now()}-${i}`, action: step.action, explanation: step.explanation,
+            title: `${step.action}: ${step.explanation}`.substring(0, 80), status: 'pending',
         }));
-        // Why: helper returns a fresh merged snapshot — avoids stale spread capturing old refs
-        const liveTasks = () => [...existingTasks, ...taskDocs];
-        await missionRef.update({ tasks: liveTasks(), updated_at: new Date().toISOString() });
-        for (let idx = 0; idx < stepQueue.length; idx++) {
-            const step = stepQueue[idx];
-            console.log(`[Executor] ▶ STAGE 4 step — action:${step.action} | ${step.explanation}`);
-            // Mark this task in_progress before running it
-            taskDocs[idx].status = 'in_progress';
-            await missionRef.update({ tasks: liveTasks(), lastAction: `⚙️ ${step.action}: ${step.explanation}`.substring(0, 120), updated_at: new Date().toISOString() });
-            if (step.action === 'wait_for_user' || step.action === 'ask_user') {
-                await missionRef.update({ status: 'waiting', lastAction: `⏳ Waiting: ${step.explanation}`, tasks: liveTasks() });
-                return 'pending';
-            }
-            if (step.action === 'record_knowledge' && step.value) {
-                const targetContext = Object.assign(Object.assign({}, context), (step.knowledgeContext || {}));
-                await (0, knowledge_hierarchy_service_1.saveContextualKnowledge)(userId, targetContext, 'rule', step.value);
-                taskDocs[idx].status = 'completed';
-                await missionRef.update({ tasks: liveTasks(), lastAction: `💾 Stored: ${step.value.substring(0, 50)}`, updated_at: new Date().toISOString() });
-                continue; // Why: fully handled — skip executeAriaAction path below
-            }
-            if (step.action === 'done') {
-                await (0, knowledge_hierarchy_service_1.saveContextualKnowledge)(userId, context, 'breadcrumb', `Completed: ${data.goal}`);
-                taskDocs[idx].status = 'completed';
-                await missionRef.update({ status: 'completed', progress: 100, stepCount: stepCount + idx + 1, lastAction: '✅ Mission Completed Successfully', tasks: liveTasks() });
-                return 'done';
-            }
-            let result = 'success';
-            let observation = step.explanation;
-            try {
-                // Why: LLM now returns ARIA role+name selectors (not numeric data-ai-id).
-                // Route ALL actions through executeAriaAction which uses page.getByRole/getByText —
-                // the same mechanism @playwright/mcp uses. Selectors resolve fresh at call time.
-                const actionStr = step.action;
-                if (actionStr === 'done' || actionStr === 'wait_for_user' || actionStr === 'ask_user' || actionStr === 'record_knowledge') {
-                    // handled above — skip executeAriaAction
-                }
-                else if (step.action === 'upload_file' && step.value) {
-                    const allowed = ['.pdf', '.png', '.jpg', '.jpeg', '.csv', '.txt', '.docx'];
-                    const ext = step.value.substring(step.value.lastIndexOf('.')).toLowerCase();
-                    if (!allowed.includes(ext))
-                        throw new Error(`File type "${ext}" not permitted`);
-                    await page.locator('input[type="file"]').first().setInputFiles(step.value);
-                }
-                else if (step.action === 'navigate' && step.url && /^https?:\/\/(www\.)?(google|bing|yahoo|duckduckgo)\.com\/?(\?.*)?$/.test(step.url) && !step.url.includes('search?') && !step.url.includes('q=')) {
-                    // Why: Cloud Run IPs trigger bot-detection on search engine root pages.
-                    // The LLM must navigate DIRECTLY to the target site — never via a search engine.
-                    console.warn(`[Executor] ⛔ Blocked search-engine root nav to ${step.url} — LLM must use direct URL`);
-                    throw new Error(`Direct navigation to ${step.url} blocked — use the target site URL directly`);
-                }
-                else {
-                    await (0, playwright_mcp_adapter_1.executeAriaAction)(page, step);
-                }
-            }
-            catch (err) {
-                result = 'failure';
-                observation = `Action failed: ${err.message}`;
-                console.error(`[Executor] ❌ STAGE 4 step FAIL — action:${step.action} | ${err.message}`);
-            }
-            taskDocs[idx].status = result === 'success' ? 'completed' : 'failed';
-            const pageUrlNow = await Promise.resolve().then(() => page.url()).catch(() => currentUrl || 'unknown');
-            await (0, llm_memory_service_1.recordActionOutcome)(userId, data.goal, step.action, result, observation, new URL(pageUrlNow || 'http://unknown').hostname).catch(() => { });
-            const nextStepCount = stepCount + idx + 1;
-            const nextProgress = Math.min(99, Math.round((nextStepCount / (nextStepCount + 8)) * 100));
-            await missionRef.update({ tasks: liveTasks(), lastAction: `${result === 'success' ? '✅' : '❌'} ${observation}`.substring(0, 120), progress: nextProgress, stepCount: nextStepCount, updated_at: new Date().toISOString() });
-            if (result === 'failure')
-                console.warn(`[Executor] ⚠️ step failed but continuing: ${observation}`);
-        }
+        await missionRef.update({ tasks: [...existingTasks, ...taskDocs], updated_at: new Date().toISOString() });
+        return await (0, backend_step_executor_1.executeStepQueue)(page, stepQueue, taskDocs, existingTasks, missionRef, data, context, stepCount, tabId, userId);
     }
     catch (e) {
-        const err = e;
-        console.error(`[Executor] 🔥 Fatal: ${err.message}`);
+        const msg = e.message;
+        console.error(`[Executor] 🔥 Fatal: ${msg}`);
         try {
-            await proxy_config_1.db.collection('missions').doc(missionId).update({ lastAction: `🔥 Error: ${err.message}`.substring(0, 120), updated_at: new Date().toISOString() });
+            await proxy_config_1.db.collection('missions').doc(missionId).update({ lastAction: `🔥 Error: ${msg}`.substring(0, 120), updated_at: new Date().toISOString() });
         }
         catch (_c) { }
     }

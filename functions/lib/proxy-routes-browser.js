@@ -45,7 +45,7 @@ function setupBrowserRoutes(app) {
                     const pageUrl = page.url();
                     domain = new URL(pageUrl || 'http://blank').hostname;
                     ariaSnapshot = await (0, playwright_mcp_adapter_1.getAriaSnapshot)(page);
-                    screenshotBase64 = (await page.screenshot({ quality: 30, type: 'jpeg' })).toString('base64');
+                    screenshotBase64 = (await page.screenshot({ quality: 30, type: 'jpeg', timeout: 8000 })).toString('base64');
                 }
             }
             catch (_a) {

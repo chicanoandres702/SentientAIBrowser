@@ -25,7 +25,7 @@ setFrameProvider(async (tabId) => {
     const page = activePages.get(tabId);
     if (!page || page.isClosed()) return null;
     try {
-        const buf = await page.screenshot({ quality: 60, type: 'jpeg' });
+        const buf = await page.screenshot({ quality: 60, type: 'jpeg', timeout: 5000 });
         return { data: `data:image/jpeg;base64,${buf.toString('base64')}`, url: page.url() };
     } catch { return null; }
 });
@@ -116,7 +116,7 @@ async function captureAndSync(tabId: string, userId: string, page: Page, context
   const isAuthWall = isAuthWallUrl(currentUrl);
   console.debug(`[CaptureSync] 📸 capturing tab=${tabId} url=${currentUrl}${isAuthWall ? ' ⚠️AUTH-WALL (Firestore write suppressed)' : ''}`);
   try {
-    const screenshot = (await page.screenshot({ quality: 60, type: 'jpeg' })).toString('base64');
+    const screenshot = (await page.screenshot({ quality: 60, type: 'jpeg', timeout: 8000 })).toString('base64');
     const title = (await page.title()) || 'Loading...';
     // Why: WebSocket broadcast reaches the client in <10ms — server is the URL authority.
     // The client updates the address bar from this event WITHOUT writing back to Firestore,
@@ -142,6 +142,8 @@ async function captureAndSync(tabId: string, userId: string, page: Page, context
     if (e.message.includes('credentials') || e.message.includes('Could not load the default')) {
       firestoreAvailable = false;
       console.warn(`[CaptureSync] ⚠️ Firestore sync disabled (no credentials). Screenshots available via /screenshot route.`);
+    } else if (e.message.includes('Timeout') || e.message.includes('waiting for fonts')) {
+      console.warn(`[CaptureSync] ⏱ screenshot timeout tab=${tabId} (font stall) — skipping`);
     } else if (!e.message.includes('Target closed') && !e.message.includes('Execution context was destroyed')) {
       console.error(`[CaptureSync] ❌ Sync failed tab=${tabId}:`, e.message); 
     }

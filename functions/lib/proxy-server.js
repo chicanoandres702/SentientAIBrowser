@@ -48,6 +48,7 @@ const ws_1 = require("ws");
 const proxy_config_1 = require("./proxy-config");
 const proxy_routes_browser_1 = require("./proxy-routes-browser");
 const proxy_tab_sync_broker_1 = require("./proxy-tab-sync.broker");
+const proxy_ws_actions_1 = require("./proxy-ws-actions");
 const backend_ai_orchestrator_1 = __importDefault(require("./backend-ai-orchestrator"));
 const app = (0, express_1.default)();
 app.use((0, cors_1.default)({
@@ -77,7 +78,7 @@ server.on('upgrade', (req, socket, head) => {
     var _a, _b;
     // Why: tab-sync WebSocket — server-authority URL/screenshot push to React client
     if ((_a = req.url) === null || _a === void 0 ? void 0 : _a.startsWith('/proxy/ws/')) {
-        (0, proxy_tab_sync_broker_1.handleWsUpgrade)(wss, req, socket, head);
+        (0, proxy_tab_sync_broker_1.handleWsUpgrade)(wss, req, socket, head, proxy_ws_actions_1.handleClientWsMessage);
         return;
     }
     if (!((_b = req.url) === null || _b === void 0 ? void 0 : _b.startsWith('/cdp-proxy'))) {

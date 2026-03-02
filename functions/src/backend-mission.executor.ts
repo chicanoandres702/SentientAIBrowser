@@ -73,7 +73,9 @@ export async function processMissionStep(missionId: string) {
     }
 
     const ariaSnapshot = await getAriaSnapshot(page);
-    const screenshot = (await page.screenshot({ quality: 30, type: 'jpeg' })).toString('base64');
+    const screenshot = await page.screenshot({ quality: 30, type: 'jpeg', timeout: 8000 })
+      .then(buf => buf.toString('base64'))
+      .catch(() => { console.warn('[Executor] ⏱ screenshot timeout — proceeding with ARIA only'); return ''; });
     await missionRef.update({ lastAction: `📍 On: ${currentUrl}`, currentUrl, updated_at: new Date().toISOString() });
     broadcastStatus(tabId, '🤔 Thinking...');
     await missionRef.update({ lastAction: '🤔 Thinking...', updated_at: new Date().toISOString() });
