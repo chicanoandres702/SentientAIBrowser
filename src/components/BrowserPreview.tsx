@@ -8,6 +8,7 @@ import { previewStyles as styles } from '../features/browser/components/BrowserP
 import { PreviewLoader, StaleBadge, EmptyState } from '@features/browser';
 import { uiColors } from '../features/ui/theme/ui.theme';
 import { dimAccent } from '../features/ui/theme/domain-accent.utils';
+import { useRemoteMirrorInteraction } from '../features/browser/hooks/use-remote-mirror-interaction';
 
 type PreviewStatus = 'loading' | 'checking_proxy' | 'ready' | 'no_tab' | 'waiting_for_screenshot' | 'proxy_offline' | 'snapshot_error' | 'stale';
 const STALE_THRESHOLD_MS = 45_000;
@@ -19,9 +20,12 @@ interface Props {
   tabId: string;
   theme: 'red' | 'blue';
   onPress?: (x: number, y: number, w: number, h: number) => void;
+  onMouseMove?: (x: number, y: number, w: number, h: number) => void;
+  onScroll?: (deltaX: number, deltaY: number) => void;
 }
 
-export const BrowserPreview: React.FC<Props> = ({ tabId, theme, onPress }) => {
+export const BrowserPreview: React.FC<Props> = ({ tabId, theme, onPress, onMouseMove, onScroll }) => {
+  const { containerRef } = useRemoteMirrorInteraction(onMouseMove, onScroll);
   const [screenshot, setScreenshot] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -67,6 +71,7 @@ export const BrowserPreview: React.FC<Props> = ({ tabId, theme, onPress }) => {
   const dim = dimAccent(accent);
   return (
     <View
+      ref={containerRef}
       style={styles.container}
       onLayout={e => setContainerSize({ w: e.nativeEvent.layout.width, h: e.nativeEvent.layout.height })}
       onStartShouldSetResponder={() => !!onPress}

@@ -93,7 +93,7 @@ export const useSentientBrowser = (_theme?: unknown) => {
     webViewRef: cap.webViewRef,
     handleDomMapReceived: (map: any) => { handleDomMapReceived(map); onDomMap(map); },
     handleReload,
-    cursor,
+    cursor: cursor.cursor,
     cursorActions: cursor.cursorActions,
     remoteMirror,
     handleManualClick: manual.handleManualClick,
