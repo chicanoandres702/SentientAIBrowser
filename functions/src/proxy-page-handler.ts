@@ -1,5 +1,5 @@
 // Feature: Page Lifecycle | Trace: README.md
-import { getBrowser, db } from './proxy-config';
+import { getBrowser, db, isCdpMode } from './proxy-config';
 import { Page, BrowserContext } from 'playwright';
 import { guardedNavigate, syncSettledUrl } from './proxy-nav-controller';
 import { loadSession, saveSession, sessionFilePath } from './proxy-session.service';
@@ -130,20 +130,31 @@ export async function getPersistentPage(targetUrl: string | null, tabId: string,
     page = undefined;
   }
   if (!page) {
-    // Why: restore prior session (cookies + localStorage) so logins persist across Cloud Run
-    // restarts and cold starts — user never has to log in again after the first session.
-    const savedSession = await loadSession(userId);
-    const context = await browser.newContext({
-      userAgent: STEALTH_UA,
-      viewport: { width: 1280, height: 800 },
-      locale: 'en-US',
-      timezoneId: 'America/New_York',
-      extraHTTPHeaders: { 'Accept-Language': 'en-US,en;q=0.9' },
-      ...(savedSession ? { storageState: savedSession } : {}),
-    });
-    if (savedSession) console.log(`[Session] Restored cookies for user: ${userId}`);
-    // Why: hide navigator.webdriver + add fake plugin/language signals before any page script runs
-    await context.addInitScript(STEALTH_INIT_SCRIPT);
+    let context: BrowserContext;
+
+    if (isCdpMode()) {
+      // Why: in CDP mode we're attached to the user's real Chrome — browser.contexts()[0]
+      // IS their Default profile, including all cookies, localStorage, and active sessions.
+      // Creating a newContext() would spin up an incognito window and lose everything.
+      const existingContexts = browser.contexts();
+      context = existingContexts[0] ?? await browser.newContext();
+      console.log(`[CDP] Using real Chrome profile context (${existingContexts.length} context(s) available)`);
+    } else {
+      // Why: restore prior session (cookies + localStorage) so logins persist across Cloud Run
+      // restarts and cold starts — user never has to log in again after the first session.
+      const savedSession = await loadSession(userId);
+      context = await browser.newContext({
+        userAgent: STEALTH_UA,
+        viewport: { width: 1280, height: 800 },
+        locale: 'en-US',
+        timezoneId: 'America/New_York',
+        extraHTTPHeaders: { 'Accept-Language': 'en-US,en;q=0.9' },
+        ...(savedSession ? { storageState: savedSession } : {}),
+      });
+      if (savedSession) console.log(`[Session] Restored cookies for user: ${userId}`);
+      // Why: hide navigator.webdriver + add fake plugin/language signals before any page script runs
+      await context.addInitScript(STEALTH_INIT_SCRIPT);
+    }
     page = await context.newPage();
     await setupRequestBlocking(page);
     activePages.set(tabId, page);
@@ -185,24 +196,27 @@ export async function getPersistentPage(targetUrl: string | null, tabId: string,
         if (p && ctx && !closedTabs.has(tabId)) {
           console.debug(`[NavEvent] ✅ debounce cleared tab=${tabId} — triggering immediate capture`);
           captureAndSync(tabId, uid, p, ctx);
-          if (uid !== 'default') saveSession(uid, ctx).catch(() => {});
+          if (!isCdpMode() && uid !== 'default') saveSession(uid, ctx).catch(() => {});
         }
       }, debounceMs);
       redirectDebounceTimers.set(tabId, timer);
     });
     // Why: save immediately when the server sets new cookies (login, consent, auth tokens)
     // so the session isn't lost if the container recycles before the next interval tick.
-    page.on('response', (response) => {
-      if (response.headers()['set-cookie']) {
-        console.debug(`[Session] 🍪 set-cookie detected on ${response.url()} — saving session for ${userId}`);
+    // Skip in CDP mode — Chrome already persists its own cookies to the real profile.
+    if (!isCdpMode()) {
+      page.on('response', (response) => {
+        if (response.headers()['set-cookie']) {
+          console.debug(`[Session] 🍪 set-cookie detected on ${response.url()} — saving session for ${userId}`);
+          saveSession(userId, context).catch(() => {});
+        }
+      });
+      // Why: save on every full page load — covers SPAs that update localStorage after hydration
+      page.on('load', () => {
+        console.debug(`[Session] 📄 page load — saving session for ${userId} url=${page!.url()}`);
         saveSession(userId, context).catch(() => {});
-      }
-    });
-    // Why: save on every full page load — covers SPAs that update localStorage after hydration
-    page.on('load', () => {
-      console.debug(`[Session] 📄 page load — saving session for ${userId} url=${page!.url()}`);
-      saveSession(userId, context).catch(() => {});
-    });
+      });
+    }
     if (userId && userId !== 'default') {
       console.log(`[Session] 💾 User data path: ${sessionFilePath(userId)}`);
     }
@@ -213,7 +227,8 @@ export async function getPersistentPage(targetUrl: string | null, tabId: string,
       console.debug(`[Interval] tick tab=${tabId} tick#${sessionTickCount + 1} url=${page!.url()}`);
       captureAndSync(tabId, userId, page!, context);
       sessionTickCount++;
-      if (sessionTickCount % 2 === 0) saveSession(userId, context).catch(() => {}); // every ~10s
+      // Why: skip session save in CDP mode — Chrome owns its own cookies.
+      if (!isCdpMode() && sessionTickCount % 2 === 0) saveSession(userId, context).catch(() => {}); // every ~10s
     }, 5000);
     syncIntervals.set(tabId, interval);
   }
@@ -224,7 +239,7 @@ export async function getPersistentPage(targetUrl: string | null, tabId: string,
     await captureAndSync(tabId, userId, page, activeContexts.get(tabId)!);
     // Why: save cookies/localStorage immediately after every navigation — captures logins,
     // consent cookies, and site state before Cloud Run can recycle the container.
-    saveSession(userId, activeContexts.get(tabId)!).catch(() => {});
+    if (!isCdpMode()) saveSession(userId, activeContexts.get(tabId)!).catch(() => {});
   }
   return page;
 }
