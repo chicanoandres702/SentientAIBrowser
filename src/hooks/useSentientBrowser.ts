@@ -75,6 +75,7 @@ export const useSentientBrowser = (_theme?: unknown) => {
     workflows: cap.workflows,
     activeWorkflowId: cap.activeWorkflowId,
     selectWorkflow: cap.selectWorkflow,
+    renameWorkflow: cap.renameWorkflow,
     removeWorkflow: cap.removeWorkflow,
     createWorkspaceTab: cap.createWorkspaceTab,
     addTabToWorkflow: cap.addTabToWorkflow,

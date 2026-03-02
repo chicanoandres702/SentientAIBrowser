@@ -4,10 +4,10 @@
  * [Child Task/Issue] WorkflowBar — horizontal workflow pill strip above tab bar
  * [Subtask] Select/add/remove workflows; each workflow groups multiple browser tabs
  * [Upstream] useWorkflows -> [Downstream] MainLayout
- * [Law Check] 62 lines | Passed 100-Line Law
+ * [Law Check] 80 lines | Passed 100-Line Law
  */
-import React from 'react';
-import { View, Text, TouchableOpacity, ScrollView } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, TextInput, TouchableOpacity, ScrollView } from 'react-native';
 import type { AppTheme } from '../../../App';
 import { uiColors } from '@features/ui/theme/ui.theme';
 import type { Workflow } from './workflow.types';
@@ -18,11 +18,16 @@ interface Props {
   onSelectWorkflow: (id: string) => void;
   onAddWorkflow: () => void;
   onRemoveWorkflow: (id: string) => void;
+  onRenameWorkflow: (id: string, name: string) => void;
   theme: AppTheme;
 }
 
-export const WorkflowBar: React.FC<Props> = React.memo(({ workflows, onSelectWorkflow, onAddWorkflow, onRemoveWorkflow, theme }) => {
+export const WorkflowBar: React.FC<Props> = React.memo(({ workflows, onSelectWorkflow, onAddWorkflow, onRemoveWorkflow, onRenameWorkflow, theme }) => {
   const colors = uiColors(theme);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editName, setEditName] = useState('');
+  const startRename = (wf: Workflow) => { setEditingId(wf.id); setEditName(wf.name); };
+  const commitRename = () => { if (editingId) onRenameWorkflow(editingId, editName); setEditingId(null); };
   return (
     <View style={[wbs.bar, { borderBottomColor: colors.border, backgroundColor: colors.surface ?? colors.bg }]}>
       <ScrollView
@@ -40,9 +45,24 @@ export const WorkflowBar: React.FC<Props> = React.memo(({ workflows, onSelectWor
             onPress={() => onSelectWorkflow(wf.id)}
             activeOpacity={0.75}
           >
-            <Text style={[wbs.pillText, { color: wf.isActive ? colors.accent : colors.textDim }]}>
-              {wf.name}
-            </Text>
+            {editingId === wf.id ? (
+              <TextInput
+                style={[wbs.pillText, { color: colors.accent, minWidth: 64 }]}
+                value={editName}
+                onChangeText={setEditName}
+                onBlur={commitRename}
+                onSubmitEditing={commitRename}
+                autoFocus
+                selectTextOnFocus
+              />
+            ) : (
+              <Text
+                style={[wbs.pillText, { color: wf.isActive ? colors.accent : colors.textDim }]}
+                onLongPress={() => startRename(wf)}
+              >
+                {wf.name}
+              </Text>
+            )}
             {wf.tabIds.length > 0 && (
               <Text style={[wbs.count, { color: colors.textMuted, backgroundColor: colors.accent + '20' }]}>
                 {wf.tabIds.length}

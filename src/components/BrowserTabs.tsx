@@ -25,6 +25,17 @@ const getInitial = (title: string, url?: string): string => {
     return title.replace(/^New Tab$/i, '').charAt(0).toUpperCase() || '🌐';
 };
 
+// Why: if tab was created before a real URL loaded, derive hostname instead of showing 'New Tab'
+const resolveDisplayTitle = (tab: Tab): string => {
+    if (tab.title && tab.title !== 'New Tab') return tab.title;
+    try {
+        if (tab.url && !tab.url.startsWith('about:') && !tab.url.startsWith('chrome:')) {
+            return new URL(tab.url).hostname.replace(/^www\./, '') || tab.title || '·';
+        }
+    } catch {}
+    return tab.title || '·';
+};
+
 export const BrowserTabs: React.FC<Props> = React.memo(({
     tabs, onSelectTab, onCloseTab, onNewTab, onCloseAll, cdpMode, theme,
 }) => {
@@ -49,7 +60,7 @@ export const BrowserTabs: React.FC<Props> = React.memo(({
                             style={[styles.tabText, tab.isActive && styles.activeTabText, tab.isActive && { color: accent + 'dd' }]}
                             numberOfLines={1}
                         >
-                            {tab.title || 'New Tab'}
+                            {resolveDisplayTitle(tab)}
                         </Text>
                         {cdpMode && <Text style={{ fontSize: 8, color: '#00e676', fontWeight: '800', letterSpacing: 0.3, marginLeft: 1 }}>CDP</Text>}
                         {tabs.length > 1 && (
