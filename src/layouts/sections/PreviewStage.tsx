@@ -42,7 +42,7 @@ export const PreviewStage: React.FC<Props> = ({
             >
                 {s.isRemoteMirrorEnabled
                     ? <RemoteMirrorPreview screenshot={s.remoteMirror?.screenshot || null} error={s.remoteMirror?.lastError || null} isConnected={!!s.remoteMirror?.isConnected} theme={theme} onPress={s.handleManualClick} onMouseMove={s.handleManualMouseMove} onScroll={s.handleManualScroll} />
-                    : <BrowserPreview tabId={s.activeTabId} theme={theme} onPress={s.handleManualClick} />}
+                    : <BrowserPreview tabId={s.activeTabId} theme={theme} onPress={s.handleManualClick} onMouseMove={s.handleManualMouseMove} onScroll={s.handleManualScroll} />}
                 {s.isAIMode && !s.isRemoteMirrorEnabled && (
                     <HeadlessWebView
                         ref={s.webViewRef}

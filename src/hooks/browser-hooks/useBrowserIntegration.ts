@@ -36,7 +36,7 @@ export const useBrowserIntegration = (
     );
     const previewWidth = Math.min(window.innerWidth * 0.7, 1200);
     const previewHeight = previewWidth * 0.6;
-    const { cursor, updateDomMap, animateClick, animateType, hideCursor, clickAt } = useCursorController(previewWidth, previewHeight);
+    const { cursor, updateDomMap, animateClick, animateType, hideCursor, clickAt, showAt } = useCursorController(previewWidth, previewHeight);
     const cursorActions = { animateClick, animateType, hideCursor };
     const mouseThrottleRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -58,14 +58,15 @@ export const useBrowserIntegration = (
 
     const handleManualMouseMove = useCallback(
         (x: number, y: number, cW: number, cH: number): void => {
+            showAt(x, y); // animate visual cursor on every throttled event
             if (!proxyBaseUrl || !activeTabId || mouseThrottleRef.current) return;
-            const s = Math.min(cW / 1280, cH / 800);
-            const ox = (cW - 1280 * s) / 2; const oy = (cH - 800 * s) / 2;
-            const px = Math.round(Math.max(0, Math.min((x - ox) / s, 1280)));
-            const py = Math.round(Math.max(0, Math.min((y - oy) / s, 800)));
+            const sc = Math.min(cW / 1280, cH / 800);
+            const ox = (cW - 1280 * sc) / 2; const oy = (cH - 800 * sc) / 2;
+            const px = Math.round(Math.max(0, Math.min((x - ox) / sc, 1280)));
+            const py = Math.round(Math.max(0, Math.min((y - oy) / sc, 800)));
             mouseThrottleRef.current = setTimeout(() => { mouseThrottleRef.current = null; }, 80);
             sendMouseMove(proxyBaseUrl, activeTabId, px, py);
-        }, [proxyBaseUrl, activeTabId]);
+        }, [showAt, proxyBaseUrl, activeTabId]);
 
     const handleManualScroll = useCallback(
         (deltaX: number, deltaY: number): void => {
