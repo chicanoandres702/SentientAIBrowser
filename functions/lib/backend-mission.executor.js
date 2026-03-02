@@ -8,6 +8,8 @@ const llm_decision_engine_1 = require("./features/llm/llm-decision.engine");
 const llm_memory_service_1 = require("./features/llm/llm-memory-service");
 const knowledge_hierarchy_service_1 = require("./features/llm/knowledge-hierarchy.service");
 const playwright_mcp_adapter_1 = require("./playwright-mcp-adapter");
+const api_key_resolver_1 = require("./features/llm/api-key.resolver");
+const proxy_nav_controller_1 = require("./proxy-nav-controller");
 async function processMissionStep(missionId) {
     var _a;
     try {
@@ -28,6 +30,15 @@ async function processMissionStep(missionId) {
             return;
         }
         const { tabId = 'default', userId } = data;
+        // Why: API key is written to missions doc by frontend (mission-builder.ts runtimeApiKey field).
+        // This is the fastest and most reliable path — no extra Firestore round-trip needed.
+        // Fall back to user settings doc, then to server env vars (local dev / Cloud Run GOOGLE_API_KEY).
+        const apiKey = data.runtimeApiKey || await (0, api_key_resolver_1.resolveGeminiApiKey)(userId);
+        if (!apiKey) {
+            console.error('[Executor] ❌ No Gemini API key — set one in Settings > LLM OVERRIDE');
+            await missionRef.update({ lastAction: '❌ No Gemini API key — set one in Settings > LLM OVERRIDE', updated_at: new Date().toISOString() });
+            return;
+        }
         const context = { groupId: data.groupId || 'DefaultGroup', contextId: data.contextId || 'DefaultContext', unitId: missionId };
         const stepCount = data.stepCount || 0;
         const page = await (0, proxy_page_handler_1.getPersistentPage)(null, tabId, userId);
@@ -36,6 +47,30 @@ async function processMissionStep(missionId) {
             return;
         }
         const currentUrl = page.url();
+        // ── REDIRECT / AUTH-WALL GUARD ─────────────────────────────────────────────
+        // Why: If the page is on a bot-check or auth wall the LLM can't break out —
+        // every cycle will navigate back and hit the same redirect. Pause immediately
+        // so the user can complete the CAPTCHA/MFA, then resume manually.
+        if ((0, proxy_nav_controller_1.isBotCheckUrl)(currentUrl)) {
+            console.warn(`[Executor] 🤖 Bot-check detected at ${currentUrl} — pausing mission`);
+            await missionRef.update({ status: 'waiting', lastAction: '🤖 Bot check / CAPTCHA — complete in browser then resume', updated_at: new Date().toISOString() });
+            return 'pending';
+        }
+        if ((0, proxy_nav_controller_1.isAuthWallUrl)(currentUrl)) {
+            console.warn(`[Executor] 🔐 Auth wall detected at ${currentUrl} — pausing mission`);
+            await missionRef.update({ status: 'waiting', lastAction: '🔐 Auth / MFA required — complete login then resume', currentUrl, updated_at: new Date().toISOString() });
+            return 'pending';
+        }
+        // Stuck-redirect detector: if URL unchanged for 4 executor cycles, pause.
+        // Why: catches any other redirect loops not covered by the explicit patterns above.
+        const prevUrl = data.lastExecutorUrl;
+        const sameCount = (prevUrl === currentUrl) ? ((data.sameUrlCycles || 0) + 1) : 0;
+        await missionRef.update({ lastExecutorUrl: currentUrl, sameUrlCycles: sameCount, updated_at: new Date().toISOString() });
+        if (sameCount >= 4) {
+            console.warn(`[Executor] 🔁 Redirect loop — same URL ${sameCount} cycles: ${currentUrl}`);
+            await missionRef.update({ status: 'waiting', lastAction: `🔁 Redirect loop detected — stuck at ${new URL(currentUrl || 'http://x').hostname}. Check the page and resume.`, sameUrlCycles: 0, updated_at: new Date().toISOString() });
+            return 'pending';
+        }
         const ariaSnapshot = await (0, playwright_mcp_adapter_1.getAriaSnapshot)(page);
         // Why: quality 30 reduces base64 payload ~40% vs 50, speeds up LLM round-trip
         const screenshot = (await page.screenshot({ quality: 30, type: 'jpeg' })).toString('base64');
@@ -43,7 +78,7 @@ async function processMissionStep(missionId) {
         await missionRef.update({ lastAction: `📍 On: ${currentUrl}`, currentUrl, updated_at: new Date().toISOString() });
         // ── STAGE 3: LLM decision (re-plan with current ARIA state) ────────────────────
         await missionRef.update({ lastAction: '🤔 Thinking...', updated_at: new Date().toISOString() });
-        const response = await (0, llm_decision_engine_1.determineNextAction)(userId, data.goal, [], screenshot, new URL(currentUrl || 'http://blank').hostname, [], true, context, ariaSnapshot);
+        const response = await (0, llm_decision_engine_1.determineNextAction)(userId, data.goal, [], screenshot, new URL(currentUrl || 'http://blank').hostname, [], true, context, ariaSnapshot, apiKey);
         if (!response) {
             console.error('[Executor] ❌ LLM returned null');
             await missionRef.update({ lastAction: '❌ LLM returned no response', updated_at: new Date().toISOString() });

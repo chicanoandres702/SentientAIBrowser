@@ -76,3 +76,18 @@ export const sendRemoteAction = async (
     if (!res.ok) throw new Error(`action ${res.status}`);
     return res.json();
 };
+
+/** POST /proxy/click — coordinate click at Playwright viewport (x, y) pixels */
+export const sendRemoteCoordClick = async (baseUrl: string, tabId: string, x: number, y: number): Promise<void> => {
+    await fetch(`${baseUrl}/proxy/click`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ x, y, tabId }) }).catch(() => {});
+};
+
+/** POST /proxy/mouse/move — hover to (x, y) without clicking */
+export const sendMouseMove = async (baseUrl: string, tabId: string, x: number, y: number): Promise<void> => {
+    await fetch(`${baseUrl}/proxy/mouse/move`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ x, y, tabId }) }).catch(() => {});
+};
+
+/** POST /proxy/mouse/scroll — scroll wheel by (deltaX, deltaY) pixels */
+export const sendMouseScroll = async (baseUrl: string, tabId: string, deltaX: number, deltaY: number): Promise<void> => {
+    await fetch(`${baseUrl}/proxy/mouse/scroll`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ deltaX, deltaY, tabId }) }).catch(() => {});
+};

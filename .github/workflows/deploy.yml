@@ -108,35 +108,38 @@ jobs:
           retention-days: 1
 
   # ─────────────────────────────────────────────
-  # JOB 3 — Deploy Firebase Hosting
+  # JOB 3 — Deploy GitHub Pages
   # ─────────────────────────────────────────────
   deploy-hosting:
-    name: 🔥 Deploy Firebase Hosting
+    name: 🐙 Deploy GitHub Pages
     needs: build-web
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      pull-requests: write
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy-pages.outputs.page_url }}
     if: >
       github.event_name == 'push' ||
       github.event.inputs.target == 'all' ||
       github.event.inputs.target == 'hosting'
     steps:
-      - uses: actions/checkout@v4
-
       - name: Download web dist artifact
         uses: actions/download-artifact@v4
         with:
           name: web-dist
           path: dist/
 
-      - name: Deploy to Firebase Hosting
-        uses: FirebaseExtended/action-hosting-deploy@v0
+      - name: Upload to GitHub Pages
+        uses: actions/upload-pages-artifact@v3
         with:
-          repoToken:              ${{ secrets.GITHUB_TOKEN }}
-          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
-          channelId:              live
-          projectId:              ${{ env.PROJECT_ID }}
+          path: dist/
+
+      - name: Deploy to GitHub Pages
+        id: deploy-pages
+        uses: actions/deploy-pages@v4
 
   # ─────────────────────────────────────────────
   # JOB 4 — Deploy Firebase Functions + Firestore Rules
@@ -188,6 +191,7 @@ jobs:
     permissions:
       contents: read
       id-token: write
+      packages: write
     if: >
       github.event_name == 'push' ||
       github.event.inputs.target == 'all' ||
@@ -195,27 +199,35 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # ── Push image to GitHub Container Registry (ghcr.io) ────
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build & push Docker image to GHCR
+        uses: docker/build-push-action@v5
+        with:
+          context: ./functions
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository }}:${{ github.sha }}
+            ghcr.io/${{ github.repository }}:latest
+
+      # ── Authenticate to GCP (Workload Identity — no service account key) ──
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v2
         with:
           workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
           service_account:            ${{ secrets.GCP_SERVICE_ACCOUNT }}
 
-      - name: Configure Docker for GCR
-        run: gcloud auth configure-docker --quiet
-
-      - name: Build & push Docker image
-        run: |
-          IMAGE="gcr.io/${{ secrets.GCP_PROJECT_ID }}/${{ github.event.repository.name }}:${{ github.sha }}"
-          docker build -t "$IMAGE" ./functions
-          docker push "$IMAGE"
-
+      # ── Deploy the GHCR image to Cloud Run ───────────────────
       - name: Deploy to Cloud Run
-        run: |
-          gcloud run deploy ${{ github.event.repository.name }} \
-            --image "gcr.io/${{ secrets.GCP_PROJECT_ID }}/${{ github.event.repository.name }}:${{ github.sha }}" \
-            --region    ${{ secrets.GCP_REGION }} \
-            --platform  managed \
-            --no-allow-unauthenticated \
-            --service-account ${{ secrets.GCP_SERVICE_ACCOUNT }} \
-            --quiet
+        uses: google-github-actions/deploy-cloudrun@v2
+        with:
+          service: sentient-proxy
+          image:   ghcr.io/${{ github.repository }}:${{ github.sha }}
+          region:  ${{ secrets.GCP_REGION }}
+          flags:   --allow-unauthenticated --memory 2Gi --cpu 1 --timeout 300 --min-instances 0 --max-instances 2
