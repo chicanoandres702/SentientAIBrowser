@@ -58,7 +58,9 @@ export async function processMissionStep(missionId: string) {
     }
     if (isAuthWallUrl(currentUrl)) {
       broadcastStatus(tabId, '🔐 Auth required — complete login then resume');
-      await missionRef.update({ status: 'waiting', lastAction: '🔐 Auth / MFA required — complete login then resume', currentUrl, updated_at: new Date().toISOString() });
+      // Why: persist pre-auth returnUrl so resume navigates to original dest, not the expired SAML/SSO URL
+      const returnUrl = (data.authWallReturnUrl as string | undefined) || startUrl || currentUrl;
+      await missionRef.update({ status: 'waiting', lastAction: '🔐 Auth / MFA required — complete login then resume', currentUrl, authWallReturnUrl: returnUrl, updated_at: new Date().toISOString() });
       return 'pending';
     }
     const prevUrl = data.lastExecutorUrl as string | undefined;
