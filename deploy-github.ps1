@@ -117,16 +117,24 @@ if ($Watch -and $RunId) {
     # ── Per-job summary ─────────────────────────────────
     Write-Host ""
     Write-Step "Job results"
-    $Jobs = gh run view $RunId --repo $Repo --json jobs -q '.jobs[] | "\(.conclusion // "running") \(.name)"' 2>$null
-    foreach ($j in $Jobs) {
-        $parts     = $j -split ' ', 2
-        $status    = $parts[0]
-        $jobName   = if ($parts.Count -gt 1) { $parts[1] } else { $j }
-        switch ($status) {
-            'success'  { Write-Ok   "$jobName" }
-            'skipped'  { Write-Info "SKIPPED  $jobName" }
-            'failure'  { Write-Fail "$jobName" }
-            default    { Write-Warn "$status  $jobName" }
+    # Why: avoid --json + -q JQ syntax which varies between gh CLI versions.
+    # Use native PowerShell JSON parsing instead — works with any gh version.
+    $JobsRaw = gh run view $RunId --repo $Repo --json jobs 2>$null
+    if ($JobsRaw) {
+        try {
+            $JobsObj = $JobsRaw | ConvertFrom-Json
+            foreach ($j in $JobsObj.jobs) {
+                $status  = if ($j.conclusion) { $j.conclusion } else { 'running' }
+                $jobName = $j.name
+                switch ($status) {
+                    'success'  { Write-Ok   "$jobName" }
+                    'skipped'  { Write-Info "SKIPPED  $jobName" }
+                    'failure'  { Write-Fail "$jobName" }
+                    default    { Write-Warn "$status  $jobName" }
+                }
+            }
+        } catch {
+            Write-Warn "Could not parse job results JSON: $_"
         }
     }
 
