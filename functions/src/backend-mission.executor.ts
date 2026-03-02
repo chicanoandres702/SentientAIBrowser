@@ -31,7 +31,8 @@ export async function processMissionStep(missionId: string) {
     }
     const context = { groupId: data.groupId || 'DefaultGroup', contextId: data.contextId || 'DefaultContext', unitId: missionId };
     const stepCount: number = data.stepCount || 0;
-    const page = await getPersistentPage(null, tabId, userId);
+    const startUrl: string | null = (data.tabUrl && data.tabUrl !== 'about:blank') ? data.tabUrl : null;
+    const page = await getPersistentPage(startUrl, tabId, userId);
     if (!page) { console.error('[Executor] ❌ getPersistentPage returned null'); return; }
     const currentUrl = page.url();
 
@@ -136,6 +137,11 @@ export async function processMissionStep(missionId: string) {
                     const ext = step.value.substring(step.value.lastIndexOf('.')).toLowerCase();
                     if (!allowed.includes(ext)) throw new Error(`File type "${ext}" not permitted`);
                     await page.locator('input[type="file"]').first().setInputFiles(step.value);
+                } else if (step.action === 'navigate' && step.url && /^https?:\/\/(www\.)?(google|bing|yahoo|duckduckgo)\.com\/?(\?.*)?$/.test(step.url) && !step.url.includes('search?') && !step.url.includes('q=')) {
+                    // Why: Cloud Run IPs trigger bot-detection on search engine root pages.
+                    // The LLM must navigate DIRECTLY to the target site — never via a search engine.
+                    console.warn(`[Executor] ⛔ Blocked search-engine root nav to ${step.url} — LLM must use direct URL`);
+                    throw new Error(`Direct navigation to ${step.url} blocked — use the target site URL directly`);
                 } else {
                     await executeAriaAction(page, step as AriaStep);
                 }

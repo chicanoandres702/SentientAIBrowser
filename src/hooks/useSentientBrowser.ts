@@ -19,7 +19,7 @@ export const useSentientBrowser = (_theme?: unknown) => {
   const { closeMission } = useMissionCleanup({ removeMissionTasks: cap.removeMissionTasks, closeTab: cap.closeTab, PROXY_BASE_URL: cap.s.PROXY_BASE_URL });
   const { closeTabWithCleanup } = useTabCleanup({ removeTabTasks: cap.removeTabTasks, closeTab: cap.closeTab, PROXY_BASE_URL: cap.s.PROXY_BASE_URL, tasks: cap.tasks });
   
-  useBrowserModeSync(cap.activeUrl, cap.s.isRemoteMirrorEnabled, cap.s.setIsScholarMode, cap.navigateActiveTab);
+  useBrowserModeSync(cap.activeUrl, cap.s.isRemoteMirrorEnabled, cap.s.setIsScholarMode);
   useEffect(() => { if (!cap.s.activePrompt) return; heuristics.resetHeuristics(); }, [cap.s.activePrompt, heuristics]);
 
   const { reassess } = usePlanReassessment({ activePrompt: cap.s.activePrompt, activeUrl: cap.activeUrl, tasks: cap.tasks, PROXY_BASE_URL: cap.s.PROXY_BASE_URL, tabId: cap.activeTabId || 'default', addTask: cap.addTask, updateTask: cap.updateTask, removeTask: cap.removeTask, setStatusMessage: cap.s.setStatusMessage,
@@ -84,9 +84,9 @@ export const useSentientBrowser = (_theme?: unknown) => {
     knowledgeEntries: knowledge.knowledgeEntries,
     addKnowledge: knowledge.addKnowledge,
     handleExecutePrompt: async (p: string) => {
-      const seedUrl = cap.activeUrl || 'https://www.google.com';
+      const seedUrl = cap.activeUrl || 'about:blank';
       const newTabId = await cap.addNewTab(seedUrl, 'Mission');
-      return handleExecutePrompt(p, newTabId, auth.currentUser?.uid || 'anonymous', cap.s.useConfirmerAgent ?? true);
+      return handleExecutePrompt(p, newTabId, auth.currentUser?.uid || 'anonymous', cap.s.useConfirmerAgent ?? true, seedUrl);
     },
     toggleDaemon,
     handleInteractiveResponse,
