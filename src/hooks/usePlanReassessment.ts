@@ -49,10 +49,20 @@ export const usePlanReassessment = ({
         setStatusMessage('🔄 Planning next steps...');
         try {
             const token = await auth.currentUser?.getIdToken();
+            // Why: completed task history prevents the LLM from re-planning steps that already
+            // finished — especially navigations that redirected (e.g. campus.capella.edu →
+            // login.microsoftonline.com). Without this, the planner sees the redirect URL,
+            // doesn't know the navigate was done, and queues it again indefinitely.
+            const completedTitles = standalone
+                .filter(t => t.status === 'completed')
+                .map(t => t.title);
+            const planPrompt = completedTitles.length > 0
+                ? `${activePrompt}\n\n[Already completed — do NOT repeat these steps]: ${completedTitles.join(' | ')}`
+                : activePrompt;
             const res = await fetch(`${PROXY_BASE_URL}/agent/plan`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token || ''}` },
-                body: JSON.stringify({ prompt: activePrompt, tabId, url: activeUrl }),
+                body: JSON.stringify({ prompt: planPrompt, tabId, url: activeUrl }),
             });
             if (!res.ok) { console.warn(`[Reassess] ❌ plan failed status=${res.status}`); setStatusMessage('Ready'); return; }
             const { missionResponse } = await res.json();
@@ -69,9 +79,17 @@ export const usePlanReassessment = ({
             for (const seg of segments) {
                 const segName = seg.name || 'Next step';
                 const steps = seg.steps ?? [];
-                // Skip segments whose title already completed
-                const alreadyDone = tasks.some(
-                    t => t.status === 'completed' && t.title.toLowerCase() === segName.toLowerCase(),
+                // Why: normalize titles by stripping leading action-verb prefixes so
+                // 'navigate: go to campus.capella.edu' matches plan segment 'Go to campus.capella.edu'.
+                // Also catches redirect cases where the COMPLETED task URL is a prefix of the new segment.
+                const norm = (s: string) => s.toLowerCase().replace(/^[\w_]+:\s*/i, '').trim();
+                const segNorm = norm(segName);
+                const alreadyDone = tasks.some(t =>
+                    t.status === 'completed' && (
+                        norm(t.title) === segNorm ||
+                        norm(t.title).includes(segNorm) ||
+                        segNorm.includes(norm(t.title))
+                    )
                 );
                 if (alreadyDone) continue;
 
