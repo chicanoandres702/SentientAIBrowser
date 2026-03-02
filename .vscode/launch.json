@@ -1,4 +1,4 @@
-{
+﻿{
     "version": "0.2.0",
     "configurations": [
         {
@@ -72,7 +72,7 @@
             "console": "integratedTerminal"
         },
         {
-            "name": "☁️ Deploy Functions (Build TS → Deploy)",
+            "name": "â˜ï¸ Deploy Functions (Build TS â†’ Deploy)",
             "type": "node",
             "request": "launch",
             "runtimeExecutable": "cmd",
@@ -84,7 +84,7 @@
             "console": "integratedTerminal"
         },
         {
-            "name": "🖥️ Deploy Frontend (TSX → Hosting)",
+            "name": "ðŸ–¥ï¸ Deploy Frontend (TSX â†’ Hosting)",
             "type": "node",
             "request": "launch",
             "runtimeExecutable": "powershell",
@@ -127,9 +127,9 @@
             "console": "integratedTerminal"
         },
 
-        // ── GitHub Actions Deploy ──────────────────────────────
+        // â”€â”€ GitHub Actions Deploy â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         {
-            "name": "🚀 GitHub Deploy: All",
+            "name": "ðŸš€ GitHub Deploy: All",
             "type": "node",
             "request": "launch",
             "runtimeExecutable": "powershell",
@@ -142,7 +142,7 @@
             "console": "integratedTerminal"
         },
         {
-            "name": "� GitHub Deploy: All (NoPush)",
+            "name": "ï¿½ GitHub Deploy: All (NoPush)",
             "type": "node",
             "request": "launch",
             "runtimeExecutable": "powershell",
@@ -156,7 +156,7 @@
             "console": "integratedTerminal"
         },
         {
-            "name": "🔥 GitHub Deploy: Hosting Only",
+            "name": "ðŸ”¥ GitHub Deploy: Hosting Only",
             "type": "node",
             "request": "launch",
             "runtimeExecutable": "powershell",
@@ -169,7 +169,7 @@
             "console": "integratedTerminal"
         },
         {
-            "name": "⚡ GitHub Deploy: Firestore Rules Only",
+            "name": "âš¡ GitHub Deploy: Firestore Rules Only",
             "type": "node",
             "request": "launch",
             "runtimeExecutable": "powershell",
@@ -182,7 +182,7 @@
             "console": "integratedTerminal"
         },
         {
-            "name": "☁️ GitHub Deploy: Cloud Run Only",
+            "name": "â˜ï¸ GitHub Deploy: Cloud Run Only",
             "type": "node",
             "request": "launch",
             "runtimeExecutable": "powershell",
@@ -195,23 +195,23 @@
             "console": "integratedTerminal"
         },
 
-        // ── IAM fix — run this once if you get 403 Permission Denied ──
+        // â”€â”€ IAM fix â€” run this once if you get 403 Permission Denied â”€â”€
         // This grants the Firebase Admin SDK service account all required
         // deploy roles (serviceUsageConsumer, firebaserules.admin, etc.)
         {
-            "name": "🔑 Fix IAM: Grant Firebase SA deploy roles",
+            "name": "ðŸ”‘ Fix IAM: Grant Firebase SA deploy roles",
             "type": "node",
             "request": "launch",
             "runtimeExecutable": "powershell",
             "runtimeArgs": [
                 "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command",
-                "$SA='firebase-adminsdk-fbsvc@sentient-ai-browser.iam.gserviceaccount.com'; $P='sentient-ai-browser'; $CSA='184717935920-compute@developer.gserviceaccount.com'; @('roles/serviceusage.serviceUsageConsumer','roles/firebaserules.admin','roles/datastore.indexAdmin','roles/run.admin','roles/storage.admin') | ForEach-Object { Write-Host \"Granting $_ on project...\"; gcloud projects add-iam-policy-binding $P --member=serviceAccount:$SA --role=$_ --quiet }; Write-Host 'Granting iam.serviceAccountUser on compute SA (required for Cloud Run)...'; gcloud iam service-accounts add-iam-policy-binding $CSA --project=$P --member=serviceAccount:$SA --role=roles/iam.serviceAccountUser --quiet; Write-Host 'IAM grant complete. Allow ~60s for propagation then re-run deploy.'"
+                "$SA='firebase-adminsdk-fbsvc@sentient-ai-browser.iam.gserviceaccount.com'; $P='sentient-ai-browser'; $CSA='184717935920-compute@developer.gserviceaccount.com'; @('roles/serviceusage.serviceUsageConsumer','roles/firebaserules.admin','roles/datastore.indexAdmin','roles/run.admin','roles/storage.admin','roles/artifactregistry.writer') | ForEach-Object { Write-Host \"Granting $_ on project...\"; gcloud projects add-iam-policy-binding $P --member=serviceAccount:$SA --role=$_ --quiet }; Write-Host 'Granting iam.serviceAccountUser on compute SA (required for Cloud Run)...'; gcloud iam service-accounts add-iam-policy-binding $CSA --project=$P --member=serviceAccount:$SA --role=roles/iam.serviceAccountUser --quiet; Write-Host 'IAM grant complete. Allow ~60s for propagation then re-run deploy.'"
             ],
             "cwd": "${workspaceFolder}",
             "console": "integratedTerminal"
         },
         {
-            "name": "🔑+🚀 Fix IAM then Deploy All",
+            "name": "ðŸ”‘+ðŸš€ Fix IAM then Deploy All",
             "type": "node",
             "request": "launch",
             "runtimeExecutable": "powershell",
@@ -223,12 +223,12 @@
             ],
             "cwd": "${workspaceFolder}",
             "console": "integratedTerminal",
-            "preLaunchTask": "🔑 Fix IAM: Grant Firebase SA deploy roles"
+            "preLaunchTask": "ðŸ”‘ Fix IAM: Grant Firebase SA deploy roles"
         },
 
-        // ── Direct deploy — no GitHub Actions, pushes straight from machine ──
+        // â”€â”€ Direct deploy â€” no GitHub Actions, pushes straight from machine â”€â”€
         {
-            "name": "🚀 Direct Deploy: All (Firebase + Cloud Run)",
+            "name": "ðŸš€ Direct Deploy: All (Firebase + Cloud Run)",
             "type": "node",
             "request": "launch",
             "runtimeExecutable": "powershell",
@@ -237,7 +237,7 @@
             "console": "integratedTerminal"
         },
         {
-            "name": "☁️  Direct Deploy: Cloud Run only",
+            "name": "â˜ï¸  Direct Deploy: Cloud Run only",
             "type": "node",
             "request": "launch",
             "runtimeExecutable": "powershell",
@@ -246,7 +246,7 @@
             "console": "integratedTerminal"
         },
         {
-            "name": "🔥 Direct Deploy: Firestore Rules only",
+            "name": "ðŸ”¥ Direct Deploy: Firestore Rules only",
             "type": "node",
             "request": "launch",
             "runtimeExecutable": "powershell",
@@ -255,7 +255,7 @@
             "console": "integratedTerminal"
         },
         {
-            "name": "☁️  Direct Deploy: Cloud Run (skip TS build)",
+            "name": "â˜ï¸  Direct Deploy: Cloud Run (skip TS build)",
             "type": "node",
             "request": "launch",
             "runtimeExecutable": "powershell",
@@ -264,7 +264,7 @@
             "console": "integratedTerminal"
         },
         {
-            "name": "☁️  Direct Deploy: Cloud Run (force Cloud Build)",
+            "name": "â˜ï¸  Direct Deploy: Cloud Run (force Cloud Build)",
             "type": "node",
             "request": "launch",
             "runtimeExecutable": "powershell",
@@ -280,8 +280,8 @@
             "stopOnEntry": false
         },
         {
-            "name": "🔑+🚀 Fix IAM → Deploy All",
-            "configurations": ["🔑+🚀 Fix IAM then Deploy All"]
+            "name": "ðŸ”‘+ðŸš€ Fix IAM â†’ Deploy All",
+            "configurations": ["ðŸ”‘+ðŸš€ Fix IAM then Deploy All"]
         }
     ]
 }
