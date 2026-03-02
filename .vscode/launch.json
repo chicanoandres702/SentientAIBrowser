@@ -1,4 +1,4 @@
-﻿{
+{
     "version": "0.2.0",
     "configurations": [
         {
@@ -271,7 +271,125 @@
             "runtimeArgs": ["-ExecutionPolicy","Bypass","-File","${workspaceFolder}/deploy-direct.ps1","-Target","cloudrun","-UseCloudBuild"],
             "cwd": "${workspaceFolder}",
             "console": "integratedTerminal"
-        }
+        },
+
+        // ── Cross-Platform Deploy (Windows .ps1 / Linux+macOS .sh) ──────────────
+        // Each config auto-selects the correct script via windows / linux / osx blocks.
+        // Open Run & Debug (Ctrl+Shift+D) and pick any [GitHub], [Direct], [Frontend],
+        // or [Android] entry -- works on all three OSes without any changes.
+
+        {   "name": "[GitHub] Deploy: All",
+            "type": "node", "request": "launch",
+            "runtimeExecutable": "powershell",
+            "runtimeArgs": ["-ExecutionPolicy","Bypass","-File","${workspaceFolder}/deploy-github.ps1","-Target","all"],
+            "linux": { "runtimeExecutable": "bash", "runtimeArgs": ["${workspaceFolder}/deploy-github.sh","--target","all"] },
+            "osx":   { "runtimeExecutable": "bash", "runtimeArgs": ["${workspaceFolder}/deploy-github.sh","--target","all"] },
+            "cwd": "${workspaceFolder}", "console": "integratedTerminal" },
+
+        {   "name": "[GitHub] Deploy: All (No Push)",
+            "type": "node", "request": "launch",
+            "runtimeExecutable": "powershell",
+            "runtimeArgs": ["-ExecutionPolicy","Bypass","-File","${workspaceFolder}/deploy-github.ps1","-Target","all","-NoPush"],
+            "linux": { "runtimeExecutable": "bash", "runtimeArgs": ["${workspaceFolder}/deploy-github.sh","--target","all","--no-push"] },
+            "osx":   { "runtimeExecutable": "bash", "runtimeArgs": ["${workspaceFolder}/deploy-github.sh","--target","all","--no-push"] },
+            "cwd": "${workspaceFolder}", "console": "integratedTerminal" },
+
+        {   "name": "[GitHub] Deploy: Hosting Only",
+            "type": "node", "request": "launch",
+            "runtimeExecutable": "powershell",
+            "runtimeArgs": ["-ExecutionPolicy","Bypass","-File","${workspaceFolder}/deploy-github.ps1","-Target","hosting"],
+            "linux": { "runtimeExecutable": "bash", "runtimeArgs": ["${workspaceFolder}/deploy-github.sh","--target","hosting"] },
+            "osx":   { "runtimeExecutable": "bash", "runtimeArgs": ["${workspaceFolder}/deploy-github.sh","--target","hosting"] },
+            "cwd": "${workspaceFolder}", "console": "integratedTerminal" },
+
+        {   "name": "[GitHub] Deploy: Firestore Rules",
+            "type": "node", "request": "launch",
+            "runtimeExecutable": "powershell",
+            "runtimeArgs": ["-ExecutionPolicy","Bypass","-File","${workspaceFolder}/deploy-github.ps1","-Target","functions"],
+            "linux": { "runtimeExecutable": "bash", "runtimeArgs": ["${workspaceFolder}/deploy-github.sh","--target","functions"] },
+            "osx":   { "runtimeExecutable": "bash", "runtimeArgs": ["${workspaceFolder}/deploy-github.sh","--target","functions"] },
+            "cwd": "${workspaceFolder}", "console": "integratedTerminal" },
+
+        {   "name": "[GitHub] Deploy: Cloud Run",
+            "type": "node", "request": "launch",
+            "runtimeExecutable": "powershell",
+            "runtimeArgs": ["-ExecutionPolicy","Bypass","-File","${workspaceFolder}/deploy-github.ps1","-Target","cloudrun"],
+            "linux": { "runtimeExecutable": "bash", "runtimeArgs": ["${workspaceFolder}/deploy-github.sh","--target","cloudrun"] },
+            "osx":   { "runtimeExecutable": "bash", "runtimeArgs": ["${workspaceFolder}/deploy-github.sh","--target","cloudrun"] },
+            "cwd": "${workspaceFolder}", "console": "integratedTerminal" },
+
+        {   "name": "[Direct] Deploy: All",
+            "type": "node", "request": "launch",
+            "runtimeExecutable": "powershell",
+            "runtimeArgs": ["-ExecutionPolicy","Bypass","-File","${workspaceFolder}/deploy-direct.ps1","-Target","all"],
+            "linux": { "runtimeExecutable": "bash", "runtimeArgs": ["${workspaceFolder}/deploy-direct.sh","--target","all"] },
+            "osx":   { "runtimeExecutable": "bash", "runtimeArgs": ["${workspaceFolder}/deploy-direct.sh","--target","all"] },
+            "cwd": "${workspaceFolder}", "console": "integratedTerminal" },
+
+        {   "name": "[Direct] Deploy: Cloud Run",
+            "type": "node", "request": "launch",
+            "runtimeExecutable": "powershell",
+            "runtimeArgs": ["-ExecutionPolicy","Bypass","-File","${workspaceFolder}/deploy-direct.ps1","-Target","cloudrun"],
+            "linux": { "runtimeExecutable": "bash", "runtimeArgs": ["${workspaceFolder}/deploy-direct.sh","--target","cloudrun"] },
+            "osx":   { "runtimeExecutable": "bash", "runtimeArgs": ["${workspaceFolder}/deploy-direct.sh","--target","cloudrun"] },
+            "cwd": "${workspaceFolder}", "console": "integratedTerminal" },
+
+        {   "name": "[Direct] Deploy: Firestore Rules",
+            "type": "node", "request": "launch",
+            "runtimeExecutable": "powershell",
+            "runtimeArgs": ["-ExecutionPolicy","Bypass","-File","${workspaceFolder}/deploy-direct.ps1","-Target","rules"],
+            "linux": { "runtimeExecutable": "bash", "runtimeArgs": ["${workspaceFolder}/deploy-direct.sh","--target","rules"] },
+            "osx":   { "runtimeExecutable": "bash", "runtimeArgs": ["${workspaceFolder}/deploy-direct.sh","--target","rules"] },
+            "cwd": "${workspaceFolder}", "console": "integratedTerminal" },
+
+        {   "name": "[Direct] Deploy: Cloud Run (Skip Build)",
+            "type": "node", "request": "launch",
+            "runtimeExecutable": "powershell",
+            "runtimeArgs": ["-ExecutionPolicy","Bypass","-File","${workspaceFolder}/deploy-direct.ps1","-Target","cloudrun","-SkipBuild"],
+            "linux": { "runtimeExecutable": "bash", "runtimeArgs": ["${workspaceFolder}/deploy-direct.sh","--target","cloudrun","--skip-build"] },
+            "osx":   { "runtimeExecutable": "bash", "runtimeArgs": ["${workspaceFolder}/deploy-direct.sh","--target","cloudrun","--skip-build"] },
+            "cwd": "${workspaceFolder}", "console": "integratedTerminal" },
+
+        {   "name": "[Frontend] Deploy Web",
+            "type": "node", "request": "launch",
+            "runtimeExecutable": "powershell",
+            "runtimeArgs": ["-ExecutionPolicy","Bypass","-File","${workspaceFolder}/deploy-frontend.ps1"],
+            "linux": { "runtimeExecutable": "bash", "runtimeArgs": ["${workspaceFolder}/deploy-frontend.sh"] },
+            "osx":   { "runtimeExecutable": "bash", "runtimeArgs": ["${workspaceFolder}/deploy-frontend.sh"] },
+            "cwd": "${workspaceFolder}", "console": "integratedTerminal" },
+
+        // ── Android: EAS Build + EAS Submit ────────────────────────────────────
+        {   "name": "[Android] Build: production",
+            "type": "node", "request": "launch",
+            "runtimeExecutable": "powershell",
+            "runtimeArgs": ["-ExecutionPolicy","Bypass","-File","${workspaceFolder}/deploy-android.ps1","-Target","build","-Profile","production"],
+            "linux": { "runtimeExecutable": "bash", "runtimeArgs": ["${workspaceFolder}/deploy-android.sh","build","production"] },
+            "osx":   { "runtimeExecutable": "bash", "runtimeArgs": ["${workspaceFolder}/deploy-android.sh","build","production"] },
+            "cwd": "${workspaceFolder}", "console": "integratedTerminal" },
+
+        {   "name": "[Android] Build: preview",
+            "type": "node", "request": "launch",
+            "runtimeExecutable": "powershell",
+            "runtimeArgs": ["-ExecutionPolicy","Bypass","-File","${workspaceFolder}/deploy-android.ps1","-Target","build","-Profile","preview"],
+            "linux": { "runtimeExecutable": "bash", "runtimeArgs": ["${workspaceFolder}/deploy-android.sh","build","preview"] },
+            "osx":   { "runtimeExecutable": "bash", "runtimeArgs": ["${workspaceFolder}/deploy-android.sh","build","preview"] },
+            "cwd": "${workspaceFolder}", "console": "integratedTerminal" },
+
+        {   "name": "[Android] Submit to Play Store",
+            "type": "node", "request": "launch",
+            "runtimeExecutable": "powershell",
+            "runtimeArgs": ["-ExecutionPolicy","Bypass","-File","${workspaceFolder}/deploy-android.ps1","-Target","submit"],
+            "linux": { "runtimeExecutable": "bash", "runtimeArgs": ["${workspaceFolder}/deploy-android.sh","submit"] },
+            "osx":   { "runtimeExecutable": "bash", "runtimeArgs": ["${workspaceFolder}/deploy-android.sh","submit"] },
+            "cwd": "${workspaceFolder}", "console": "integratedTerminal" },
+
+        {   "name": "[Android] Build + Submit: production",
+            "type": "node", "request": "launch",
+            "runtimeExecutable": "powershell",
+            "runtimeArgs": ["-ExecutionPolicy","Bypass","-File","${workspaceFolder}/deploy-android.ps1","-Target","all","-Profile","production"],
+            "linux": { "runtimeExecutable": "bash", "runtimeArgs": ["${workspaceFolder}/deploy-android.sh","all","production"] },
+            "osx":   { "runtimeExecutable": "bash", "runtimeArgs": ["${workspaceFolder}/deploy-android.sh","all","production"] },
+            "cwd": "${workspaceFolder}", "console": "integratedTerminal" }
     ],
     "compounds": [
         {
