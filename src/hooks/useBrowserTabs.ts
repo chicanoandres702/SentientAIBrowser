@@ -112,8 +112,7 @@ export const useBrowserTabs = (initialUrl: string) => {
         // Why: debounce so address-bar typing or redirect chains coalesce into a single write
         clearTimeout(navDebounceRef.current);
         navDebounceRef.current = setTimeout(async () => {
-            isSyncingRef.current = true;
-            await syncNavigate(activeTabId, nextUrl, title);
+            isSyncingRef.current = true; await syncNavigate(activeTabId, nextUrl, title);
             // Why: keep lock open briefly so the echo snapshot arrives and is ignored
             setTimeout(() => { isSyncingRef.current = false; }, 600);
         }, NAV_DEBOUNCE_MS);
@@ -124,9 +123,7 @@ export const useBrowserTabs = (initialUrl: string) => {
     // create the redirect-echo loop (server writes → Firestore → client reads → re-navigates).
     const applyServerSync = useCallback((syncTabId: string, url: string, title: string) => {
         if (!url || url === 'about:blank' || url === 'about:newtab') return;
-        // Block the next Firestore onSnapshot from overwriting this WS-sourced state.
-        isSyncingRef.current = true;
-        setTabs(prev => prev.map(t => t.id === syncTabId ? { ...t, url, title: title || deriveTitleFromUrl(url) } : t));
+        isSyncingRef.current = true; setTabs(prev => prev.map(t => t.id === syncTabId ? { ...t, url, title: title || deriveTitleFromUrl(url) } : t));
         if (syncTabId === activeTabId) setActiveUrl(prev => prev === url ? prev : url);
         setTimeout(() => { isSyncingRef.current = false; }, 800);
     }, [activeTabId]);

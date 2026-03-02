@@ -13,6 +13,7 @@ import { recordActionOutcome } from './features/llm/llm-memory-service';
 import { saveContextualKnowledge } from './features/llm/knowledge-hierarchy.service';
 import { executeAriaAction, AriaStep } from './playwright-mcp-adapter';
 import { broadcastStatus } from './proxy-tab-sync.broker';
+import { findCurrentSegmentTask, setSubActionStatus, completeSegmentTask } from './task-queue-bridge';
 
 type DocRef = { update: (data: Record<string, unknown>) => Promise<unknown> };
 type MissionCtx = { groupId: string; contextId: string; unitId: string };
@@ -30,10 +31,15 @@ export async function executeStepQueue(
     userId: string,
 ): Promise<'done' | 'pending'> {
     const live = () => [...existingTasks, ...taskDocs];
+    // Why: locate the current task_queues card so backend advances it alongside execution
+    const segTask = await findCurrentSegmentTask(context.unitId).catch(() => null);
+    const segDocId = segTask?.id ?? null;
+    const segOrder = segTask?.order ?? 0;
 
     for (let idx = 0; idx < stepQueue.length; idx++) {
         const step = stepQueue[idx];
         taskDocs[idx].status = 'in_progress';
+        if (segDocId) setSubActionStatus(segDocId, idx, 'in_progress').catch(() => {});
         const label = `${step.action}: ${step.explanation ?? ''}`;
         broadcastStatus(tabId, `⚙️ ${label}`.substring(0, 80));
         await missionRef.update({ tasks: live(), lastAction: `⚙️ ${label}`.substring(0, 120), updated_at: new Date().toISOString() });
@@ -55,6 +61,7 @@ export async function executeStepQueue(
             taskDocs[idx].status = 'completed';
             broadcastStatus(tabId, '✅ Mission complete');
             await missionRef.update({ status: 'completed', progress: 100, stepCount: stepCount + idx + 1, lastAction: '✅ Mission Completed Successfully', tasks: live() });
+            if (segDocId) await completeSegmentTask(segDocId, context.unitId, segOrder).catch(() => {});
             return 'done';
         }
 
@@ -80,11 +87,14 @@ export async function executeStepQueue(
         }
 
         taskDocs[idx].status = result === 'success' ? 'completed' : 'failed';
+        if (segDocId) setSubActionStatus(segDocId, idx, result === 'success' ? 'completed' : 'failed').catch(() => {});
         const pageUrl = await Promise.resolve().then(() => page.url()).catch(() => String(data.currentUrl ?? 'unknown'));
         await recordActionOutcome(userId, String(data.goal), step.action, result, observation, new URL(pageUrl || 'http://unknown').hostname).catch(() => {});
         const n = stepCount + idx + 1;
         await missionRef.update({ tasks: live(), lastAction: `${result === 'success' ? '✅' : '❌'} ${observation}`.substring(0, 120), progress: Math.min(99, Math.round((n / (n + 8)) * 100)), stepCount: n, updated_at: new Date().toISOString() });
         if (result === 'failure') console.warn(`[StepExecutor] ⚠️ step failed but continuing: ${observation}`);
     }
+    // Why: all steps done — mark card complete and auto-advance next pending card to in_progress
+    if (segDocId) await completeSegmentTask(segDocId, context.unitId, segOrder).catch(() => {});
     return 'pending';
 }

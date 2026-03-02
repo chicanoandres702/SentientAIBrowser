@@ -28,9 +28,7 @@ export const buildMissionFromSegments = async (
     tabUrl?: string,
     workflowId?: string,
 ) => {
-    const ACTION_DURATION_MS = 15000;
-    const MISSION_SCHEMA_VERSION = 2;
-    const now = Date.now();
+    const ACTION_DURATION_MS = 15000; const MISSION_SCHEMA_VERSION = 2; const now = Date.now();
     const segments = missionResponse.execution.segments;
     const missionId = `${now}_${Math.random().toString(36).slice(2, 8)}`;
     const runId = runIdOverride || `run_${now}_${Math.random().toString(36).slice(2, 8)}`;
@@ -112,15 +110,11 @@ export const buildMissionFromSegments = async (
     if (auth.currentUser && allMissionTasks.length > 0) {
         try {
             await setDoc(doc(db, 'missions', missionId), {
-                id: missionId, userId: auth.currentUser.uid, goal: prompt,
-                status: 'active', progress: 0, tasks: allMissionTasks,
-                tabId, tabUrl: tabUrl || 'about:blank', runId, taskCount: allMissionTasks.length,
-                workflowId, workspaceId,
-                lastAction: missionResponse.meta?.reasoning || 'Executing plan',
-                startedAt: now, updatedAt: now, schemaVersion: MISSION_SCHEMA_VERSION,
-                createdAt: now, missionResponse,
-                useConfirmerAgent: deps.useConfirmerAgent ?? true,
-                runtimeApiKey: deps.runtimeGeminiApiKey || '',
+                id: missionId, userId: auth.currentUser.uid, goal: prompt, status: 'active', progress: 0,
+                tasks: allMissionTasks, tabId, tabUrl: tabUrl || 'about:blank', runId, taskCount: allMissionTasks.length,
+                workflowId, workspaceId, lastAction: missionResponse.meta?.reasoning || 'Executing plan',
+                startedAt: now, updatedAt: now, schemaVersion: MISSION_SCHEMA_VERSION, createdAt: now,
+                missionResponse, useConfirmerAgent: deps.useConfirmerAgent ?? true, runtimeApiKey: deps.runtimeGeminiApiKey || '',
             });
         } catch (e) { console.error('Failed to save mission:', e); }
     }

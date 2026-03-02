@@ -1,3 +1,4 @@
+// Feature: Backend Entry | Trace: functions/src/index.ts
 /*
  * [Parent Feature/Milestone] Backend Execution
  * [Child Task/Issue] #cleanup — Remove duplicate Firebase Function executors

@@ -1,3 +1,4 @@
+// Feature: Backend Execution | Trace: functions/src/backend-ai-orchestrator.ts
 /*
  * [Parent Feature/Milestone] Backend Execution
  * [Child Task/Issue] fix: one active mission per user — no parallel executor chaos

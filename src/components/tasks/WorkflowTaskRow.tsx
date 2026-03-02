@@ -1,5 +1,5 @@
 // Feature: Tasks | Why: Expandable task row — status dot, title, action count; expands to SubAction timeline
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
 import { TaskItem, TaskStatus } from '../../features/tasks/types';
 import { wp } from './WorkflowPanel.styles';
@@ -37,8 +37,12 @@ const LABEL: Record<TaskStatus, string> = {
 export const WorkflowTaskRow: React.FC<Props> = React.memo(({ item, accentColor, removeTask }) => {
     const actions = item.subActions ?? [];
     const canExpand = actions.length > 0;
-    // Why: auto-expand in-progress tasks so the user sees running actions immediately
+    // Why: initial state auto-expands in_progress tasks
     const [expanded, setExpanded] = useState(item.status === 'in_progress' && canExpand);
+    // Why: status can change from pending→in_progress after mount — sync expanded accordingly
+    useEffect(() => {
+        if (item.status === 'in_progress' && canExpand) setExpanded(true);
+    }, [item.status, canExpand]);
     const done = item.status === 'completed';
 
     return (

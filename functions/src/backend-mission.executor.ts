@@ -14,7 +14,7 @@ import { determineNextAction } from './features/llm/llm-decision.engine';
 import { getAriaSnapshot, AriaStep } from './playwright-mcp-adapter';
 import { resolveGeminiApiKey } from './features/llm/api-key.resolver';
 import { isBotCheckUrl, isAuthWallUrl } from './proxy-nav-controller';
-import { broadcastStatus } from './proxy-tab-sync.broker';
+import { broadcastStatus, getCachedFrame } from './proxy-tab-sync.broker';
 import { executeStepQueue } from './backend-step.executor';
 
 export async function processMissionStep(missionId: string) {
@@ -73,9 +73,12 @@ export async function processMissionStep(missionId: string) {
     }
 
     const ariaSnapshot = await getAriaSnapshot(page);
-    const screenshot = await page.screenshot({ quality: 30, type: 'jpeg', timeout: 8000 })
-      .then(buf => buf.toString('base64'))
-      .catch(() => { console.warn('[Executor] ⏱ screenshot timeout — proceeding with ARIA only'); return ''; });
+    const _cf = getCachedFrame(tabId);
+    const screenshot = (_cf && Date.now() - _cf.ts < 2000)
+      ? _cf.data.replace('data:image/jpeg;base64,', '')
+      : await page.screenshot({ quality: 30, type: 'jpeg', timeout: 8000 })
+          .then(buf => buf.toString('base64'))
+          .catch(() => { console.warn('[Executor] ⏱ screenshot timeout — proceeding with ARIA only'); return ''; });
     await missionRef.update({ lastAction: `📍 On: ${currentUrl}`, currentUrl, updated_at: new Date().toISOString() });
     broadcastStatus(tabId, '🤔 Thinking...');
     await missionRef.update({ lastAction: '🤔 Thinking...', updated_at: new Date().toISOString() });

@@ -1,0 +1,63 @@
+# Feature: On-Demand Playwright Scrape via GitHub Actions
+# Why: Free ARM64 Ubuntu runner executes Playwright headless Chromium and writes
+#      results to Firestore. Android app triggers via POST to Cloud Run which
+#      calls the GitHub API repository_dispatch endpoint.
+#
+# Required secrets:
+#   FIREBASE_SA_JSON  — Firebase Admin service account JSON (base64-encoded)
+#   GH_PAT            — GitHub PAT with `repo` scope (used by the trigger route)
+
+name: Playwright Scrape (On-Demand)
+
+on:
+  workflow_dispatch:
+    inputs:
+      url:
+        description: URL to scrape
+        required: true
+        default: https://example.com
+      tabId:
+        description: Firestore tab document ID
+        required: true
+        default: tab_gh_scrape
+      userId:
+        description: User ID
+        required: false
+        default: default
+  repository_dispatch:
+    types: [scrape]
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: functions/package-lock.json
+
+      - name: Install dependencies
+        working-directory: functions
+        run: npm ci
+
+      - name: Install Playwright Chromium
+        working-directory: functions
+        run: npx playwright install chromium --with-deps
+
+      - name: Build TypeScript
+        working-directory: functions
+        run: npm run build
+
+      - name: Run scrape
+        working-directory: functions
+        env:
+          SCRAPE_URL: ${{ github.event.inputs.url || github.event.client_payload.url }}
+          SCRAPE_TAB_ID: ${{ github.event.inputs.tabId || github.event.client_payload.tabId }}
+          SCRAPE_USER_ID: ${{ github.event.inputs.userId || github.event.client_payload.userId || 'default' }}
+          FIREBASE_SA_JSON: ${{ secrets.FIREBASE_SA_JSON }}
+        run: node lib/github-scrape-runner.js

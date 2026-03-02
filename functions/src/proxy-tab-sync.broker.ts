@@ -1,46 +1,23 @@
-// Feature: Navigation + Remote Input | Why: Bidirectional WebSocket channel.
-// Server→client: url, screenshot, live frame stream, cursor position, status.
-// Client→server: mouse + keyboard + navigate actions (replaces HTTP roundtrips).
+// Feature: Navigation + Remote Input | Trace: README.md
 /*
  * [Parent Feature/Milestone] Navigation + Remote Input
- * [Child Task/Issue] Bidirectional WebSocket sync channel
- * [Subtask] Registry tabId→Set<WebSocket>; frame stream per tab; client action dispatch
- * [Upstream] proxy-url-watcher + proxy-page-handler -> [Downstream] useTabSyncSocket
- * [Law Check] 88 lines | Passed 100-Line Law
+ * [Child Task/Issue] Architecture Refactor — Extract types + frame cache from broker
+ * [Subtask] WS hub + broadcast + frame stream; types in .types.ts; cache in proxy-frame-cache.ts
+ * [Upstream] proxy-page-handler (frame provider) -> [Downstream] useTabSyncSocket
+ * [Law Check] 99 lines | Passed 100-Line Law
  */
 import { WebSocket, WebSocketServer } from 'ws';
 import type { IncomingMessage } from 'http';
 import type { Socket } from 'net';
-
-/** All messages pushed server → client */
-export type ServerMsg =
-    | { type: 'url';        tabId: string; url: string; title: string }
-    | { type: 'screenshot'; tabId: string; data: string; url: string }  // nav-triggered
-    | { type: 'frame';      tabId: string; data: string; url: string }  // streaming interval
-    | { type: 'cursor';     tabId: string; x: number; y: number }
-    | { type: 'status';     tabId: string; message: string }
-    | { type: 'connected';  tabId: string };
-
-/** Backward-compat alias — existing callers use TabSyncMessage unchanged */
-export type TabSyncMessage = ServerMsg;
-
-/** All messages sent client → server */
-export type ClientMsg =
-    | { type: 'click';    x: number; y: number; button?: 'left' | 'right' | 'middle' }
-    | { type: 'dblclick'; x: number; y: number }
-    | { type: 'move';     x: number; y: number }
-    | { type: 'scroll';   deltaX: number; deltaY: number }
-    | { type: 'drag';     fromX: number; fromY: number; toX: number; toY: number }
-    | { type: 'type';     text: string }
-    | { type: 'key';      key: string; modifiers?: string[] }
-    | { type: 'navigate'; url: string };
-
+import { frameCache, capturingTabs, setCachedFrame } from './proxy-frame-cache';
+// Re-export types + cache for backward compat
+export type { ServerMsg, TabSyncMessage, ClientMsg } from './proxy-tab-sync.types';
+import type { ServerMsg, ClientMsg } from './proxy-tab-sync.types';
+export { frameCache, getCachedFrame, setCachedFrame } from './proxy-frame-cache';
 // Why: keyed by tabId so broadcasts only reach clients watching that specific tab.
 const clients = new Map<string, Set<WebSocket>>();
 const frameIntervals = new Map<string, ReturnType<typeof setInterval>>();
-const FRAME_MS = 200; // ~5 fps between navigation events
-
-// Injected by proxy-page-handler at startup — avoids circular import (page-handler → broker).
+const FRAME_MS = 250; // 4 fps — gives page.screenshot() time to finish before next tick
 type FrameProvider = (tabId: string) => Promise<{ data: string; url: string } | null>;
 let _frameProvider: FrameProvider = async () => null;
 export const setFrameProvider = (fn: FrameProvider): void => { _frameProvider = fn; };
@@ -64,8 +41,17 @@ function startFrameStream(tabId: string): void {
     if (frameIntervals.has(tabId)) return;
     const t = setInterval(async () => {
         if (!clients.get(tabId)?.size) return;
-        const frame = await _frameProvider(tabId);
-        if (frame) broadcastTabSync(tabId, { type: 'frame', tabId, ...frame });
+        // Why: skip if the previous screenshot is still resolving — prevents stacked
+        //      pending ops that arrive in a burst and cause the choppy / hang behaviour.
+        if (capturingTabs.has(tabId)) return;
+        capturingTabs.add(tabId);
+        try {
+            const frame = await _frameProvider(tabId);
+            if (frame) {
+                setCachedFrame(tabId, frame);
+                broadcastTabSync(tabId, { type: 'frame', tabId, ...frame });
+            }
+        } finally { capturingTabs.delete(tabId); }
     }, FRAME_MS);
     frameIntervals.set(tabId, t);
 }
@@ -73,6 +59,8 @@ function startFrameStream(tabId: string): void {
 function stopFrameStream(tabId: string): void {
     const t = frameIntervals.get(tabId);
     if (t) { clearInterval(t); frameIntervals.delete(tabId); }
+    capturingTabs.delete(tabId); // Why: clear stale in-flight flag so next client starts clean
+    frameCache.delete(tabId);   // Why: free memory when no clients are watching this tab
 }
 
 export function registerWsClient(tabId: string, ws: WebSocket): void {

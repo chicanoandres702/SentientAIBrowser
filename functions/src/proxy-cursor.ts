@@ -1,3 +1,4 @@
+// Feature: Browser Proxy | Trace: functions/src/proxy-cursor.ts
 /*
  * [Parent Feature/Milestone] Browser Proxy
  * [Child Task/Issue] Cursor visibility in screenshots
