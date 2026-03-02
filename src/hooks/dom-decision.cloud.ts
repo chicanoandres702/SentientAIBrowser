@@ -55,7 +55,21 @@ export const runCloudDecision = async (args: CloudDecisionArgs): Promise<void> =
         console.log(`[CloudDecision] ✅ response ${res.status} in ${Date.now() - fetchStart}ms action=${decision?.execution?.action ?? decision?.action ?? 'none'} hasExecution=${!!decision.execution}`);
         // Why: check AFTER the await — user may have paused while fetch was in flight
         if (pauseRef?.current) { console.debug('[CloudDecision] ⏸️  paused after fetch — aborting'); setStatusMessage('Paused'); setIsThinking(false); return; }
-        if (applyLoginGate(decision, setStatusMessage, setIsPaused, setBlockedReason, setIsBlockedModalVisible)) { setIsThinking(false); return; }
+        if (applyLoginGate(decision, setStatusMessage, setIsPaused, setBlockedReason, setIsBlockedModalVisible)) {
+            // Why: reaching a login/auth-wall page IS the successful outcome of a navigate task.
+            // Without this, the task stays stuck in_progress forever because applyLoginGate
+            // returns early before updateTask is ever called (e.g. campus.capella.edu → SSO page).
+            if (currentTask) {
+                const isNavTask =
+                    currentTask.title.toLowerCase().includes('navigate') ||
+                    currentTask.subActions?.some(sa => sa.action === 'navigate' || sa.action === 'open_url');
+                if (isNavTask) {
+                    updateTask(currentTask.id, 'completed', 'Navigation completed — reached login page');
+                }
+            }
+            setIsThinking(false);
+            return;
+        }
         if (decision.execution) {
             const firstStep = resolveFirstStep(decision);
             if (!firstStep) { if (currentTask) updateTask(currentTask.id, 'completed', 'Completed — no actions needed'); return; }
