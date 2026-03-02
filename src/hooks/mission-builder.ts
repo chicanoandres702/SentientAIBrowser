@@ -1,6 +1,6 @@
 // Feature: Core | Why: Builds mission tasks from LLM planner response segments
 import { auth, db } from '../features/auth/firebase-config';
-import { doc, setDoc } from 'firebase/firestore';
+import { doc, setDoc, getDocs, query, collection, where, updateDoc } from 'firebase/firestore';
 import { TaskItem, SubAction } from '../features/tasks/types';
 
 interface MissionBuilderDeps {
@@ -82,6 +82,26 @@ export const buildMissionFromSegments = async (
                 status: 'pending', segment: segName, explanation: step.explanation, runId, tabId, workflowId, workspaceId, ...step,
             });
         }
+    }
+
+    // Abandon any existing active / waiting missions for this user BEFORE creating the new one.
+    // Why: The backend orchestrator runs ALL active missions simultaneously — leaving old missions
+    // active causes parallel executor chaos, page-state fighting, and the UI 'switching' between
+    // workflows the user sees. Mark them completed so their loops exit on the next cycle check.
+    if (auth.currentUser) {
+        try {
+            const userId = auth.currentUser.uid;
+            const staleSnap = await getDocs(
+                query(collection(db, 'missions'),
+                    where('userId', '==', userId),
+                    where('status', 'in', ['active', 'waiting']),
+                ),
+            );
+            await Promise.all(staleSnap.docs.map(d =>
+                updateDoc(d.ref, { status: 'completed', lastAction: '⏹ Superseded by new mission', updatedAt: Date.now() })
+            ));
+            if (staleSnap.size > 0) console.log(`[MissionBuilder] Abandoned ${staleSnap.size} stale mission(s) before starting new one.`);
+        } catch (e) { console.warn('[MissionBuilder] Could not abandon stale missions:', e); }
     }
 
     // Persist mission document to Firestore
