@@ -25,6 +25,7 @@ export const buildMissionFromSegments = async (
     tabId: string,
     runIdOverride: string | null,
     deps: MissionBuilderDeps,
+    tabUrl?: string,
 ) => {
     const ACTION_DURATION_MS = 15000;
     const MISSION_SCHEMA_VERSION = 2;
@@ -110,7 +111,7 @@ export const buildMissionFromSegments = async (
             await setDoc(doc(db, 'missions', missionId), {
                 id: missionId, userId: auth.currentUser.uid, goal: prompt,
                 status: 'active', progress: 0, tasks: allMissionTasks,
-                tabId, runId, taskCount: allMissionTasks.length,
+                tabId, tabUrl: tabUrl || 'about:blank', runId, taskCount: allMissionTasks.length,
                 workflowId, workspaceId,
                 lastAction: missionResponse.meta?.reasoning || 'Executing plan',
                 startedAt: now, updatedAt: now, schemaVersion: MISSION_SCHEMA_VERSION,
