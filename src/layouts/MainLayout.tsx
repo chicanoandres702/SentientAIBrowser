@@ -3,6 +3,7 @@ import React, { Suspense, lazy, useState } from 'react';
 import { SafeAreaView } from 'react-native';
 import { BrowserTabs } from '../components/BrowserTabs';
 import { BrowserChrome } from '../components/BrowserChrome';
+import { WorkflowBar } from '../features/workflow/workflow.bar.component';
 import { styles } from '../../App.styles';
 import { LayoutMode } from '../hooks/useBrowserState';
 import { getLayoutConfig } from './config/layout.config';
@@ -47,28 +48,23 @@ export const MainLayout: React.FC<Props> = ({ s, theme, setTheme }) => {
                 />
             </Suspense>
 
-            {/* Browser tab pills — mode-gated */}
-            {config.showTabs && (
-                <BrowserTabs
-                    tabs={s.tabs}
-                    onSelectTab={s.selectTab}
-                    onCloseTab={s.closeTab}
-                    onNewTab={() => s.addNewTab('about:blank')}
-                    onCloseAll={s.closeWorkspace}
-                    theme={theme}
-                />
-            )}
+            {/* Workflow bar — sits above the tab strip; each workflow groups multiple browser tabs */}
+            <WorkflowBar
+                workflows={s.workflows ?? []}
+                onSelectWorkflow={s.selectWorkflow ?? (() => {})}
+                onAddWorkflow={() => s.createWorkspaceTab?.()}
+                onRemoveWorkflow={s.removeWorkflow ?? (() => {})}
+                theme={theme}
+            />
 
-            {config.showChrome && (
-                <BrowserChrome
-                    url={s.activeUrl}
-                    onNavigate={s.navigateWithGuard || s.navigateActiveTab}
-                    onBack={s.navigateBack}
-                    onForward={s.navigateForward}
-                    onReload={s.handleReload}
-                    theme={theme}
-                />
-            )}
+            {/* Tab pills — filtered to the active workflow's tab set */}
+            {config.showTabs && (() => {
+                const wfTabIds: string[] = s.workflows?.find((w: any) => w.isActive)?.tabIds ?? [];
+                const visibleTabs = wfTabIds.length ? s.tabs.filter((t: any) => wfTabIds.includes(t.id)) : s.tabs;
+                return <BrowserTabs tabs={visibleTabs} onSelectTab={s.selectTab} onCloseTab={s.closeTab} onNewTab={() => s.addNewTab('about:blank')} onCloseAll={s.closeWorkspace} cdpMode theme={theme} />;
+            })()}
+
+            {config.showChrome && <BrowserChrome url={s.activeUrl} onNavigate={s.navigateWithGuard || s.navigateActiveTab} onBack={s.navigateBack} onForward={s.navigateForward} onReload={s.handleReload} theme={theme} />}
 
             <MainContent s={s} theme={theme} layoutMode={layoutMode} config={config} />
 

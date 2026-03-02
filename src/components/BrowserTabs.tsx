@@ -13,6 +13,7 @@ interface Props {
     onCloseTab: (id: string) => void;
     onNewTab: () => void;
     onCloseAll?: () => void;
+    cdpMode?: boolean;
     theme: AppTheme;
 }
 
@@ -25,7 +26,7 @@ const getInitial = (title: string, url?: string): string => {
 };
 
 export const BrowserTabs: React.FC<Props> = React.memo(({
-    tabs, onSelectTab, onCloseTab, onNewTab, onCloseAll, theme,
+    tabs, onSelectTab, onCloseTab, onNewTab, onCloseAll, cdpMode, theme,
 }) => {
     const accent = uiColors(theme).accent;
     return (
@@ -50,6 +51,7 @@ export const BrowserTabs: React.FC<Props> = React.memo(({
                         >
                             {tab.title || 'New Tab'}
                         </Text>
+                        {cdpMode && <Text style={{ fontSize: 8, color: '#00e676', fontWeight: '800', letterSpacing: 0.3, marginLeft: 1 }}>CDP</Text>}
                         {tabs.length > 1 && (
                             <TouchableOpacity style={styles.closeBtn} onPress={() => onCloseTab(tab.id)}>
                                 <Text style={styles.closeIcon}>✕</Text>

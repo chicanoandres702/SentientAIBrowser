@@ -140,15 +140,11 @@ export async function getPersistentPage(targetUrl: string | null, tabId: string,
       context = existingContexts[0] ?? await browser.newContext();
       console.log(`[CDP] Using real Chrome profile context (${existingContexts.length} context(s) available)`);
 
-      // Why: reuse an already-open tab instead of calling context.newPage() which opens
-      // a new blank tab in the user's live Chrome every time the proxy asks for a page.
-      // Match by URL if we have a target; otherwise take the active (last focused) page.
-      const existingPages = context.pages();
-      const match = targetUrl
-        ? existingPages.find(p => p.url().includes(targetUrl) || targetUrl.includes(p.url()))
-        : undefined;
-      page = match ?? existingPages[existingPages.length - 1] ?? await context.newPage();
-      console.log(`[CDP] Reusing page url=${page.url()} (${existingPages.length} open tab(s))`);
+      // Why: each UI tab maps to its OWN Chrome tab via CDP — create a new page per tabId
+      // so the user sees distinct real browser tabs matching the UI workflow tabs.
+      // Previous behaviour reused an existing page, causing all proxy tabs to fight over one Chrome tab.
+      page = await context.newPage();
+      console.log(`[CDP] Opened new Chrome tab for tabId=${tabId} (${context.pages().length} tab(s) in Chrome)`);
     } else {
       // Why: restore prior session (cookies + localStorage) so logins persist across Cloud Run
       // restarts and cold starts — user never has to log in again after the first session.

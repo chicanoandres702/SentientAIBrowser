@@ -71,6 +71,13 @@ export const useSentientBrowser = (_theme?: unknown) => {
     closeTab: closeTabWithCleanup,
     selectTab: cap.selectTab,
     activeTabId: cap.activeTabId,
+    // Workflows — each workflow groups multiple browser tabs
+    workflows: cap.workflows,
+    activeWorkflowId: cap.activeWorkflowId,
+    selectWorkflow: cap.selectWorkflow,
+    removeWorkflow: cap.removeWorkflow,
+    createWorkspaceTab: cap.createWorkspaceTab,
+    addTabToWorkflow: cap.addTabToWorkflow,
     webViewUrl,
     tasks: cap.tasks,
     addTask: cap.addTask,

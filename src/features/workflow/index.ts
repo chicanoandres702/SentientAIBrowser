@@ -6,7 +6,8 @@
  */
 
 // Types
-export type { TabItem, WorkflowState, WorkflowCommand } from './workflow.types';
+export type { TabItem, WorkflowState, WorkflowCommand, Workflow } from './workflow.types';
+export { WorkflowBar } from './workflow.bar.component';
 
 // Pure utilities
 export { selectTab, addNewTab, closeTab, updateTabUrl, getActiveTab, initialWorkflowState } from './workflow.utils';
