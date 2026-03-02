@@ -10,10 +10,10 @@ import { MainContent } from './sections/MainContent';
 import { MissionOverviewWrapper } from './sections/MissionOverviewWrapper';
 
 const SentientHeader = lazy(() =>
-    import('../components/SentientHeader').then(m => ({ default: m.SentientHeader })),
+    import('@features/ui/components').then(m => ({ default: m.SentientHeader })),
 );
 const SentientStatusBar = lazy(() =>
-    import('../components/SentientStatusBar').then(m => ({ default: m.SentientStatusBar })),
+    import('@features/ui/components').then(m => ({ default: m.SentientStatusBar })),
 );
 const MainModals = lazy(() =>
     import('../components/MainModals').then(m => ({ default: m.MainModals })),
@@ -54,6 +54,7 @@ export const MainLayout: React.FC<Props> = ({ s, theme, setTheme }) => {
                     onSelectTab={s.selectTab}
                     onCloseTab={s.closeTab}
                     onNewTab={() => s.addNewTab('https://www.google.com')}
+                    onCloseAll={s.closeWorkspace}
                     theme={theme}
                 />
             )}

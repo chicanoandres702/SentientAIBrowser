@@ -2,10 +2,9 @@
 import React from 'react';
 import { View, Text, ScrollView } from 'react-native';
 import { SubAction } from '../../../features/tasks/types';
-import { TaskProgressBar } from '../TaskProgressBar';
+import { TaskProgressBar } from '@features/tasks';
 import { m } from './mobile-task.styles';
 import { BASE } from '../../../features/ui/theme/ui.primitives';
-import { focusStyles as s } from './MobileFocusLayout.styles';
 import { focusExtraStyles as sx } from './MobileFocusLayout.extra.styles';
 
 interface StatusCfg { icon: string; label: string; color: string }

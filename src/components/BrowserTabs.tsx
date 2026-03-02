@@ -12,6 +12,7 @@ interface Props {
     onSelectTab: (id: string) => void;
     onCloseTab: (id: string) => void;
     onNewTab: () => void;
+    onCloseAll?: () => void;
     theme: AppTheme;
 }
 
@@ -24,7 +25,7 @@ const getInitial = (title: string, url?: string): string => {
 };
 
 export const BrowserTabs: React.FC<Props> = React.memo(({
-    tabs, onSelectTab, onCloseTab, onNewTab, theme,
+    tabs, onSelectTab, onCloseTab, onNewTab, onCloseAll, theme,
 }) => {
     const accent = uiColors(theme).accent;
     return (
@@ -60,6 +61,14 @@ export const BrowserTabs: React.FC<Props> = React.memo(({
                 <TouchableOpacity style={styles.newTabBtn} onPress={onNewTab}>
                     <Text style={styles.newTabIcon}>+</Text>
                 </TouchableOpacity>
+                {onCloseAll && (
+                    <TouchableOpacity
+                        style={[styles.newTabBtn, { marginLeft: 4, opacity: 0.65 }]}
+                        onPress={onCloseAll}
+                    >
+                        <Text style={[styles.newTabIcon, { color: '#ff6b6b', fontSize: 11 }]}>⊠ EXIT</Text>
+                    </TouchableOpacity>
+                )}
             </ScrollView>
         </View>
     );

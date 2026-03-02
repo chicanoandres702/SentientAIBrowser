@@ -8,7 +8,7 @@
  */
 import { useCallback } from 'react';
 import { TaskItem, TaskStatus } from '../../features/tasks/types';
-import { recalcMissionProgress } from './task-queue-progress';
+import { recalcMissionProgress } from '../task-queue-progress';
 
 /** Hook for hierarchical mission/child task mutations and advancement logic */
 export const useTaskHierarchy = () => {
@@ -17,8 +17,8 @@ export const useTaskHierarchy = () => {
         taskId: string,
         status: TaskStatus,
         now: number,
-        deriveProgress: (s: TaskStatus, sa?: TaskItem['subActions'], c?: number) => number,
-        advanceSubActions: (sa?: TaskItem['subActions'], s: TaskStatus, d?: string) => TaskItem['subActions'],
+        deriveProgress: (s: TaskStatus, sa: TaskItem['subActions'] | undefined, c?: number) => number,
+        advanceSubActions: (sa: TaskItem['subActions'] | undefined, s: TaskStatus, d?: string) => TaskItem['subActions'],
         updateTaskInFirestore: (id: string, updates: Partial<TaskItem>) => Promise<void>,
     ): TaskItem[] => {
         const task = updated.find(t => t.id === taskId);

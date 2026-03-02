@@ -2,7 +2,7 @@
 import React, { useEffect, useRef } from 'react';
 import { Platform, Animated } from 'react-native';
 import { AppTheme } from '../../App';
-import { EdgeStrip } from './EdgeStrip';
+import { EdgeStrip } from '@features/browser';
 import { uiColors } from '../features/ui/theme/ui.theme';
 import { hexToRgb } from '../features/ui/theme/domain-accent.utils';
 import { hazeStyles as styles } from './HazeOverlay.styles';

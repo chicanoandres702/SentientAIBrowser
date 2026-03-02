@@ -23,8 +23,8 @@ export const useRemoteSyncBridge = (state: { tabs: unknown[]; setTabs: (tabs: un
 
   const updateDomMap = useCallback((tabId: string, domMap: Record<string, unknown>) => {
     logger.debug('useRemoteSyncBridge', 'Updating DOM map', { tabId });
-    setTabs((prev) => prev.map((t: any) => (t.id === tabId ? { ...t, domMap } : t)));
-  }, [setTabs]);
+    setTabs(tabs.map((t: any) => (t.id === tabId ? { ...t, domMap } : t)));
+  }, [tabs, setTabs]);
 
   const broadcastState = useCallback(() => {
     logger.debug('useRemoteSyncBridge', 'Broadcasting browser state');

@@ -4,7 +4,6 @@ import { View, Text, TouchableOpacity, ScrollView } from 'react-native';
 import * as Animatable from 'react-native-animatable';
 import { TaskItem } from '../../../features/tasks/types';
 import { useHierarchicalTasks } from '../task-filter.utils';
-import { MOBILE } from './mobile-task.styles';
 import { switcherStyles as s } from './MobileLayoutSwitcher.styles';
 import { HierarchyRowView } from './HierarchyRowView';
 

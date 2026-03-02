@@ -58,11 +58,11 @@ export const ActiveMissionCard: React.FC<Props> = ({
             <MissionQueueControls
                 missionId={mission.id}
                 isActive={isActive}
-                isPaused={isPaused}
+                isPaused={!!isPaused}
                 onPlay={() => onResume?.()}
                 onPause={() => onPause?.()}
                 onStop={handleStop}
-                onSave={onSave}
+                onSave={onSave || (() => {})}
                 accentColor={accent}
             />
         </View>

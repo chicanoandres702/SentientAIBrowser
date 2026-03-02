@@ -5,6 +5,9 @@ import { Express } from 'express';
 import * as http from 'http';
 import { REMOTE_DEBUGGING_PORT, getBrowser } from './proxy-config';
 import { applyCorsHeaders } from './proxy-route.utils';
+import { activePages } from './proxy-page-handler';
+import { getTabCookies, drainConsoleLogs } from './proxy-cdp.service';
+import { saveSessionForTab } from './proxy-page-handler';
 
 const CDP_BASE = `http://127.0.0.1:${REMOTE_DEBUGGING_PORT}`;
 
@@ -96,5 +99,48 @@ export function setupCdpRoutes(app: Express): void {
         applyCorsHeaders(res);
         try { res.json(await proxyJson('/json/version')); }
         catch (e: any) { res.status(503).json({ error: e.message }); }
+    });
+
+    /**
+     * GET /cdp/cookies/:tabId
+     * Returns all cookies for the given tab's browser context.
+     * Use this to inspect and debug session cookies (incl. HttpOnly) after login / 2FA.
+     */
+    app.get('/cdp/cookies/:tabId', async (req, res): Promise<any> => {
+        applyCorsHeaders(res);
+        const { tabId } = req.params;
+        const page = activePages.get(tabId);
+        if (!page) return res.status(404).json({ error: 'Tab not found', tabId });
+        const cookies = await getTabCookies(page);
+        return res.json({ tabId, count: cookies.length, cookies });
+    });
+
+    /**
+     * GET /cdp/console/:tabId
+     * Drains and returns buffered console.log/error/warn entries for a tab.
+     * Useful for debugging AI agent decisions and site-side errors live.
+     */
+    app.get('/cdp/console/:tabId', (req, res): any => {
+        applyCorsHeaders(res);
+        const { tabId } = req.params;
+        const logs = drainConsoleLogs(tabId);
+        return res.json({ tabId, count: logs.length, logs });
+    });
+
+    /**
+     * POST /cdp/session/save
+     * Body: { tabId }
+     * Force-persists the current browser session (cookies + localStorage) to Firestore.
+     * Call this right after manually completing 2FA / login so the session survives restarts.
+     */
+    app.post('/cdp/session/save', async (req, res): Promise<any> => {
+        applyCorsHeaders(res);
+        const { tabId = 'default' } = req.body || {};
+        try {
+            await saveSessionForTab(tabId);
+            return res.json({ success: true, tabId, message: 'Session saved to all 3 tiers' });
+        } catch (e: any) {
+            return res.status(500).json({ error: e.message });
+        }
     });
 }

@@ -2,7 +2,7 @@
 import React from 'react';
 import { View, Text, Modal, TouchableOpacity, StyleSheet, ScrollView, Platform } from 'react-native';
 import { BlurView } from 'expo-blur';
-import { Scanline } from './Scanline';
+import { Scanline } from '@features/browser';
 import { EarningsChart } from '../features/analytics/components/EarningsChart';
 import { MemoryPersonaView } from '../features/analytics/components/MemoryPersonaView';
 import { ScholarModuleView } from '../features/analytics/components/ScholarModuleView';

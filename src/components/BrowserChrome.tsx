@@ -1,6 +1,6 @@
 // Feature: UI | Trace: README.md
 import React, { useState, useEffect } from 'react';
-import { View, TextInput, TouchableOpacity, Text, StyleSheet, Platform, Animated } from 'react-native';
+import { View, TextInput, TouchableOpacity, Text, Animated } from 'react-native';
 import { AppTheme } from '../../App';
 import { uiColors } from '../features/ui/theme/ui.theme';
 

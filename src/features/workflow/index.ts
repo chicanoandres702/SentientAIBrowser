@@ -2,7 +2,7 @@
 /*
  * [Barrel Export] Public API
  * [Constraint] Only export what external consumers need
- * [Law Check] 12 lines | Passed
+ * [Law Check] 18 lines | Passed
  */
 
 // Types
@@ -13,3 +13,7 @@ export { selectTab, addNewTab, closeTab, updateTabUrl, getActiveTab, initialWork
 
 // Services (Firestore sync)
 export { syncNewTab, syncCloseTab, syncSelectTab, listenToWorkflow } from './workflow.service';
+
+// UI Components
+export { WorkflowManager } from './workflow.manager.component';
+export { WorkflowSelector } from './workflow.selector.component';

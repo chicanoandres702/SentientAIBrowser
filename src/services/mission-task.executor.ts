@@ -1,7 +1,7 @@
 // Feature: Missions | Trace: src/services/mission-task.executor.ts
 import { auth, db } from '../features/auth/firebase-config';
 import { doc, onSnapshot, updateDoc, collection, query, where } from 'firebase/firestore';
-import { HeadlessWebViewRef } from '../components/HeadlessWebView';
+import { HeadlessWebViewRef } from '@features/browser';
 import { MissionTask, getCurrentTaskForMission, updateMissionTaskStatus } from './mission-task.utils';
 
 interface TaskExecutorContext {

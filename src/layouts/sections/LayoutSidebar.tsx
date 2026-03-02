@@ -10,7 +10,7 @@ import { LayoutMode } from '../../hooks/useBrowserState';
 
 const TaskQueueUI = lazy(() => import('../../components/TaskQueueUI').then(m => ({ default: m.TaskQueueUI })));
 const MobileTaskQueueUI = lazy(() => import('../../components/tasks/mobile/MobileTaskQueueUI').then(m => ({ default: m.MobileTaskQueueUI })));
-const PromptInterface = lazy(() => import('../../components/PromptInterface').then(m => ({ default: m.PromptInterface })));
+const PromptInterface = lazy(() => import('@features/ui/components').then(m => ({ default: m.PromptInterface })));
 
 export const SidebarContent: React.FC<{ s: any; theme: any }> = ({ s, theme }) => (
     <Suspense fallback={<ActivityIndicator color={uiColors(theme).accent} style={{ flex: 1, marginTop: 24 }} />}>

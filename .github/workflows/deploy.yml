@@ -1,0 +1,221 @@
+# ============================================================
+# [Parent Feature/Milestone] CI/CD Pipeline
+# [Child Task/Issue] Deploy — Sentient AI Browser
+# [Subtask] Unified deploy: web + functions + hosting + Cloud Run
+# [Upstream] GitHub push (main) -> [Downstream] Firebase + GCP Cloud Run
+# [Law Check] Config file — exempt from 100-line law
+# ============================================================
+name: 🚀 Deploy — Sentient AI Browser
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      target:
+        description: "Deploy target"
+        required: true
+        default: all
+        type: choice
+        options:
+          - all
+          - hosting
+          - functions
+          - cloudrun
+
+# Cancel in-progress runs on the same branch
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: "20"
+  PROJECT_ID: sentient-ai-browser
+
+# ─────────────────────────────────────────────
+# JOB 1 — Build Expo Web → upload artifact
+# ─────────────────────────────────────────────
+jobs:
+  build-web:
+    name: 🏗️ Build Web
+    runs-on: ubuntu-latest
+    if: >
+      github.event_name == 'push' ||
+      github.event.inputs.target == 'all' ||
+      github.event.inputs.target == 'hosting'
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - name: Install root dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Export Expo web app
+        run: npx expo export --platform web
+        env:
+          EXPO_PUBLIC_FIREBASE_API_KEY:              ${{ secrets.EXPO_PUBLIC_FIREBASE_API_KEY }}
+          EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN:          ${{ secrets.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN }}
+          EXPO_PUBLIC_FIREBASE_PROJECT_ID:           ${{ secrets.EXPO_PUBLIC_FIREBASE_PROJECT_ID }}
+          EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET:       ${{ secrets.EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET }}
+          EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID:  ${{ secrets.EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID }}
+          EXPO_PUBLIC_FIREBASE_APP_ID:               ${{ secrets.EXPO_PUBLIC_FIREBASE_APP_ID }}
+          EXPO_PUBLIC_FIREBASE_MEASUREMENT_ID:       ${{ secrets.EXPO_PUBLIC_FIREBASE_MEASUREMENT_ID }}
+
+      - name: Upload dist artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-dist
+          path: dist/
+          retention-days: 1
+
+  # ─────────────────────────────────────────────
+  # JOB 2 — Build Firebase Functions → upload artifact
+  # ─────────────────────────────────────────────
+  build-functions:
+    name: 🏗️ Build Functions
+    runs-on: ubuntu-latest
+    if: >
+      github.event_name == 'push' ||
+      github.event.inputs.target == 'all' ||
+      github.event.inputs.target == 'functions' ||
+      github.event.inputs.target == 'cloudrun'
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: functions/package-lock.json
+
+      - name: Install functions dependencies
+        run: npm ci
+        working-directory: functions
+
+      - name: Compile TypeScript
+        run: npm run build
+        working-directory: functions
+
+      - name: Upload functions lib artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: functions-lib
+          path: functions/lib/
+          retention-days: 1
+
+  # ─────────────────────────────────────────────
+  # JOB 3 — Deploy Firebase Hosting
+  # ─────────────────────────────────────────────
+  deploy-hosting:
+    name: 🔥 Deploy Firebase Hosting
+    needs: build-web
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    if: >
+      github.event_name == 'push' ||
+      github.event.inputs.target == 'all' ||
+      github.event.inputs.target == 'hosting'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download web dist artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: web-dist
+          path: dist/
+
+      - name: Deploy to Firebase Hosting
+        uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          repoToken:              ${{ secrets.GITHUB_TOKEN }}
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          channelId:              live
+          projectId:              ${{ env.PROJECT_ID }}
+
+  # ─────────────────────────────────────────────
+  # JOB 4 — Deploy Firebase Functions + Firestore Rules
+  # ─────────────────────────────────────────────
+  deploy-functions:
+    name: 🔥 Deploy Functions + Firestore Rules
+    needs: build-functions
+    runs-on: ubuntu-latest
+    if: >
+      github.event_name == 'push' ||
+      github.event.inputs.target == 'all' ||
+      github.event.inputs.target == 'functions'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download functions lib artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: functions-lib
+          path: functions/lib/
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Install functions production deps
+        run: npm ci --omit=dev
+        working-directory: functions
+
+      - name: Install firebase-tools
+        run: npm install -g firebase-tools
+
+      - name: Deploy functions + firestore rules
+        run: |
+          firebase deploy \
+            --only functions,firestore:rules \
+            --non-interactive \
+            --project ${{ env.PROJECT_ID }}
+        env:
+          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+
+  # ─────────────────────────────────────────────
+  # JOB 5 — Deploy Cloud Run (functions container)
+  # ─────────────────────────────────────────────
+  deploy-cloudrun:
+    name: ☁️ Deploy Cloud Run
+    needs: build-functions
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    if: >
+      github.event_name == 'push' ||
+      github.event.inputs.target == 'all' ||
+      github.event.inputs.target == 'cloudrun'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account:            ${{ secrets.GCP_SERVICE_ACCOUNT }}
+
+      - name: Configure Docker for GCR
+        run: gcloud auth configure-docker --quiet
+
+      - name: Build & push Docker image
+        run: |
+          IMAGE="gcr.io/${{ secrets.GCP_PROJECT_ID }}/${{ github.event.repository.name }}:${{ github.sha }}"
+          docker build -t "$IMAGE" ./functions
+          docker push "$IMAGE"
+
+      - name: Deploy to Cloud Run
+        run: |
+          gcloud run deploy ${{ github.event.repository.name }} \
+            --image "gcr.io/${{ secrets.GCP_PROJECT_ID }}/${{ github.event.repository.name }}:${{ github.sha }}" \
+            --region    ${{ secrets.GCP_REGION }} \
+            --platform  managed \
+            --no-allow-unauthenticated \
+            --service-account ${{ secrets.GCP_SERVICE_ACCOUNT }} \
+            --quiet

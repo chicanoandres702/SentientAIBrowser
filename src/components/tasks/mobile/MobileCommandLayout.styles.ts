@@ -1,6 +1,5 @@
 // Feature: Tasks | Why: Command layout styles — page labels, prompt hero, hierarchy tree connectors
 import { StyleSheet } from 'react-native';
-import { BASE } from '../../../features/ui/theme/ui.primitives';
 import { MOBILE } from './mobile-task.styles';
 
 export const commandStyles = StyleSheet.create({

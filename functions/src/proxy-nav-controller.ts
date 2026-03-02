@@ -18,6 +18,7 @@ export const clearNav = (tabId: string): void => { navLocks.delete(tabId); settl
  */
 export function syncSettledUrl(tabId: string, url: string): void {
     if (url && url !== 'about:blank' && url !== 'about:newtab') {
+        console.debug(`[NavCtrl] syncSettled tab=${tabId} url=${url}`);
         settledUrls.set(tabId, url);
     }
 }
@@ -57,12 +58,14 @@ export async function guardedNavigate(
     // Lock held — drop duplicate; return current settled state
     if (navLocks.get(tabId)) {
         const url = settledUrls.get(tabId) || page.url();
+        console.warn(`[NavCtrl] 🔒 lock held tab=${tabId} — dropping navigate to ${targetUrl}`);
         return { finalUrl: url, wasRedirected: false, isBotCheck: isBotCheckUrl(url) };
     }
 
     // Already at this exact destination — skip the goto entirely
     const currentUrl = page.url();
     if (currentUrl === targetUrl && settledUrls.get(tabId) === targetUrl) {
+        console.debug(`[NavCtrl] ⏸️  skip — already at ${targetUrl}`);
         return { finalUrl: targetUrl, wasRedirected: false, isBotCheck: isBotCheckUrl(targetUrl) };
     }
 
@@ -73,6 +76,7 @@ export async function guardedNavigate(
     }
 
     navLocks.set(tabId, true);
+    console.log(`[NavCtrl] 🔓 lock acquired tab=${tabId} navigating ${currentUrl} → ${targetUrl}`);
     try {
         // Why: defensive guard — if the page was closed between the caller's isClosed check
         // and this point, abort cleanly instead of throwing a Playwright "Target closed" error.
@@ -86,6 +90,7 @@ export async function guardedNavigate(
         const wasRedirected = finalUrl !== targetUrl;
         const botCheck = isBotCheckUrl(finalUrl);
         settledUrls.set(tabId, finalUrl);
+        console.log(`[NavCtrl] 🏁 settled tab=${tabId} finalUrl=${finalUrl} redirected=${wasRedirected} botCheck=${botCheck}`);
 
         if (botCheck) {
             console.warn(`[NavCtrl] Bot-check after navigation on tab ${tabId}: ${finalUrl}`);

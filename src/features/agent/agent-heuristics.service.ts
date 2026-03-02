@@ -1,5 +1,4 @@
 // Feature: Agent | Why: Port of web-ui-1's AgentHeuristics — loop detection, progress tracking, blocking detection
-import { TaskItem, TaskStatus } from '../tasks/types';
 
 /** Heuristic state tracked across agent steps */
 export interface HeuristicState {

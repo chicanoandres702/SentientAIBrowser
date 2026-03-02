@@ -12,10 +12,12 @@ import { useTaskStateManagement } from './task-hooks/useTaskStateManagement';
 import { useSubActionStateMachine } from './task-hooks/useSubActionStateMachine';
 import { useTaskPersistence } from './task-hooks/useTaskPersistence';
 import { useTaskHierarchy } from './task-hooks/useTaskHierarchy';
-import { updateTaskInFirestore, removeTaskFromFirestore } from '../utils/task-sync-service';
+import {
+  updateTaskInFirestore,
+} from '@features/task-queue/services/task-queue.sync.service';
 
 export const useTaskQueue = () => {
-    const { tasks, setTasks, mergeTaskSnapshot, isTaskEquivalent, deriveProgress } = useTaskStateManagement();
+    const { tasks, setTasks, mergeTaskSnapshot: _mergeTaskSnapshot, isTaskEquivalent, deriveProgress } = useTaskStateManagement();
     const { advanceSubActions } = useSubActionStateMachine();
     const { setupAuthListener, syncAdd, syncUpdate, syncRemove } = useTaskPersistence(setTasks, isTaskEquivalent);
     const { advanceTaskHierarchy } = useTaskHierarchy();
@@ -30,6 +32,7 @@ export const useTaskQueue = () => {
         const now = Date.now();
         const newTask: TaskItem = {
             id,
+            tabId: extra?.tabId || 'default',
             title,
             status,
             timestamp: now,

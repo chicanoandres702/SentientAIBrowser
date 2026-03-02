@@ -1,7 +1,7 @@
 // Feature: Core | Trace: README.md
 import { useEffect } from 'react';
 import { missionTaskExecutor } from '../services/mission-task.executor';
-import { HeadlessWebViewRef } from '../components/HeadlessWebView';
+import { HeadlessWebViewRef } from '@features/browser';
 
 interface BridgeArgs {
     webViewRef: React.RefObject<HeadlessWebViewRef>;
@@ -9,7 +9,7 @@ interface BridgeArgs {
     setStatusMessage: (m: string) => void;
     setActivePrompt: (p: string) => void;
     setActiveUrl: (url: string) => void;
-    updateTask: (id: string, status: any, details?: string) => Promise<void>;
+    updateTask: (id: string, status: any, details?: string) => any;
     remoteActions?: { executeAction: (action: 'click' | 'type', targetId: string | undefined, value?: string, ariaSelector?: { role?: string; name?: string; text?: string }) => Promise<void> };
 }
 

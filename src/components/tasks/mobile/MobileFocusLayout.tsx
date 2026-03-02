@@ -7,8 +7,8 @@ import * as Animatable from 'react-native-animatable';
 import { TaskItem } from '../../../features/tasks/types';
 import { AppTheme } from '../../../../App';
 import { uiColors } from '../../../features/ui/theme/ui.theme';
-import { useFilteredTasks, useActiveMission, getTaskStats } from '../task-filter.utils';
-import { m, MOBILE } from './mobile-task.styles';
+import { useFilteredTasks, useActiveMission } from '../task-filter.utils';
+import { m } from './mobile-task.styles';
 import { BASE } from '../../../features/ui/theme/ui.primitives';
 import { TaskInput } from '../TaskInput';
 import { FocusCardBody } from './FocusCardBody';
@@ -27,7 +27,7 @@ interface Props {
 
 /** Layout 3: FOCUS — Full-screen task cards, one at a time, with swipe navigation */
 export const MobileFocusLayout: React.FC<Props> = ({
-    tasks, theme, addTask, removeTask, clearTasks, editTask,
+    tasks, theme, addTask, removeTask: _removeTask, clearTasks, editTask: _editTask,
 }) => {
     const colors = uiColors(theme);
     const accent = colors.accent;

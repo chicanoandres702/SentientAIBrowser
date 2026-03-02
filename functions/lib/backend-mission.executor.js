@@ -2,57 +2,34 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.processMissionStep = processMissionStep;
 // Feature: Mission Executor | Trace: backend-ai-orchestrator.js
-// Technique: Playwright MCP — ARIA snapshots replace data-ai-id indices; role+name selectors
-// are stable across DOM mutations. Technique sourced from @playwright/mcp architecture.
-//
-// Flow Changes (Backend Path B):
-// 1. REMOVED: Re-planning via determineNextAction() every cycle
-//    Why: Backend re-planning caused divergence from task_queues plan
-// 2. ADDED: Load stored missionResponse from missions doc
-//    Why: Use same plan frontend created tasks from → consistent indices/titles
-// 3. ADDED: Execution lock (executingAgent field)
-//    Why: Prevent dual execution (frontend + backend) on same mission
-// 4. KEPT: Step execution & verification with Playwright
-//    Why: This is backend's strength — reliable browser automation
 const proxy_config_1 = require("./proxy-config");
 const proxy_page_handler_1 = require("./proxy-page-handler");
 const llm_decision_engine_1 = require("./features/llm/llm-decision.engine");
 const llm_memory_service_1 = require("./features/llm/llm-memory-service");
 const knowledge_hierarchy_service_1 = require("./features/llm/knowledge-hierarchy.service");
 const playwright_mcp_adapter_1 = require("./playwright-mcp-adapter");
-// Why: No automatic stop conditions — the mission runs until:
-//   (a) The LLM emits action 'done'  →  status set to 'completed'
-//   (b) The user manually sets status ≠ 'active' in Firestore
-// Step failures are retried (see step-executor.ts) before marking failed.
 async function processMissionStep(missionId) {
-    var _a, _b;
+    var _a;
     try {
-        // ── STAGE 1: Load mission ─────────────────────────────────────────────────
         const missionRef = proxy_config_1.db.collection('missions').doc(missionId);
         const snap = await missionRef.get();
         if (!snap.exists || ((_a = snap.data()) === null || _a === void 0 ? void 0 : _a.status) !== 'active')
             return;
         const data = snap.data();
-        // Safety: Only backend can execute if executingAgent is explicitly set to 'backend'
-        // Otherwise, defer to frontend execution to avoid dual-execution race conditions
         if (data.executingAgent && data.executingAgent !== 'backend') {
-            console.log(`[Executor] ⏭ Skipping — frontend has execution lock (executingAgent=${data.executingAgent})`);
+            console.log(`[Executor] ⏭ Skipping — frontend has execution lock`);
             return;
         }
-        // Acquire execution lock
         try {
             await missionRef.update({ executingAgent: 'backend', updated_at: new Date().toISOString() });
         }
-        catch (_c) {
-            // Another executor beat us to it, skip this cycle
+        catch (_b) {
             console.log(`[Executor] ⏭ Execution lock conflict — skipping cycle`);
             return;
         }
         const { tabId = 'default', userId } = data;
         const context = { groupId: data.groupId || 'DefaultGroup', contextId: data.contextId || 'DefaultContext', unitId: missionId };
         const stepCount = data.stepCount || 0;
-        console.log(`[Executor] ▶ mission: "${data.goal}" | tab: ${tabId}`);
-        // ── STAGE 2: Load browser page + ARIA snapshot + screenshot ────────────────────
         const page = await (0, proxy_page_handler_1.getPersistentPage)(null, tabId, userId);
         if (!page) {
             console.error('[Executor] ❌ getPersistentPage returned null');
@@ -139,34 +116,24 @@ async function processMissionStep(missionId) {
                 observation = `Action failed: ${err.message}`;
                 console.error(`[Executor] ❌ STAGE 4 step FAIL — action:${step.action} | ${err.message}`);
             }
-            // Update this task's live status in Firestore
             taskDocs[idx].status = result === 'success' ? 'completed' : 'failed';
-            console.log(`[Executor] ${result === 'success' ? '✅' : '❌'} STAGE 4 result — ${result} | ${observation.substring(0, 80)}`);
-            // Why: page.url() can throw mid-navigation — safe fallback so a crash here can never
-            // skip the Firestore status write that marks this task completed/failed.
             const pageUrlNow = await Promise.resolve().then(() => page.url()).catch(() => currentUrl || 'unknown');
             await (0, llm_memory_service_1.recordActionOutcome)(userId, data.goal, step.action, result, observation, new URL(pageUrlNow || 'http://unknown').hostname).catch(() => { });
             const nextStepCount = stepCount + idx + 1;
             const nextProgress = Math.min(99, Math.round((nextStepCount / (nextStepCount + 8)) * 100));
-            await missionRef.update({
-                tasks: liveTasks(),
-                lastAction: `${result === 'success' ? '✅' : '❌'} ${observation}`.substring(0, 120),
-                progress: nextProgress,
-                stepCount: nextStepCount,
-                updated_at: new Date().toISOString()
-            });
+            await missionRef.update({ tasks: liveTasks(), lastAction: `${result === 'success' ? '✅' : '❌'} ${observation}`.substring(0, 120), progress: nextProgress, stepCount: nextStepCount, updated_at: new Date().toISOString() });
             if (result === 'failure')
                 console.warn(`[Executor] ⚠️ step failed but continuing: ${observation}`);
         }
     }
     catch (e) {
-        console.error(`[Executor] 🔥 FATAL in mission ${missionId}: ${e.message}\n${(_b = e.stack) === null || _b === void 0 ? void 0 : _b.split('\n').slice(0, 4).join('\n')}`);
+        const err = e;
+        console.error(`[Executor] 🔥 Fatal: ${err.message}`);
         try {
-            await proxy_config_1.db.collection('missions').doc(missionId).update({ lastAction: `🔥 Fatal error: ${e.message}`.substring(0, 120), updated_at: new Date().toISOString() });
+            await proxy_config_1.db.collection('missions').doc(missionId).update({ lastAction: `🔥 Error: ${err.message}`.substring(0, 120), updated_at: new Date().toISOString() });
         }
-        catch (_d) { }
+        catch (_c) { }
     }
-    console.log(`[Executor] ✓ STAGE 4 DONE — returning 'pending' for next loop iteration`);
     return 'pending';
 }
 //# sourceMappingURL=backend-mission.executor.js.map

@@ -1,15 +1,23 @@
 // Feature: Tasks | Trace: src/components/WorkflowPanel.tsx
-import React, { useCallback, useMemo, useState } from 'react';
+/*
+ * [Parent Feature/Milestone] Tasks
+ * [Child Task/Issue] Workflow panel component
+ * [Subtask] Main task queue display with mission tracking and routine saving
+ * [Upstream] TaskItem array + callbacks -> [Downstream] Rendered task workflow
+ * [Law Check] 77 lines | Passed 100-Line Law
+ */
+
+import React, { useState } from 'react';
 import { ScrollView, View, Text, TouchableOpacity } from 'react-native';
-import { TaskItem } from '../features/tasks';
-import { AppTheme } from '../../App';
+import type { TaskItem } from '../features/tasks';
+import type { AppTheme } from '../../App';
 import { uiColors } from '../features/ui/theme/ui.theme';
-import { useActiveMission, useFilteredTasks } from './tasks/task-filter.utils';
 import { SaveRoutineModal } from './tasks/SaveRoutineModal';
 import { WorkflowTaskRow } from './tasks/WorkflowTaskRow';
 import { ActiveMissionCard } from './ActiveMissionCard';
-import { TaskInputRow } from './TaskInputRow';
+import { TaskInputRow } from '@features/tasks';
 import { wp } from './tasks/WorkflowPanel.styles';
+import { useWorkflowPanel } from './tasks/workflow-panel.hook';
 
 interface Props {
   tasks: TaskItem[];
@@ -27,31 +35,28 @@ interface Props {
 }
 
 type SaveModal = { goal: string; tasks: TaskItem[] } | null;
+
 export const WorkflowPanel: React.FC<Props> = ({
-  tasks, theme, addTask, removeTask, clearTasks,
-  isPaused = false, onPause, onResume, proxyBaseUrl = '', onCloseMission, activeTabId,
+  tasks,
+  theme,
+  addTask,
+  removeTask,
+  clearTasks,
+  isPaused = false,
+  onPause,
+  onResume,
+  proxyBaseUrl = '',
+  onCloseMission,
+  activeTabId,
 }) => {
   const colors = uiColors(theme);
   const accent = colors.accent;
   const [saveModal, setSaveModal] = useState<SaveModal>(null);
-  const tabTasks = useMemo(
-    () => activeTabId ? tasks.filter(t => t.tabId === activeTabId) : tasks,
-    [tasks, activeTabId],
-  );
-  const mission = useActiveMission(tabTasks);
-  const allTaskList = useFilteredTasks(tabTasks, 'all', 'time');
-  const taskList = useMemo(
-    () => mission ? allTaskList.filter(t => t.missionId === mission.id) : allTaskList,
-    [allTaskList, mission],
-  );
-  const completedCount = taskList.filter(t => t.status === 'completed').length;
-  const total = taskList.length;
-  const pct = total > 0 ? Math.round((completedCount / total) * 100) : 0;
-  const isActive = tabTasks.some(t => t.status === 'in_progress');
+  const { mission, taskList, completedCount, total, pct, isActive } = useWorkflowPanel(tasks, activeTabId);
   const barColor = pct === 100 ? '#00ffaa' : accent;
+
   return (
     <ScrollView contentContainerStyle={wp.scrollContent} showsVerticalScrollIndicator={false}>
-            {/* ── Header ── */}
       <View style={wp.headerRow}>
         <View>
           <Text style={[wp.headerTitle, { color: accent }]}>TASKS</Text>
@@ -82,7 +87,7 @@ export const WorkflowPanel: React.FC<Props> = ({
       {taskList.length > 0 && (
         <>
           <Text style={wp.sectionLabel}>TASKS</Text>
-          {taskList.map(t => (
+          {taskList.map((t) => (
             <WorkflowTaskRow key={t.id} item={t} accentColor={accent} removeTask={removeTask} />
           ))}
         </>
@@ -94,8 +99,14 @@ export const WorkflowPanel: React.FC<Props> = ({
         </View>
       )}
       {saveModal && (
-        <SaveRoutineModal visible goal={saveModal.goal} tasks={saveModal.tasks}
-          proxyBaseUrl={proxyBaseUrl} accentColor={accent} onClose={() => setSaveModal(null)} />
+        <SaveRoutineModal
+          visible
+          goal={saveModal.goal}
+          tasks={saveModal.tasks}
+          proxyBaseUrl={proxyBaseUrl}
+          accentColor={accent}
+          onClose={() => setSaveModal(null)}
+        />
       )}
     </ScrollView>
   );

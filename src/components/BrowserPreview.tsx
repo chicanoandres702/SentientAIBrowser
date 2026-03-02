@@ -5,7 +5,7 @@ import { doc, onSnapshot } from 'firebase/firestore';
 import { db } from '../features/auth/firebase-config';
 import { checkProxyHealth, fetchDirectScreenshot } from '../features/browser/services/proxy-health.service';
 import { previewStyles as styles } from '../features/browser/components/BrowserPreview.styles';
-import { PreviewLoader, StaleBadge, EmptyState } from './PreviewStates';
+import { PreviewLoader, StaleBadge, EmptyState } from '@features/browser';
 import { uiColors } from '../features/ui/theme/ui.theme';
 import { dimAccent } from '../features/ui/theme/domain-accent.utils';
 

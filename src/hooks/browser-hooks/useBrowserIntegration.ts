@@ -6,8 +6,7 @@
  * [Upstream] Browser capabilities -> [Downstream] Feature bridges
  * [Law Check] 60 lines | Passed 100-Line Law
  */
-import { useRef, useCallback } from 'react';
-import { auth } from '../../features/auth/firebase-config';
+import { useCallback } from 'react';
 import { useAgentHeuristics } from '../useAgentHeuristics';
 import { useUrlTracker } from '../useUrlTracker';
 import { useCursorController } from '../useCursorController';

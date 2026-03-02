@@ -8,7 +8,7 @@
  */
 
 import React from 'react';
-import { View, ViewStyle } from 'react-native';
+import { View, Text, ViewStyle } from 'react-native';
 
 export const SPACING = { xs: 4, sm: 8, md: 16, lg: 24, xl: 32 } as const;
 export const RADIUS = { sm: 4, md: 8, lg: 12 } as const;
@@ -36,7 +36,7 @@ interface SectionProps {
 
 export const Section: React.FC<SectionProps> = ({ children, title, padding = 'lg', style }) => (
   <View style={[{ paddingVertical: SPACING[padding] }, style]}>
-    {title && <View style={{ marginBottom: SPACING.md, fontWeight: 'bold', fontSize: 16 }}>{title}</View>}
+    {title && <View style={{ marginBottom: SPACING.md }}><Text style={{ fontWeight: 'bold', fontSize: 16 }}>{title}</Text></View>}
     {children}
   </View>
 );
@@ -70,6 +70,6 @@ interface GridProps {
   style?: ViewStyle;
 }
 
-export const Grid: React.FC<GridProps> = ({ children, columns = 2, gap = 'md', style }) => (
+export const Grid: React.FC<GridProps> = ({ children, columns: _columns = 2, gap = 'md', style }) => (
   <View style={[{ display: 'flex', flexDirection: 'row', flexWrap: 'wrap', gap: SPACING[gap] }, style]}>{children}</View>
 );

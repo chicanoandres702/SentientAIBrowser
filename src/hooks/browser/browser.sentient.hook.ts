@@ -28,7 +28,7 @@ export const useSentientBrowser = (): BrowserAPI & { tabs: unknown[]; isLoading:
 
   const capabilities = useBrowserCapabilities({ tabs, setTabs, isLoading, setIsLoading });
   const integration = useBrowserIntegration({ tabs, setTabs });
-  const remoteSyncBridge = useRemoteSyncBridge({ tabs, setTabs });
+  const _remoteSyncBridge = useRemoteSyncBridge({ tabs, setTabs });
 
   const navigate = useCallback((url: string) => {
     logger.debug('useSentientBrowser', 'Navigating to URL', { url });

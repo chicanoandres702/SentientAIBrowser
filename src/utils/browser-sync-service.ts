@@ -1,5 +1,5 @@
 // Feature: Core | Trace: src/hooks/useBrowserTabs.ts
-import { collection, doc, setDoc, updateDoc, deleteDoc, onSnapshot, query, where, orderBy, limit, serverTimestamp, getDocs, writeBatch } from 'firebase/firestore';
+import { collection, doc, setDoc, updateDoc, deleteDoc, onSnapshot, query, where, orderBy, limit, serverTimestamp, writeBatch } from 'firebase/firestore';
 import { db } from '../features/auth/firebase-config';
 import { TabItem } from '../features/browser/types';
 import { sanitizeForCloud } from '../../shared/safe-cloud.utils';

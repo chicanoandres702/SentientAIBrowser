@@ -1,7 +1,7 @@
 // Feature: Core | Trace: README.md
 // Enhanced with web-ui-1 pattern: pre-scan view clearing pipeline
 import { useEffect, useRef } from 'react';
-import { HeadlessWebViewRef } from '../components/HeadlessWebView';
+import { HeadlessWebViewRef } from '@features/browser';
 import { VIEW_CLEARING_STAGES } from '../features/browser/services/view-clearing.pipeline';
 
 /**

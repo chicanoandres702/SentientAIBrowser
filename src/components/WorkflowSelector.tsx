@@ -43,7 +43,7 @@ const styles = StyleSheet.create({
   },
   workflowButtonActive: {
     backgroundColor: BASE.borderFocusStrong,
-    borderColor: BASE.accent,
+    borderColor: '#5aa8ff',
   },
   favicon: { width: 32, height: 32, borderRadius: 8, justifyContent: 'center', alignItems: 'center', backgroundColor: BASE.bg },
   faviconText: { fontSize: 14, fontWeight: '700' },
@@ -60,7 +60,7 @@ export const WorkflowSelector: React.FC<Props> = ({ tabs, onSelectTab, onCloseTa
   const colors = uiColors(theme);
   return (
     <View style={[styles.container, { borderBottomColor: colors.border }]}>
-      <Text style={[styles.header, { color: colors.textFaint }]}>WORKFLOW</Text>
+        <Text style={[styles.header, { color: colors.textDim }]}>WORKFLOW</Text>
       <ScrollView scrollEnabled showsVerticalScrollIndicator={false} contentContainerStyle={styles.workflowList}>
         {tabs.map((tab) => (
           <TouchableOpacity key={tab.id} style={[styles.workflowButton, tab.isActive && styles.workflowButtonActive, tab.isActive && { borderColor: colors.accent }]} onPress={() => onSelectTab(tab.id)} activeOpacity={0.7}>
@@ -71,7 +71,7 @@ export const WorkflowSelector: React.FC<Props> = ({ tabs, onSelectTab, onCloseTa
               <Text style={[styles.workflowTitle, { color: tab.isActive ? colors.text : colors.textDim }]} numberOfLines={1}>
                 {tab.title || 'New Tab'}
               </Text>
-              <Text style={[styles.workflowUrl, { color: tab.isActive ? colors.textMuted : colors.textFaint }]} numberOfLines={1}>
+              <Text style={[styles.workflowUrl, { color: tab.isActive ? colors.textMuted : colors.textDim }]} numberOfLines={1}>
                 {getDomain(tab.url)}
               </Text>
             </View>
@@ -82,7 +82,7 @@ export const WorkflowSelector: React.FC<Props> = ({ tabs, onSelectTab, onCloseTa
             )}
           </TouchableOpacity>
         ))}
-        <TouchableOpacity style={[styles.addButton, { borderColor: colors.borderMed }]} onPress={onNewTab} activeOpacity={0.7}>
+        <TouchableOpacity style={[styles.addButton, { borderColor: colors.border }]} onPress={onNewTab} activeOpacity={0.7}>
           <Text style={[styles.addButtonText, { color: colors.accent }]}>+ NEW WORKFLOW</Text>
         </TouchableOpacity>
       </ScrollView>

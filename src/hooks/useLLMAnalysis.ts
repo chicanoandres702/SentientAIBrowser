@@ -6,7 +6,7 @@
  * Max Lines: 100 (target: 58)
  */
 
-import React, { useCallback } from 'react';
+import { useCallback } from 'react';
 import { auth } from '../features/auth/firebase-config';
 import { assessNavState } from '../features/agent/agent-heuristics.service';
 import { HeuristicContext } from './useAgentHeuristics';

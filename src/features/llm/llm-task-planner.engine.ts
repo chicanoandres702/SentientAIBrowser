@@ -5,7 +5,12 @@ import { MissionResponse } from "./llm-decision.engine";
 /**
  * Tactical Step Planner: High-fidelity goal decomposition using Gemini 2.0 Flash.
  */
-export const planTacticalSteps = async (goal: string): Promise<MissionResponse | null> => {
+export const planTacticalSteps = async (goal: string, runtimeGeminiApiKey?: string): Promise<MissionResponse | null> => {
+    if (!runtimeGeminiApiKey) {
+        console.error('[TaskPlanner] Runtime Gemini API key required. Set key in Settings > LLM OVERRIDE.');
+        return null;
+    }
+
     console.log(`[TaskPlanner] High-Fidelity Planning for: ${goal}`);
 
     const systemInstruction = `You are a high-level mission architect for an autonomous browser agent.
@@ -39,7 +44,7 @@ Use the 5-nest high fidelity JSON format.
 Return ONLY raw JSON.`;
 
     try {
-        const genAI = new GoogleGenerativeAI(process.env.EXPO_PUBLIC_GEMINI_API_KEY || "");
+        const genAI = new GoogleGenerativeAI(runtimeGeminiApiKey);
         const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
         const result = await model.generateContent(`${systemInstruction}\n\nObjective: ${goal}`);
         const text = result.response.text();

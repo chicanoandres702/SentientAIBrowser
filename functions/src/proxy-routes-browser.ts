@@ -4,7 +4,9 @@
 import { Express } from 'express';
 import { activePages, getPersistentPage } from './proxy-page-handler';
 import { determineNextAction } from './features/llm/llm-decision.engine';
+import { generateLLMPlanResponse } from './features/llm/llm-mission-planner';
 import { getAriaSnapshot } from './playwright-mcp-adapter';
+import { setupProxyRoute } from './proxy-routes-proxy';
 import { setupActionRoute, setupCoordClickRoute, setupDomMapRoute, setupScreenshotRoute, setupScreenshotStreamRoute } from './proxy-routes-action';
 import { setupAgentAnalyzeRoute } from './proxy-routes-agent';
 import { setupNavRoute } from './proxy-routes-nav';
@@ -74,7 +76,10 @@ export function setupBrowserRoutes(app: Express): void {
             );
 
             if (!missionResponse) {
-                return res.status(502).json({ error: 'Mission planning failed: no response from decision engine' });
+                // Why: runtime key absent — fall back to server env-key planner so planning
+                // always returns a result even when the user hasn't set a key in Settings.
+                const fallback = await generateLLMPlanResponse(promptWithSchema, schemaPrompt ?? undefined);
+                return res.json(fallback);
             }
 
             return res.json({ missionResponse });
@@ -98,6 +103,7 @@ export function setupBrowserRoutes(app: Express): void {
     setupDeepResearchRoutes(app);
     setupCdpRoutes(app);
     setupExternalRoutes(app);     // GET /api/render, GET /api/extract
+    setupProxyRoute(app);         // GET /proxy?url=...&tabId=... (webview relay + session sync)
 }
 
 

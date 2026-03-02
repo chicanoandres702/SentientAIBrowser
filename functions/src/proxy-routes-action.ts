@@ -5,8 +5,8 @@ import { applyCorsHeaders, resolvePage } from './proxy-route.utils';
 import { buildDomMap } from './proxy-dom-map';
 import { executeAriaAction } from './features/playwright-mcp';
 
-export function setupActionRoute(app: Express) { app.post('/proxy/action', async (req, res): Promise<unknown> => { applyCorsHeaders(res); const { url, action, id, value, tabId = 'default', role, name: ariaName, text: ariaText } = req.body as unknown; const page = activePages.get(tabId as string) || (await getPersistentPage(url as string, tabId as string).catch(() => null)); if (!page) return res.status(500).json({ error: 'Session died' });
-    try { const finalUrl = await executeAriaAction(page, { action: action as string, role: role as string, ariaName: ariaName as string, ariaText: ariaText as string, id: id as string, value: value as string }); await captureAndSyncTab(tabId as string); res.json({ success: true, finalUrl }); } catch (e: unknown) { res.status(500).json({ error: (e as Error).message }); } }); }
+export function setupActionRoute(app: Express) { app.post('/proxy/action', async (req, res) => { applyCorsHeaders(res); const { url, action, id, value, tabId = 'default', role, name: ariaName, text: ariaText } = req.body as Record<string, unknown>; const page = activePages.get(tabId as string) || (await getPersistentPage(url as string, tabId as string).catch(() => null)); if (!page) return res.status(500).json({ error: 'Session died' });
+    try { const finalUrl = await executeAriaAction(page, { action: action as 'click' | 'type', role: role as string, ariaName: ariaName as string, ariaText: ariaText as string, id: id as string, value: value as string }); await captureAndSyncTab(tabId as string); return res.json({ success: true, finalUrl }); } catch (e: unknown) { return res.status(500).json({ error: (e as Error).message }); } }); }
 /** GET /screenshot — capture page as base64 jpeg */
 export function setupScreenshotRoute(app: Express) {
   app.get('/screenshot', async (req, res) => {
@@ -15,7 +15,7 @@ export function setupScreenshotRoute(app: Express) {
       applyCorsHeaders(res);
       const url = req.query.url as string | undefined;
       const page = await resolvePage(tabId, url);
-      if (!page) return res.status(url ? 503 : 400).json({ error: url ? 'Session unavailable' : 'url required' });
+      if (!page) return res.status(url ? 503 : 404).json({ error: url ? 'Session unavailable' : 'No active session for this tabId' });
       if (page.isClosed()) return res.status(503).json({ error: 'Session closed' });
       const buf = await page.screenshot({ quality: 70, type: 'jpeg' });
       return res.json({ screenshot: `data:image/jpeg;base64,${buf.toString('base64')}` });
@@ -33,7 +33,7 @@ export function setupScreenshotStreamRoute(app: Express) {
     const url = req.query.url as string | undefined;
     applyCorsHeaders(res);
     const page = await resolvePage(tabId, url);
-    if (!page) { res.status(url ? 503 : 400).end(); return; }
+    if (!page) { res.status(url ? 503 : 404).end(); return; }
     res.writeHead(200, {
       'Access-Control-Allow-Origin': '*',
       'Content-Type': 'text/event-stream',
@@ -81,7 +81,7 @@ export function setupDomMapRoute(app: Express) {
             applyCorsHeaders(res);
             const url = req.query.url as string | undefined;
             const page = await resolvePage(tabId, url);
-            if (!page) return res.status(url ? 503 : 400).json({ error: url ? 'Session unavailable' : 'url required' });
+            if (!page) return res.status(url ? 503 : 404).json({ error: url ? 'Session unavailable' : 'No active session for this tabId' });
             if (page.isClosed()) return res.status(503).json({ error: 'Session closed' });
             try {
                 const payload = await buildDomMap(page, url || '');

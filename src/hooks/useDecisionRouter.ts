@@ -55,7 +55,7 @@ export const useDecisionRouter = (): ((params: DecisionRouterParams) => Promise<
       runtimeGeminiApiKey: params.runtimeGeminiApiKey,
       domMap: params.domMap,
       taskContext: params.taskContext,
-      getHeuristicContext: params.getHeuristicContext,
+      getHeuristicContext: params.getHeuristicContext as any,
       setStatusMessage: params.setStatusMessage,
       setIsPaused: params.setIsPaused,
       setBlockedReason: params.setBlockedReason,
@@ -92,7 +92,7 @@ export const useDecisionRouter = (): ((params: DecisionRouterParams) => Promise<
     const actionExecuted = await executeDomAction(firstStep, {
       activePrompt: params.activePrompt,
       activeUrl: params.activeUrl,
-      webViewRef: params.webViewRef,
+      webViewRef: params.webViewRef as any,
       setActiveUrl: params.setActiveUrl,
       navigateActiveTab: params.navigateActiveTab,
       setStatusMessage: params.setStatusMessage,

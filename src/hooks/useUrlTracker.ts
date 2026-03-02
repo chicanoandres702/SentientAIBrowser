@@ -1,6 +1,6 @@
 // Feature: Core | Trace: README.md
 import { useEffect } from 'react';
-import { recordSuccessWeight, recordDisqualificationPenalty, initSurveyDB } from '../../shared/survey-memory-db';
+import { recordSuccessWeight, recordDisqualificationPenalty } from '../../shared/survey-memory-db';
 
 /**
  * Monitors the current URL for patterns that indicate a successful 

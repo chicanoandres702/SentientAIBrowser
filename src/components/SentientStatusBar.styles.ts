@@ -1,5 +1,5 @@
 // Feature: UI | Why: Status bar styles — tokenized via ui.primitives
-import { StyleSheet, Platform } from 'react-native';
+import { StyleSheet } from 'react-native';
 import { BASE, webGlass } from '../features/ui/theme/ui.primitives';
 
 export const styles = StyleSheet.create({

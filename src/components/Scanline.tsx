@@ -1,6 +1,6 @@
 // Feature: UI | Trace: README.md
 import React, { useEffect, useRef } from 'react';
-import { Animated, StyleSheet, View, Dimensions, Platform } from 'react-native';
+import { Animated, StyleSheet, View, Platform } from 'react-native';
 
 interface Props {
     color?: string;

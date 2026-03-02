@@ -1,7 +1,7 @@
 // Feature: Tasks | Trace: src/features/tasks/trace.md
 import { collection, query, where, orderBy, limit, getDocs, onSnapshot, doc, setDoc, updateDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
-import { db, auth } from '../features/auth/firebase-config';
-import { TaskItem, TaskStatus } from '../features/tasks/types';
+import { db } from '../features/auth/firebase-config';
+import { TaskItem } from '../features/tasks/types';
 import { sanitizeForCloud } from '../../shared/safe-cloud.utils';
 
 export const syncTaskToFirestore = async (task: TaskItem, userId: string) => {

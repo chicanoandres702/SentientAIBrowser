@@ -1,10 +1,10 @@
 // Feature: Tasks | Trace: src/features/tasks/trace.md
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import * as Animatable from 'react-native-animatable';
 import { TaskItem, TaskStatus } from '../types';
 import { styles } from './SentinelTaskQueue/SentinelTaskQueue.styles';
-import { TaskProgressBar } from '../../../components/tasks/TaskProgressBar';
+import { TaskProgressBar } from '@features/tasks';
 
 export const StatusIcon = ({ status, color }: { status: TaskStatus, color: string }) => {
     switch (status) {
@@ -51,7 +51,7 @@ export const SentinelTaskItem: React.FC<ItemProps> = ({ task, accent, onCancel, 
                 <View style={styles.infoCol}>
                     <Text style={styles.taskTitle} numberOfLines={1}>{task.title}</Text>
                     <View style={localStyles.timeRow}>
-                        <Text style={styles.taskTime}>{new Date(task.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</Text>
+                        <Text style={styles.taskTime}>{new Date(task.timestamp || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</Text>
                         {elapsedTime && <Text style={[styles.taskTime, { marginLeft: 12, color: accent }]}>⏱ {elapsedTime}</Text>}
                     </View>
                 </View>

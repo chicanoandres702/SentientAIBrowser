@@ -39,7 +39,7 @@ export const buildGeminiPromptWithMemoryContext = async (
                 hasMemory = true;
                 memoryContextString += "SURVEY MEMORY (Historical Successes):\n";
                 historicalAnswers.forEach((ans, index) => {
-                    memoryContextString += `${index + 1}. Question: \"${ans.question_context}\" -> Answer: \"${ans.answer_given}\" (+${ans.success_weight})\n`;
+                    memoryContextString += `${index + 1}. Question: "${ans.question_context}" -> Answer: "${ans.answer_given}" (+${ans.success_weight})\n`;
                 });
                 memoryContextString += "\nYou MUST prioritize these verified demographic and persona answers.\n\n";
             }

@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { View, Text, Modal, TouchableOpacity, TextInput, Platform, StyleSheet } from 'react-native';
 import { BlurView } from 'expo-blur';
-import { Scanline } from './Scanline';
+import { Scanline } from '@features/browser';
 import { styles } from './interactive/SentinelInteractiveModal.styles';
 
 interface Props {

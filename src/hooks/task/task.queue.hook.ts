@@ -24,10 +24,10 @@ export interface TaskQueueAPI {
 
 export const useTaskQueue = (): TaskQueueAPI & { tasks: Record<string, unknown> } => {
   const [tasks, setTasks] = useState<Record<string, unknown>>({});
-  const stateManagement = useTaskStateManagement(tasks);
-  const subActions = useSubActionStateMachine();
-  const persistence = useTaskPersistence(tasks, setTasks);
-  const hierarchy = useTaskHierarchy(tasks, setTasks);
+  const _stateManagement = useTaskStateManagement(tasks);
+  const _subActions = useSubActionStateMachine();
+  const _persistence = useTaskPersistence(tasks, setTasks);
+  const _hierarchy = useTaskHierarchy(tasks, setTasks);
 
   const addTask = useCallback(
     (missionId: string, title: string) => {
@@ -45,13 +45,14 @@ export const useTaskQueue = (): TaskQueueAPI & { tasks: Record<string, unknown> 
     logger.debug('useTaskQueue', 'Updating task', { taskId, updates });
     setTasks((prev) => ({
       ...prev,
-      [taskId]: { ...prev[taskId], ...updates, updatedAt: Date.now() },
+      [taskId]: { ...(prev[taskId] as any), ...updates, updatedAt: Date.now() },
     }));
   }, []);
 
   const removeTask = useCallback((taskId: string) => {
     logger.debug('useTaskQueue', 'Removing task', { taskId });
     setTasks((prev) => {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { [taskId]: _, ...rest } = prev;
       return rest;
     });
