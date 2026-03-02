@@ -11,6 +11,8 @@ const proxy_config_1 = require("./proxy-config");
 const proxy_nav_controller_1 = require("./proxy-nav-controller");
 const proxy_session_service_1 = require("./proxy-session.service");
 const proxy_cdp_service_1 = require("./proxy-cdp.service");
+const proxy_url_watcher_1 = require("./proxy-url-watcher");
+const proxy_tab_sync_broker_1 = require("./proxy-tab-sync.broker");
 // Why: block heavy binary resources that waste bandwidth and slow down Playwright.
 // Images/fonts/media are irrelevant for the LLM's ARIA snapshot + screenshot flow.
 const BLOCKED_EXTENSIONS = [
@@ -111,7 +113,13 @@ async function captureAndSync(tabId, userId, page, context) {
     console.debug(`[CaptureSync] 📸 capturing tab=${tabId} url=${currentUrl}`);
     try {
         const screenshot = (await page.screenshot({ quality: 60, type: 'jpeg' })).toString('base64');
-        await proxy_config_1.db.collection('browser_tabs').doc(tabId).set(Object.assign(Object.assign({ id: tabId, screenshot: `data:image/jpeg;base64,${screenshot}`, url: page.url(), title: (await page.title()) || 'Loading...', source: 'proxy' }, (userId && userId !== 'default' ? { user_id: userId } : {})), { last_sync: new Date().toISOString() }), { merge: true });
+        const title = (await page.title()) || 'Loading...';
+        // Why: WebSocket broadcast reaches the client in <10ms — server is the URL authority.
+        // The client updates the address bar from this event WITHOUT writing back to Firestore,
+        // which eliminates the redirect-echo loop that previously caused AI re-navigation loops.
+        (0, proxy_tab_sync_broker_1.broadcastTabSync)(tabId, { type: 'url', tabId, url: currentUrl, title });
+        (0, proxy_tab_sync_broker_1.broadcastTabSync)(tabId, { type: 'screenshot', tabId, data: `data:image/jpeg;base64,${screenshot}`, url: currentUrl });
+        await proxy_config_1.db.collection('browser_tabs').doc(tabId).set(Object.assign(Object.assign({ id: tabId, screenshot: `data:image/jpeg;base64,${screenshot}`, url: currentUrl, title, source: 'proxy' }, (userId && userId !== 'default' ? { user_id: userId } : {})), { last_sync: new Date().toISOString() }), { merge: true });
         console.debug(`[CaptureSync] ✅ wrote tab=${tabId} url=${currentUrl} user=${userId}`);
     }
     catch (e) {
@@ -125,6 +133,7 @@ async function captureAndSync(tabId, userId, page, context) {
     }
 }
 async function getPersistentPage(targetUrl, tabId, userId = 'default') {
+    var _a;
     const browser = await (0, proxy_config_1.getBrowser)();
     let page = exports.activePages.get(tabId);
     // Why: evict stale closed pages — prevents "Target page, context or browser has been closed"
@@ -135,21 +144,44 @@ async function getPersistentPage(targetUrl, tabId, userId = 'default') {
         page = undefined;
     }
     if (!page) {
-        // Why: restore prior session (cookies + localStorage) so logins persist across Cloud Run
-        // restarts and cold starts — user never has to log in again after the first session.
-        const savedSession = await (0, proxy_session_service_1.loadSession)(userId);
-        const context = await browser.newContext(Object.assign({ userAgent: STEALTH_UA, viewport: { width: 1280, height: 800 }, locale: 'en-US', timezoneId: 'America/New_York', extraHTTPHeaders: { 'Accept-Language': 'en-US,en;q=0.9' } }, (savedSession ? { storageState: savedSession } : {})));
-        if (savedSession)
-            console.log(`[Session] Restored cookies for user: ${userId}`);
-        // Why: hide navigator.webdriver + add fake plugin/language signals before any page script runs
-        await context.addInitScript(STEALTH_INIT_SCRIPT);
-        page = await context.newPage();
+        let context;
+        if ((0, proxy_config_1.isCdpMode)()) {
+            // Why: in CDP mode we're attached to the user's real Chrome — browser.contexts()[0]
+            // IS their Default profile, including all cookies, localStorage, and active sessions.
+            // Creating a newContext() would spin up an incognito window and lose everything.
+            const existingContexts = browser.contexts();
+            context = (_a = existingContexts[0]) !== null && _a !== void 0 ? _a : await browser.newContext();
+            console.log(`[CDP] Using real Chrome profile context (${existingContexts.length} context(s) available)`);
+            // Why: each UI tab maps to its OWN Chrome tab via CDP — create a new page per tabId
+            // so the user sees distinct real browser tabs matching the UI workflow tabs.
+            // Previous behaviour reused an existing page, causing all proxy tabs to fight over one Chrome tab.
+            page = await context.newPage();
+            console.log(`[CDP] Opened new Chrome tab for tabId=${tabId} (${context.pages().length} tab(s) in Chrome)`);
+        }
+        else {
+            // Why: restore prior session (cookies + localStorage) so logins persist across Cloud Run
+            // restarts and cold starts — user never has to log in again after the first session.
+            const savedSession = await (0, proxy_session_service_1.loadSession)(userId);
+            context = await browser.newContext(Object.assign({ userAgent: STEALTH_UA, viewport: { width: 1280, height: 800 }, locale: 'en-US', timezoneId: 'America/New_York', extraHTTPHeaders: { 'Accept-Language': 'en-US,en;q=0.9' } }, (savedSession ? { storageState: savedSession } : {})));
+            if (savedSession)
+                console.log(`[Session] Restored cookies for user: ${userId}`);
+            // Why: hide navigator.webdriver + add fake plugin/language signals before any page script runs
+            await context.addInitScript(STEALTH_INIT_SCRIPT);
+        }
+        // In normal mode create a new page; CDP mode already assigned page above.
+        if (!page)
+            page = await context.newPage();
         await setupRequestBlocking(page);
         exports.activePages.set(tabId, page);
         exports.activeContexts.set(tabId, context);
         activeUserIds.set(tabId, userId);
         // Why: buffer console.log/error from the page for CDP /cdp/console endpoint
         (0, proxy_cdp_service_1.attachConsoleListener)(tabId, page);
+        // Why: attach the URL watcher BEFORE any navigation. Uses page.exposeFunction
+        // (CDP Runtime.addBinding) to call back into Node.js on every URL change —
+        // full HTTP navs (via DOMContentLoaded), SPA pushState/replaceState, and hash changes.
+        // This is more reliable and covers all cases vs. framenavigated alone.
+        await (0, proxy_url_watcher_1.attachUrlWatcher)(page, tabId, userId);
         // Why: keep settledUrls current for navigations the PAGE triggers itself (JS redirects,
         // meta-refresh, CAPTCHA auto-continue) — without this the dedup check in guardedNavigate
         // stays stale and re-navigates back into a bot-check loop.
@@ -181,7 +213,7 @@ async function getPersistentPage(targetUrl, tabId, userId = 'default') {
                 if (p && ctx && !closedTabs.has(tabId)) {
                     console.debug(`[NavEvent] ✅ debounce cleared tab=${tabId} — triggering immediate capture`);
                     captureAndSync(tabId, uid, p, ctx);
-                    if (uid !== 'default')
+                    if (!(0, proxy_config_1.isCdpMode)() && uid !== 'default')
                         (0, proxy_session_service_1.saveSession)(uid, ctx).catch(() => { });
                 }
             }, debounceMs);
@@ -189,17 +221,20 @@ async function getPersistentPage(targetUrl, tabId, userId = 'default') {
         });
         // Why: save immediately when the server sets new cookies (login, consent, auth tokens)
         // so the session isn't lost if the container recycles before the next interval tick.
-        page.on('response', (response) => {
-            if (response.headers()['set-cookie']) {
-                console.debug(`[Session] 🍪 set-cookie detected on ${response.url()} — saving session for ${userId}`);
+        // Skip in CDP mode — Chrome already persists its own cookies to the real profile.
+        if (!(0, proxy_config_1.isCdpMode)()) {
+            page.on('response', (response) => {
+                if (response.headers()['set-cookie']) {
+                    console.debug(`[Session] 🍪 set-cookie detected on ${response.url()} — saving session for ${userId}`);
+                    (0, proxy_session_service_1.saveSession)(userId, context).catch(() => { });
+                }
+            });
+            // Why: save on every full page load — covers SPAs that update localStorage after hydration
+            page.on('load', () => {
+                console.debug(`[Session] 📄 page load — saving session for ${userId} url=${page.url()}`);
                 (0, proxy_session_service_1.saveSession)(userId, context).catch(() => { });
-            }
-        });
-        // Why: save on every full page load — covers SPAs that update localStorage after hydration
-        page.on('load', () => {
-            console.debug(`[Session] 📄 page load — saving session for ${userId} url=${page.url()}`);
-            (0, proxy_session_service_1.saveSession)(userId, context).catch(() => { });
-        });
+            });
+        }
         if (userId && userId !== 'default') {
             console.log(`[Session] 💾 User data path: ${(0, proxy_session_service_1.sessionFilePath)(userId)}`);
         }
@@ -210,7 +245,8 @@ async function getPersistentPage(targetUrl, tabId, userId = 'default') {
             console.debug(`[Interval] tick tab=${tabId} tick#${sessionTickCount + 1} url=${page.url()}`);
             captureAndSync(tabId, userId, page, context);
             sessionTickCount++;
-            if (sessionTickCount % 2 === 0)
+            // Why: skip session save in CDP mode — Chrome owns its own cookies.
+            if (!(0, proxy_config_1.isCdpMode)() && sessionTickCount % 2 === 0)
                 (0, proxy_session_service_1.saveSession)(userId, context).catch(() => { }); // every ~10s
         }, 5000);
         syncIntervals.set(tabId, interval);
@@ -222,7 +258,8 @@ async function getPersistentPage(targetUrl, tabId, userId = 'default') {
         await captureAndSync(tabId, userId, page, exports.activeContexts.get(tabId));
         // Why: save cookies/localStorage immediately after every navigation — captures logins,
         // consent cookies, and site state before Cloud Run can recycle the container.
-        (0, proxy_session_service_1.saveSession)(userId, exports.activeContexts.get(tabId)).catch(() => { });
+        if (!(0, proxy_config_1.isCdpMode)())
+            (0, proxy_session_service_1.saveSession)(userId, exports.activeContexts.get(tabId)).catch(() => { });
     }
     return page;
 }
@@ -231,6 +268,7 @@ function closePage(id) {
     console.log(`[Page] 🗑️  closing tab=${id}`);
     closedTabs.add(id);
     (0, proxy_cdp_service_1.clearConsoleLogs)(id); // free the per-tab console buffer
+    (0, proxy_url_watcher_1.clearUrlWatcher)(id); // free URL watcher debounce state + last-url cache
     if (syncIntervals.has(id)) {
         clearInterval(syncIntervals.get(id));
         syncIntervals.delete(id);

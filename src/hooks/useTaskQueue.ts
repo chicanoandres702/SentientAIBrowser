@@ -110,10 +110,17 @@ export const useTaskQueue = () => {
     }, [tasks, setTasks, syncRemove]);
 
     const removeTabTasks = useCallback(async (tabId: string) => {
-        const toRemove = tasks.filter(t => t.tabId === tabId);
-        setTasks(prev => prev.filter(t => t.tabId !== tabId));
+        const toRemove = tasks.filter(t => t.tabId === tabId && !t.workflowId);
+        setTasks(prev => prev.filter(t => !(t.tabId === tabId && !t.workflowId)));
         for (const t of toRemove) await syncRemove(t.id);
     }, [tasks, setTasks, syncRemove]);
 
-    return { tasks, setTasks, addTask, updateTask, removeTask, clearTasks, editTask: () => {}, reorderMissions, removeMissionTasks, removeTabTasks };
+    // Why: remove ALL tasks (missions + steps) scoped to a workflow when that workflow is closed.
+    const removeWorkflowTasks = useCallback(async (workflowId: string) => {
+        const toRemove = tasks.filter(t => t.workflowId === workflowId);
+        setTasks(prev => prev.filter(t => t.workflowId !== workflowId));
+        for (const t of toRemove) await syncRemove(t.id);
+    }, [tasks, setTasks, syncRemove]);
+
+    return { tasks, setTasks, addTask, updateTask, removeTask, clearTasks, editTask: () => {}, reorderMissions, removeMissionTasks, removeTabTasks, removeWorkflowTasks };
 };

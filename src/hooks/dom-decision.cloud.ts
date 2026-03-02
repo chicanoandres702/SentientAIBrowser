@@ -65,7 +65,7 @@ export const runCloudDecision = async (args: CloudDecisionArgs): Promise<void> =
             if (currentTask) {
                 const isNavTask =
                     currentTask.title.toLowerCase().includes('navigate') ||
-                    currentTask.subActions?.some(sa => sa.action === 'navigate' || sa.action === 'open_url');
+                    currentTask.subActions?.some((sa: { action: string }) => sa.action === 'navigate' || sa.action === 'open_url');
                 if (isNavTask) {
                     updateTask(currentTask.id, 'completed', 'Navigation completed — reached login page');
                 }

@@ -13,12 +13,13 @@ import { useBrowserState } from '../useBrowserState';
 import { useBrowserTabs } from '../useBrowserTabs';
 import { useTaskQueue } from '../useTaskQueue';
 import { useWorkflows } from '../useWorkflows';
+import { useTabSyncSocket } from '../useTabSyncSocket';
 
 /** Core browser capabilities — state, tabs, tasks, dimensions, and workflow grouping */
 export const useBrowserCapabilities = () => {
     const s = useBrowserState();
-    const { tabs, setTabs, activeUrl, setActiveUrl, navigateActiveTab, addNewTab: rawAddNewTab, closeTab: rawCloseTab, selectTab } = useBrowserTabs('about:blank');
-    const { tasks, setTasks, addTask, updateTask, removeTask, clearTasks, editTask, reorderMissions, removeMissionTasks, removeTabTasks } = useTaskQueue();
+    const { tabs, setTabs, activeUrl, setActiveUrl, navigateActiveTab, addNewTab: rawAddNewTab, closeTab: rawCloseTab, selectTab, applyServerSync } = useBrowserTabs('about:blank');
+    const { tasks, setTasks, addTask, updateTask, removeTask, clearTasks, editTask, reorderMissions, removeMissionTasks, removeTabTasks, removeWorkflowTasks } = useTaskQueue();
     const { workflows, activeWorkflowId, selectWorkflow, addWorkflow, renameWorkflow, removeWorkflow, addTabToWorkflow, removeTabFromAll } = useWorkflows('1');
     const webViewRef = useRef<HeadlessWebViewRef>(null!);
     const { width: winWidth } = useWindowDimensions();
@@ -26,6 +27,17 @@ export const useBrowserCapabilities = () => {
     const previewHeight = previewWidth * 0.6;
     const activeTab = tabs.find((t) => t.isActive);
     const activeHost = activeUrl ? new URL(activeUrl).hostname : '';
+
+    // Why: server WebSocket is the URL authority — no Firestore write-back on WS events.
+    // Connects to /proxy/ws/<tabId>; reconnects with exponential backoff automatically.
+    useTabSyncSocket({
+        baseUrl:      s.PROXY_BASE_URL || '',
+        tabId:        activeTab?.id || 'default',
+        enabled:      !!s.PROXY_BASE_URL,
+        onUrlChange:  (url, title, id) => applyServerSync(id, url, title),
+        // Why: backend broadcasts mission progress over WS — surface in status bar immediately
+        onStatus:     (msg) => s.setStatusMessage(msg),
+    });
 
     // Why: when a new tab is opened, register it in the active workflow so the tab bar filters correctly
     const addNewTab = useCallback(async (url: string, title?: string): Promise<string> => {
@@ -70,6 +82,8 @@ export const useBrowserCapabilities = () => {
         removeWorkflow,
         addTabToWorkflow,
         createWorkspaceTab,
+        // Server sync
+        applyServerSync,
         // Tasks
         tasks,
         setTasks,
@@ -81,6 +95,7 @@ export const useBrowserCapabilities = () => {
         reorderMissions,
         removeMissionTasks,
         removeTabTasks,
+        removeWorkflowTasks,
         // Dimensions
         previewWidth,
         previewHeight,

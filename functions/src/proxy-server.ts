@@ -6,8 +6,11 @@ import * as http from 'http';
 import * as net from 'net';
 import express from 'express';
 import cors from 'cors';
+import { WebSocketServer } from 'ws';
 import { PORT, REMOTE_DEBUGGING_PORT } from './proxy-config';
 import { setupBrowserRoutes } from './proxy-routes-browser';
+import { handleWsUpgrade } from './proxy-tab-sync.broker';
+import { handleClientWsMessage } from './proxy-ws-actions';
 import orchestrator from './backend-ai-orchestrator';
 
 const app = express();
@@ -25,6 +28,10 @@ setupBrowserRoutes(app);
 // Express's app.listen() doesn't expose the raw server needed for WS proxying.
 const server = http.createServer(app);
 
+// Why: noServer mode — http.Server owns the socket; wss only handles the WS handshake.
+// Tab-sync WebSocket clients connect to /proxy/ws/:tabId.
+const wss = new WebSocketServer({ noServer: true });
+
 /**
  * CDP WebSocket Proxy — /cdp-proxy/<path>
  * Why: Cloud Run only exposes port 8080 (HTTPS). Chrome's CDP runs on 9222 inside the
@@ -35,6 +42,11 @@ const server = http.createServer(app);
  * Usage (mobile):   open the devtoolsUrl returned by GET /cdp/info in any browser
  */
 server.on('upgrade', (req: http.IncomingMessage, socket: net.Socket, head: Buffer) => {
+    // Why: tab-sync WebSocket — server-authority URL/screenshot push to React client
+    if (req.url?.startsWith('/proxy/ws/')) {
+        handleWsUpgrade(wss, req, socket, head, handleClientWsMessage);
+        return;
+    }
     if (!req.url?.startsWith('/cdp-proxy')) {
         socket.destroy();
         return;

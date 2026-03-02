@@ -82,6 +82,12 @@ export const useDomDecision = (
 
         const domNodeCount = Array.isArray(map) ? map.length : Object.keys(map).length;
         console.log(`[DomDecision] 📊 map received nodes=${domNodeCount} url=${activeUrl} task=${tasks.find(t => t.status==='in_progress' || t.status==='pending')?.title?.substring(0,40) ?? 'none'}`);
+
+        // Why: backend mission loop owns Playwright execution — frontend AI must yield to avoid
+        // conflicting actions and duplicate LLM calls during that window
+        const hasMission = tasks.some(t => t.isMission && (t.status === 'in_progress' || t.status === 'pending'));
+        if (hasMission) { console.debug('[DomDecision] ⏸️ skip — backend mission running'); return; }
+
         setIsThinking(true);
         // Why: second check after sync state settle — user may have paused between scan
         // trigger queuing and the callback actually executing

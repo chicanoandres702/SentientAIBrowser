@@ -36,6 +36,14 @@ export const usePlanReassessment = ({
         if (isReassessingRef.current) { console.debug('[Reassess] ⏳ skip — already reassessing'); return; }
         if (Date.now() - lastReassessRef.current < 5000) { console.debug('[Reassess] ⏳ throttled'); return; }
 
+        // Why: skip while a backend mission is running — it owns the browser state.
+        // Without this guard, standalone.length===0 (all tasks have missionId) would
+        // bypass the block below and inject new standalone tasks mid-mission.
+        const activeMissions = tasks.filter(t => t.isMission && (t.status === 'in_progress' || t.status === 'pending'));
+        if (activeMissions.length > 0) {
+            console.debug(`[Reassess] ⏸️  skip — ${activeMissions.length} mission(s) still running`);
+            return;
+        }
         // Only re-plan when ALL non-mission tasks are done
         const standalone = tasks.filter(t => !t.isMission && !t.missionId);
         const blocking = standalone.filter(t => t.status === 'pending' || t.status === 'in_progress');

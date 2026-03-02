@@ -1,15 +1,20 @@
-// Feature: Remote Mirror | Why: On-demand dom-map + SSE stream for cross-device control
-// Why no auto-poll: dom-map is expensive (full Playwright DOM scan). Fetched on-demand
-// by the AI agent before each action. SSE stream handles live screenshot updates.
-import { useCallback, useEffect, useState } from 'react';
-import { fetchRemoteDomMap, openRemoteScreenshotStream, RemoteDomMapResponse } from './remote-mirror.service';
+// Feature: Remote Mirror | Why: On-demand dom-map fetch for cross-device control.
+// Screenshot streaming is now handled by the shared WebSocket (useTabSyncSocket → frame events).
+// This hook only manages the Playwright DOM snapshot — expensive, so always on-demand only.
+/*
+ * [Parent Feature/Milestone] Remote Input
+ * [Child Task/Issue] Remove SSE screenshot stream — WS handles frames
+ * [Subtask] Keep refresh/dom-map fetch; drop SSE reconnect loop and screenshot state
+ * [Upstream] fetchRemoteDomMap -> [Downstream] useRemoteSyncBridge (domMap)
+ * [Law Check] 45 lines | Passed 100-Line Law
+ */
+import { useCallback, useState } from 'react';
+import { fetchRemoteDomMap, RemoteDomMapResponse } from './remote-mirror.service';
 
 interface RemoteMirrorState {
-    screenshot: string | null;
-    domMap: unknown[];
-    viewport: RemoteDomMapResponse['viewport'] | null;
+    domMap:    unknown[];
+    viewport:  RemoteDomMapResponse['viewport'] | null;
     lastError: string | null;
-    isConnected: boolean;
 }
 
 export const useRemoteMirror = (
@@ -19,70 +24,26 @@ export const useRemoteMirror = (
     enabled: boolean,
 ) => {
     const [state, setState] = useState<RemoteMirrorState>({
-        screenshot: null,
-        domMap: [],
-        viewport: null,
+        domMap:    [],
+        viewport:  null,
         lastError: null,
-        isConnected: false,
     });
-    // Why: fetching dom-map is a full Playwright DOM scan — only call on demand
-    // (e.g. before an AI agent action). Never auto-poll.
+
+    // Why: DOM map is a full Playwright scan — only fetch on demand (before AI action).
+    // Screenshot frames come via the shared WebSocket (see useTabSyncSocket frame events).
     const refresh = useCallback(async () => {
         if (!enabled || !baseUrl) return;
         try {
             const dom = await fetchRemoteDomMap(baseUrl, tabId, url);
-            setState(prev => ({
-                ...prev,
-                domMap: Array.isArray(dom.map) ? dom.map : [],
-                viewport: dom.viewport,
+            setState({
+                domMap:    Array.isArray(dom.map) ? dom.map : [],
+                viewport:  dom.viewport,
                 lastError: null,
-                isConnected: true,
-            }));
+            });
         } catch (e) {
-            setState(prev => ({
-                ...prev,
-                lastError: e instanceof Error ? e.message : String(e),
-            }));
+            setState(prev => ({ ...prev, lastError: e instanceof Error ? e.message : String(e) }));
         }
     }, [baseUrl, enabled, tabId, url]);
-
-    useEffect(() => {
-        if (!enabled || !baseUrl || !url) return;
-        let cancelled = false;
-        let closeFn: () => void = () => {};
-        let timer: ReturnType<typeof setTimeout> | null = null;
-        let attempt = 0;
-        const BASE_RECONNECT_MS = 3000;
-        const MAX_RECONNECT_MS = 20000;
-
-        // Why: Cloud Run SSE can drop on idle/restart; exponential backoff + jitter
-        // avoids synchronized reconnect storms while still recovering quickly.
-        const connect = (delay = 0) => {
-            timer = setTimeout(() => {
-                if (cancelled) return;
-                closeFn = openRemoteScreenshotStream(
-                    baseUrl, tabId, url,
-                    (frame) => {
-                        if (!cancelled) {
-                            attempt = 0;
-                            setState(prev => ({ ...prev, screenshot: frame, isConnected: true, lastError: null }));
-                        }
-                    },
-                    (message) => {
-                        if (!cancelled) {
-                            setState(prev => ({ ...prev, lastError: message, isConnected: false }));
-                            attempt++;
-                            const backoff = Math.min(BASE_RECONNECT_MS * Math.pow(2, Math.max(0, attempt - 1)), MAX_RECONNECT_MS);
-                            const jitter = Math.floor(Math.random() * 700);
-                            connect(backoff + jitter);
-                        }
-                    },
-                );
-            }, delay);
-        };
-        connect();
-        return () => { cancelled = true; if (timer) clearTimeout(timer); closeFn(); };
-    }, [enabled, baseUrl, tabId, url]);
 
     return { ...state, refresh };
 };

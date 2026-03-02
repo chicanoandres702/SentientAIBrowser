@@ -19,7 +19,7 @@ export const useBrowserController = (
     PROXY_BASE_URL: string,
     runtimeGeminiApiKey?: string,
 ) => {
-    const handleExecutePrompt = async (prompt: string, tabId: string, _userId: string, useConfirmerAgent = true, tabUrl?: string) => {
+    const handleExecutePrompt = async (prompt: string, tabId: string, _userId: string, useConfirmerAgent = true, tabUrl?: string, workflowId?: string) => {
         const runId = `run_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
         setActivePrompt(prompt);
         setTaskStartTime(Date.now());
@@ -60,7 +60,7 @@ export const useBrowserController = (
 
         // 3. Build mission tasks
         if (missionResponse?.execution?.segments) {
-            await buildMissionFromSegments(prompt, missionResponse, llmError, tabId, runId, { addTask, setStatusMessage, useConfirmerAgent, runtimeGeminiApiKey }, tabUrl);
+            await buildMissionFromSegments(prompt, missionResponse, llmError, tabId, runId, { addTask, setStatusMessage, useConfirmerAgent, runtimeGeminiApiKey }, tabUrl, workflowId);
         } else {
             setStatusMessage('Planner returned invalid mission format');
             return;
