@@ -24,10 +24,16 @@ on:
           distribution: 'temurin'
           java-version: '17'
 
+
       - name: Set up Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: '18'
+          node-version: '20.x'
+      - name: Print Node.js version
+        run: |
+          node --version
+          which node
+          echo $PATH
 
       - name: Download Android SDK Platform-Tools
         run: |
@@ -43,9 +49,16 @@ on:
           restore-keys: |
             ${{ runner.os }}-gradle-
 
+      - name: Debug Node in Android dir
+        run: |
+          cd android
+          node --version
+          which node
+          echo $PATH
       - name: Build APK
         run: |
           chmod +x gradlew
+          export PATH=$PATH:$(dirname $(which node))
           ./gradlew assembleRelease
         working-directory: android
 
