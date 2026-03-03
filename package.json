@@ -54,11 +54,10 @@
   },
   "devDependencies": {
     "@playwright/test": "^1.58.2",
-    "@react-native-community/cli": "latest", 
+    "@react-native-community/cli": "latest",
     "@react-native/metro-config": "latest",
     "@types/jest": "^30.0.0",
     "@types/react": "~19.2.14",
-  "private": true
     "@types/ws": "^8.18.1",
     "@typescript-eslint/eslint-plugin": "^8.56.1",
     "@typescript-eslint/parser": "^8.56.1",
