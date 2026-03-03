@@ -277,8 +277,29 @@
             "problemMatcher": [],
             "presentation": { "reveal": "always", "panel": "dedicated", "clear": true }
         },
+        {
+            "label": "Ensure GitHub CLI is installed and authenticated",
+            "type": "shell",
+            "command": "gh auth status",
+            "problemMatcher": [],
+            "presentation": { "reveal": "always", "panel": "dedicated", "focus": true },
+            "options": {
+                "env": {
+                    "GH_FORCE_TTY": "true"
+                }
+            }
+        },
 
         // ── Compound ──────────────────────────────────────────────────────────────
+        {
+            "label": "[Compound] GH Auth then Full Automation",
+            "dependsOrder": "sequence",
+            "dependsOn": [
+                "Ensure GitHub CLI is installed and authenticated",
+                "[GitHub] Deploy: All"
+            ],
+            "problemMatcher": []
+        },
         {
             "label": "[Compound] Fix IAM then Deploy All",
             "dependsOrder": "sequence",
