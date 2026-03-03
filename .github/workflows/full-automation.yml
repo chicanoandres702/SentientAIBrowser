@@ -11,8 +11,63 @@ on:
       - main
       - feature-proxy
 
-
   build:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Java
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20.x'
+
+      - name: Print Node.js version
+        run: |
+          node --version
+          which node
+          echo $PATH
+
+      - name: Download Android SDK Platform-Tools
+        run: |
+          wget https://dl.google.com/android/repository/platform-tools-latest-linux.zip -O platform-tools.zip
+          unzip platform-tools.zip -d $HOME
+          echo "$HOME/platform-tools" >> $GITHUB_PATH
+
+      - name: Cache Gradle
+        uses: actions/cache@v3
+        with:
+          path: android/.gradle/caches
+          key: ${{ runner.os }}-gradle-${{ hashFiles('android/**/*.gradle*', 'android/**/*.kts') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
+
+      - name: Debug Node in Android dir
+        run: |
+          cd android
+          node --version
+          which node
+          echo $PATH
+
+      - name: Build APK
+        run: |
+          cd android
+          chmod +x gradlew
+          export PATH=$PATH:$(dirname $(which node))
+          ./gradlew assembleRelease
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-release-apk
+          path: android/app/build/outputs/apk/release/app-release.apk
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -49,6 +104,7 @@ on:
           restore-keys: |
             ${{ runner.os }}-gradle-
 
+<<<<<<< HEAD
       - name: Debug Node in Android dir
         run: |
           cd android
@@ -59,6 +115,11 @@ on:
         run: |
           chmod +x gradlew
           export PATH=$PATH:$(dirname $(which node))
+=======
+      - name: Build APK
+        run: |
+          chmod +x gradlew
+>>>>>>> ccad9cd70b8350db459f270acd324bd016ca1149
           ./gradlew assembleRelease
         working-directory: android
 
