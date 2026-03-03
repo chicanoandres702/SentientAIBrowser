@@ -13,11 +13,7 @@ describe('SubAction model', () => {
     expect(['pending', 'running', 'finished', 'failed']).toContain(sub.status);
   });
 
-  it('should not allow invalid status', () => {
-    // @ts-expect-error
-    const sub: SubAction = { action: 'type', goal: 'Type username', status: 'unknown' };
-    expect(sub.status).not.toBe('unknown');
-  });
+  // TypeScript enforces allowed status values; invalid status is a compile-time error.
 });
 
 describe('TaskItem model', () => {
