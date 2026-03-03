@@ -11,8 +11,10 @@
     "run-web": "powershell -ExecutionPolicy Bypass -File ./run-web.ps1",
     "run-android": "powershell -ExecutionPolicy Bypass -File ./run-android.ps1",
     "run-proxy": "bash ./start-proxy.sh",
-    "build:web": "powershell -ExecutionPolicy Bypass -File ./build-web.ps1",    "export:web":   "expo export --platform web --output-dir dist",
-    "serve:local":  "powershell -ExecutionPolicy Bypass -File ./serve-local.ps1",    "genkit-dev": "npx tsx src/index.ts",
+    "build:web": "powershell -ExecutionPolicy Bypass -File ./build-web.ps1",
+    "export:web": "expo export --platform web --output-dir dist",
+    "serve:local": "powershell -ExecutionPolicy Bypass -File ./serve-local.ps1",
+    "genkit-dev": "npx tsx src/index.ts",
     "firebase": "powershell -ExecutionPolicy Bypass -File ./build-web.ps1 && firebase deploy --only hosting --project sentient-ai-browser",
     "firebase:all": "powershell -ExecutionPolicy Bypass -File ./build-web.ps1 && npm run build --prefix functions && firebase deploy --project sentient-ai-browser",
     "lint": "tsc --noEmit"
@@ -51,13 +53,19 @@
     "zod": "^4.3.6"
   },
   "devDependencies": {
+    "@playwright/test": "^1.58.2",
+    "@types/jest": "^30.0.0",
     "@types/react": "~19.1.0",
     "@typescript-eslint/eslint-plugin": "^8.56.1",
     "@typescript-eslint/parser": "^8.56.1",
+    "appium": "^3.2.0",
+    "detox": "^20.47.0",
     "eslint": "^9.39.3",
     "eslint-plugin-react-hooks": "^7.0.1",
     "husky": "^9.1.7",
+    "jest": "^30.2.0",
     "pm2": "^6.0.14",
+    "ts-jest": "^29.4.6",
     "typescript": "~5.9.2"
   },
   "private": true

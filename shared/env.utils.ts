@@ -9,7 +9,15 @@ export const getEnvConfig = () => {
     // uses the local proxy, while hosted builds (Firebase / web.app) hit Cloud Run.
     // The previous check `|| Platform.OS === 'web'` was always true on web and caused
     // local dev to always hit Cloud Run — making run-web.ps1's local proxy unreachable.
-    const hostname = typeof window !== 'undefined' ? window.location.hostname : '';
+    // Always provide a string for hostname; fallback for React Native
+    let hostname: string;
+    if (typeof window !== 'undefined' && window.location && window.location.hostname) {
+        hostname = window.location.hostname;
+    } else if (Platform.OS === 'android' || Platform.OS === 'ios') {
+        hostname = 'localhost';
+    } else {
+        hostname = '';
+    }
     const isFirebaseHosted = hostname.includes('firebaseapp.com') || hostname.includes('web.app');
     const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '';
 

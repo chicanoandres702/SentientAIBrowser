@@ -19,7 +19,14 @@ export class AgentService {
 
         // 1. Plan tactical steps using the LLM (High-Fidelity)
         const missionResponse = await planTacticalSteps(goal, runtimeGeminiApiKey);
-        const steps = missionResponse?.execution.segments.flatMap(s => s.steps.map(step => step.explanation)) || [goal];
+        // Map each step to a SubAction with goal and initial status 'pending'
+        const subActions = missionResponse?.execution.segments.flatMap(s =>
+            s.steps.map(step => ({
+                action: step.action,
+                goal: step.explanation,
+                status: 'pending',
+            }))
+        ) || [{ action: 'start', goal, status: 'pending' }];
 
         // 2. Create mission document
         const missionRef = await addDoc(collection(db, this.COLLECTION), {
@@ -29,7 +36,7 @@ export class AgentService {
             userId,
             progress: 0,
             currentStepIndex: 0,
-            steps,
+            subActions,
             lastAction: 'Mission started',
             timestamp: serverTimestamp(),
             updated_at: serverTimestamp()

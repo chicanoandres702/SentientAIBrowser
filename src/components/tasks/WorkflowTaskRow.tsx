@@ -77,20 +77,24 @@ export const WorkflowTaskRow: React.FC<Props> = React.memo(({ item, accentColor,
                 {canExpand && expanded && (
                     <View style={wp.actionsContainer}>
                         {actions.map((a, i) => {
-                            const aDone = a.status === 'completed';
-                            const aActive = a.status === 'in_progress';
+                            // Map subtask status to color/label
+                            const statusColor = a.status === 'finished' ? '#00ffaa'
+                                : a.status === 'running' ? accentColor
+                                : a.status === 'failed' ? '#ff5555'
+                                : 'rgba(140,160,200,0.18)';
+                            const statusLabel = a.status === 'finished' ? 'DONE'
+                                : a.status === 'running' ? 'RUNNING'
+                                : a.status === 'failed' ? 'FAILED'
+                                : 'PENDING';
                             return (
                                 <View key={i} style={wp.actionRow}>
-                                    <View style={[wp.actionDot, {
-                                        backgroundColor: aDone ? '#00ffaa' : aActive ? accentColor : 'rgba(140,160,200,0.18)',
-                                    }]} />
-                                    <Text
-                                        style={[wp.actionText, aDone && wp.actionDoneText, aActive && wp.actionActiveText]}
-                                        numberOfLines={2}
-                                    >
-                                        {a.action}
-                                    </Text>
-                                    {aDone && <Text style={wp.actionCheck}>✓</Text>}
+                                    <View style={[wp.actionDot, { backgroundColor: statusColor }]} />
+                                    <View style={wp.actionGoalWrap}>
+                                        <Text style={wp.actionGoal} numberOfLines={2}>{a.goal}</Text>
+                                        <Text style={wp.actionStatus} numberOfLines={1}>{statusLabel}</Text>
+                                    </View>
+                                    {a.status === 'finished' && <Text style={wp.actionCheck}>✓</Text>}
+                                    {a.status === 'failed' && <Text style={wp.actionError}>!</Text>}
                                 </View>
                             );
                         })}
