@@ -31,8 +31,6 @@ export const AndroidAISheet: React.FC<Props> = ({ visible, onClose, theme, onExe
     ]).start();
   }, [visible, slideY, backdropA]);
 
-  if (!visible && slideY._value === SHEET_H) return null; // Fully hidden — skip render
-
   return (
     <View style={StyleSheet.absoluteFill} pointerEvents={visible ? 'auto' : 'none'}>
       {/* Backdrop */}

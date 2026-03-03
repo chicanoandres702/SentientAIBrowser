@@ -19,6 +19,7 @@ export type UiColors = Readonly<{
     text: string;
     textDim: string;
     textMuted: string;
+    textFaint: string;
     accent: string;
     accentSoft: string;
     accentGlow: string;
@@ -47,6 +48,7 @@ const base = Object.freeze({
     text: BASE.text,
     textDim: BASE.textDim,
     textMuted: BASE.textMuted,
+    textFaint: BASE.textFaint,
     success: BASE.success,
     successSoft: BASE.successSoft,
     warning: BASE.warning,

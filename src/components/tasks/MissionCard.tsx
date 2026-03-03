@@ -16,6 +16,12 @@ export interface MissionCardActions {
   onActivateTask: (id: string) => void;
   onMoveUp: (() => void) | null;
   onMoveDown: (() => void) | null;
+  /** Retry a failed task — resets status to pending and resumes the mission loop */
+  onRetryTask?: (id: string) => void;
+  /** Allow-me — sets task to blocked_on_user so the user can complete it manually */
+  onAllowMe?: (id: string) => void;
+  /** Trigger AI replanner to assess current page and extend the plan */
+  onExtendPlan?: () => void;
 }
 
 interface Props {
@@ -70,12 +76,12 @@ export const MissionCard: React.FC<Props> = ({ node, accentColor, removeTask, ed
         {node.completedCount}/{node.totalCount} tasks{isDone ? ' · All complete ✓' : isActive ? ` · ${node.mission.details || 'In progress'}` : ` · ${node.mission.details || 'In queue'}`}
       </Text>
 
-      {actions && <MissionQueueControls missionId={node.mission.id} isActive={isActive} isPaused={actions.isPaused} onPlay={actions.onPlay} onPause={actions.onPause} onStop={actions.onStop} onSave={actions.onSave} accentColor={accentColor} />}
+      {actions && <MissionQueueControls missionId={node.mission.id} isActive={isActive} isPaused={actions.isPaused} onPlay={actions.onPlay} onPause={actions.onPause} onStop={actions.onStop} onSave={actions.onSave} onExtendPlan={actions.onExtendPlan} accentColor={accentColor} />}
 
       <View style={ms.childList}>
         {node.children.map((child: TaskItem) => (
           <TouchableOpacity key={child.id} style={ms.childItem} onPress={child.status === 'pending' && actions ? () => actions.onActivateTask(child.id) : undefined} activeOpacity={child.status === 'pending' && actions ? 0.6 : 1}>
-            <TaskItemView item={child} accentColor={accentColor} removeTask={removeTask} editTask={editTask} />
+            <TaskItemView item={child} accentColor={accentColor} removeTask={removeTask} editTask={editTask} onPlay={child.status==='pending'&&actions?()=>actions.onActivateTask(child.id):undefined} onRetry={actions?.onRetryTask?()=>actions.onRetryTask!(child.id):undefined} onAllowMe={actions?.onAllowMe?()=>actions.onAllowMe!(child.id):undefined} />
           </TouchableOpacity>
         ))}
       </View>

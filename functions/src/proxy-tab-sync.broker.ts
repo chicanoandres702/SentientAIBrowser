@@ -34,6 +34,15 @@ export function broadcastTabSync(tabId: string, payload: ServerMsg): void {
 export const broadcastStatus = (tabId: string, message: string): void =>
     broadcastTabSync(tabId, { type: 'status', tabId, message });
 
+/** Why: push per-task state changes to the frontend instantly via WS so the queue
+ * reflects in_progress / completed / failed <10ms after backend execution, not on
+ * the next Firestore onSnapshot poll (~200ms). */
+export const broadcastTaskStatus = (
+    tabId: string, taskId: string,
+    status: 'in_progress' | 'completed' | 'failed',
+    nextTaskId?: string,
+): void => broadcastTabSync(tabId, { type: 'task_status', tabId, taskId, status, nextTaskId });
+
 export const broadcastCursor = (tabId: string, x: number, y: number): void =>
     broadcastTabSync(tabId, { type: 'cursor', tabId, x, y });
 

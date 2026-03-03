@@ -37,11 +37,16 @@ export const MainLayout: React.FC<Props> = ({ s, theme, setTheme }) => {
             <Suspense fallback={null}>
                 <SentientHeader
                     isAIMode={s.isAIMode}
+                    isPaused={s.isPaused}
                     isSidebarVisible={s.isSidebarVisible}
                     setIsSidebarVisible={s.setIsSidebarVisible}
                     setIsSettingsVisible={s.setIsSettingsVisible}
                     setIsIntelVisible={s.setIsIntelVisible}
+                    onToggleAI={() => s.setIsAIMode?.(!s.isAIMode)}
+                    onNewTab={() => s.addNewTab('about:blank')}
+                    onToggleMissions={() => s.setIsSidebarVisible(!s.isSidebarVisible)}
                     theme={theme}
+                    domain={s.activeUrl ? (() => { try { return new URL(s.activeUrl).hostname; } catch { return undefined; } })() : undefined}
                     layoutMode={layoutMode}
                     setLayoutMode={s.setLayoutMode}
                     isDesktop={s.isDesktop}

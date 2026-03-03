@@ -14,6 +14,7 @@ import { setupExternalRoutes } from './proxy-routes-external';
 import { setupDeepResearchRoutes } from './proxy-routes-research';
 import { setupGithubActionRoute } from './proxy-routes-github-action';
 import { setupPlanRoute } from './proxy-routes-plan';
+import { setupTasksRoute } from './proxy-routes-tasks';
 import { applyCorsHeaders } from './proxy-route.utils';
 
 export function setupBrowserRoutes(app: Express): void {
@@ -24,6 +25,7 @@ export function setupBrowserRoutes(app: Express): void {
     });
 
     setupPlanRoute(app);          // POST /agent/plan (LLM mission planning)
+    setupTasksRoute(app);          // POST /proxy/tasks/:id/:op  POST /proxy/replan
 
     // Playwright control endpoints
     setupNavRoute(app);           // POST /proxy/navigate, DELETE /proxy/tab/:id

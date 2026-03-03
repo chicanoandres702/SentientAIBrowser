@@ -64,6 +64,13 @@ export const WorkflowPanel: React.FC<Props> = ({
     }
   }, [activeTaskId]);
 
+  // Why: fire-and-forget REST calls — status is immediately reflected via WS task_status events
+  const taskOp = (taskId: string, op: 'retry' | 'skip' | 'block-user') =>
+    proxyBaseUrl ? fetch(`${proxyBaseUrl}/proxy/tasks/${taskId}/${op}`, { method: 'POST' }).catch(() => {}) : undefined;
+  const onExtendPlan = mission && proxyBaseUrl
+    ? () => fetch(`${proxyBaseUrl}/proxy/replan`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ missionId: mission.id, tabId: activeTabId || 'default' }) }).catch(() => {})
+    : undefined;
+
   return (
     <ScrollView ref={scrollRef} contentContainerStyle={wp.scrollContent} showsVerticalScrollIndicator={false}>
       <View style={wp.headerRow}>
@@ -91,6 +98,7 @@ export const WorkflowPanel: React.FC<Props> = ({
           onPause={onPause}
           onResume={onResume}
           onSave={() => setSaveModal({ goal: mission.title, tasks: taskList })}
+          onExtendPlan={onExtendPlan as (() => void) | undefined}
         />
       )}
       {taskList.length > 0 && (
@@ -98,7 +106,12 @@ export const WorkflowPanel: React.FC<Props> = ({
           <Text style={wp.sectionLabel}>TASKS</Text>
           {taskList.map((t) => (
             <View key={t.id} onLayout={e => { yOffsets.current[t.id] = e.nativeEvent.layout.y; }}>
-              <WorkflowTaskRow item={t} accentColor={accent} removeTask={removeTask} />
+              <WorkflowTaskRow
+                item={t} accentColor={accent} removeTask={removeTask}
+                onPlay={proxyBaseUrl ? (id) => taskOp(id, 'retry') : undefined}
+                onRetry={proxyBaseUrl ? (id) => taskOp(id, 'retry') : undefined}
+                onAllowMe={proxyBaseUrl ? (id) => taskOp(id, 'block-user') : undefined}
+              />
             </View>
           ))}
         </>

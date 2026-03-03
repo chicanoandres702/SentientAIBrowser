@@ -73,10 +73,12 @@ export const PreviewStage: React.FC<Props> = ({
             )}
         </View>
 
-        {!hideControlPanel && s.isAIMode && (
+        {!hideControlPanel && (
             <Suspense fallback={null}>
                 <SentientControlPanel
                     isPaused={s.isPaused}
+                    isAIMode={s.isAIMode}
+                    modeLabel={s.isScholarMode ? 'SCHOLAR' : s.isAIMode ? 'SENTIENT' : 'MANUAL'}
                     onTogglePause={() => s.setIsPaused(!s.isPaused)}
                     onStop={() => {
                         s.setActivePrompt('');

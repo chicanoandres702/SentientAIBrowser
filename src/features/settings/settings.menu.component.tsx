@@ -16,6 +16,8 @@ import { LayoutSelector } from '../../components/settings/LayoutSelector';
 import type { LayoutMode } from '../../hooks/useBrowserState';
 import { uiColors } from '@features/ui/theme/ui.theme';
 import { settingsMenuStyles as s } from '../../components/settings/SettingsMenu.styles';
+import { RoutinePicker } from '../routines';
+import type { RoutineItem } from '../routines';
 
 interface Props {
   visible: boolean;
@@ -36,6 +38,9 @@ interface Props {
   setRuntimeGeminiApiKey: (key: string) => void;
   useConfirmerAgent: boolean;
   setUseConfirmerAgent: (val: boolean) => void;
+  routines?: RoutineItem[];
+  routinesLoading?: boolean;
+  onRunRoutine?: (r: RoutineItem) => void;
 }
 
 export const SettingsMenu: React.FC<Props> = (p) => {
@@ -92,6 +97,17 @@ export const SettingsMenu: React.FC<Props> = (p) => {
                 style={[s.input, { color: colors.text, borderColor: colors.border, backgroundColor: colors.panel2 }]}
               />
             </View>
+            {p.routines !== undefined && (
+              <>
+                <Text style={[s.section, { color: colors.textMuted }]}>SAVED WORKFLOWS</Text>
+                <View style={[s.sectionCard, { borderColor: colors.border, backgroundColor: colors.bgElevated }]}>
+                  <RoutinePicker
+                    routines={p.routines} loading={p.routinesLoading ?? false}
+                    onRun={p.onRunRoutine ?? (() => {})} theme={p.theme} maxHeight={260}
+                  />
+                </View>
+              </>
+            )}
           </ScrollView>
           <View style={[s.footer, { borderTopColor: colors.border }]}>
             <Text style={[s.version, { color: colors.textMuted }]}>SENTIENT BROWSER · v2.0.0</Text>
