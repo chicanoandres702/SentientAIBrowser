@@ -55,10 +55,6 @@ jobs:
           node --version
           which node
           echo $PATH
-      - name: Debug React Native CLI
-        run: |
-          npx react-native --version
-          npx react-native config
       - name: Build APK
         run: |
           cd android

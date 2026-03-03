@@ -1,13 +1,14 @@
+pluginManagement {
+    repositories {
+        maven {
+            url "$rootDir/../node_modules/react-native/android"
+        }
+        google()
+        mavenCentral()
+        gradlePluginPortal()
+    }
+}
+
 rootProject.name = 'SentientAIBrowser'
 include ':app'
 // Ensure local Maven repo for React Native AAR
-pluginManagement {
-	repositories {
-		maven {
-			url "$rootDir/../node_modules/react-native/android"
-		}
-		google()
-		mavenCentral()
-		gradlePluginPortal()
-	}
-}
