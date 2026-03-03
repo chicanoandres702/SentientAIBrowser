@@ -7,7 +7,9 @@ import { useAuth } from './src/features/auth/hooks/use-auth.hook';
 import { AuthModal } from './src/features/auth/components/auth-modal.ui';
 import { MainLayout } from './src/layouts/MainLayout';
 import { AndroidLayout } from './src/layouts/android/AndroidLayout';
+import { WorkflowMobileLayout } from './src/features/workflow/WorkflowMobileLayout';
 import { BASE } from './src/features/ui/theme/ui.theme';
+import NotificationBanner from './src/features/common/NotificationBanner';
 
 export type AppTheme = 'red' | 'blue';
 
@@ -48,6 +50,9 @@ export default function App() {
           s={{ ...(s as unknown as Parameters<typeof AndroidLayout>[0]['s']), userId: user?.uid }}
           theme={theme} setTheme={setTheme}
         />
+        {/* Mobile Workflow Layout Integration */}
+        <WorkflowMobileLayout workflows={demoWorkflows} embedNavigator={true} />
+        <NotificationBanner />
         {!user && !isLoading && <AuthModal theme={theme} />}
       </View>
     );
@@ -56,8 +61,16 @@ export default function App() {
   return (
     <View style={{ flex: 1, backgroundColor: BASE.bg }}>
       <MainLayout s={s} theme={theme} setTheme={setTheme} />
+      <NotificationBanner />
       <ExpoStatusBar style="light" />
       {!user && !isLoading && <AuthModal theme={theme} />}
     </View>
   );
 }
+
+// Example workflow data for demonstration
+const demoWorkflows = [
+  { id: 'wf1', label: 'Login', results: 'Success' },
+  { id: 'wf2', label: 'Fetch Data', results: 'Pending' },
+  { id: 'wf3', label: 'Process', results: 'Failed' },
+];

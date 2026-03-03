@@ -43,11 +43,11 @@ export class ScreenshotStreamService {
   async streamVideo(page: Page, durationMs = 10000) {
     const { spawn } = require('child_process');
     try {
-      // Start Playwright video recording
-      // Chromium only: must launch context with recordVideo option
+      // Inform client: starting video stream
+      if (this.ws.readyState === WebSocket.OPEN) {
+        this.ws.send(JSON.stringify({ status: 'starting video stream', info: 'Preparing video recording...' }));
+      }
       const context = page.context();
-      // Playwright video recording: context must be created with recordVideo option
-      // After page.close(), video will be available via page.video().path()
       setTimeout(async () => {
         try {
           await page.close();
@@ -63,11 +63,16 @@ export class ScreenshotStreamService {
         }
       }
       if (!videoPath) {
+        if (this.ws.readyState === WebSocket.OPEN) {
+          this.ws.send(JSON.stringify({ status: 'error', info: 'Video path not available. Ensure context is created with recordVideo option.' }));
+        }
         throw new Error('Video path not available. Ensure context is created with recordVideo option.');
       }
 
-      // Use ffmpeg to stream video file via WebSocket
-      // ffmpeg -re -i <videoPath> -f mpegts -codec:v mpeg1video -b:v 800k -r 30 -
+      // Inform client: loading ffmpeg
+      if (this.ws.readyState === WebSocket.OPEN) {
+        this.ws.send(JSON.stringify({ status: 'loading ffmpeg', info: 'Spawning ffmpeg process...' }));
+      }
       const ffmpeg = spawn('ffmpeg', [
         '-re',
         '-i', videoPath,
@@ -85,11 +90,17 @@ export class ScreenshotStreamService {
         }
       });
 
+      ffmpeg.on('spawn', () => {
+        if (this.ws.readyState === WebSocket.OPEN) {
+          this.ws.send(JSON.stringify({ status: 'ffmpeg started', info: 'ffmpeg process running, streaming video...' }));
+        }
+      });
+
       ffmpeg.on('error', (err: unknown) => {
         console.error('ffmpeg error:', err);
         if (this.ws.readyState === WebSocket.OPEN) {
           const details = typeof err === 'object' && err !== null && 'message' in err ? (err as any).message : String(err);
-          this.ws.send(JSON.stringify({ error: 'ffmpeg error', details }));
+          this.ws.send(JSON.stringify({ status: 'ffmpeg error', error: 'ffmpeg error', details }));
         }
       });
 
@@ -102,7 +113,7 @@ export class ScreenshotStreamService {
       console.error('Video stream error:', err);
       if (this.ws.readyState === WebSocket.OPEN) {
         const details = typeof err === 'object' && err !== null && 'message' in err ? (err as any).message : String(err);
-        this.ws.send(JSON.stringify({ error: 'Video stream error', details }));
+        this.ws.send(JSON.stringify({ status: 'video stream error', error: 'Video stream error', details }));
       }
     }
   }
