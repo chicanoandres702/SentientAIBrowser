@@ -7,7 +7,7 @@ name: Full Automation Pipeline
 on:
   push:
     branches:
-      - main
+      - feature-proxy
     paths:
       - Dockerfile.playwright-proxy
       - Dockerfile.android
