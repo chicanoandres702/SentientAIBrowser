@@ -11,9 +11,9 @@ repositories {
 
 android {
     compileSdkVersion 34
-    namespace 'com.antigravity.sentientaibrowser'
+    namespace 'com.demonstratorz.sentientaibrowser'
     defaultConfig {
-        applicationId "com.antigravity.sentientaibrowser"
+        applicationId "com.demonstratorz.sentientaibrowser"
         minSdkVersion 21
         targetSdkVersion 34
         versionCode 1
@@ -28,5 +28,5 @@ android {
 }
 
 dependencies {
-    implementation 'com.facebook.react:react-native:0.71.0'
+    implementation 'com.facebook.react:react-native:0.84.1'
 }
