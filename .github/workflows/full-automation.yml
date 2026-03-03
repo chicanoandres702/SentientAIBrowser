@@ -28,7 +28,7 @@ on:
       - name: Set up Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: '20.x'
+          workflow_dispatch:
       - name: Print Node.js version
         run: |
           node --version
