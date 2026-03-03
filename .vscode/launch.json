@@ -107,11 +107,11 @@
             "name": "Android (GitHub): Deploy All (Proxy, Web, Android)",
             "type": "node",
             "request": "launch",
-            "preLaunchTask": [
-                "Deploy Playwright Proxy Container to GitHub",
-                "Build Web (Metro) and Deploy to GitHub Pages",
-                "Check ADB Device, Build & Deploy Android App"
-            ],
+                "preLaunchTask": [
+                    "Deploy Playwright Proxy Container to GitHub",
+                    "Build Web (Metro) and Deploy to GitHub Pages",
+                    "Check ADB Device, Build & Deploy Android App"
+                ],
             "presentation": { "group": "android-github", "order": 4 }
         },
         // ═══════════════════════════════════════════════════════════════════════
@@ -124,13 +124,13 @@
             "runtimeExecutable": "powershell",
             "runtimeArgs": ["-ExecutionPolicy","Bypass","-File","${workspaceFolder}/scripts/run-full-automation.ps1"],
             "presentation": { "group": "android", "order": 99 },
-            "preLaunchTask": [
-                "Ensure GitHub CLI is installed and authenticated",
-                "[GitHub] Deploy: All"
-            ],
+                "preLaunchTask": [
+                    "Ensure GitHub CLI is installed and authenticated",
+                    "[GitHub] Deploy: All"
+                ],
             "postDebugTask": "Show build and test results in VS Code terminal"
         },
-        // ═══════════════════════════════════════════════════════════════════════
+        // 
         // PROXY / FUNCTIONS (Node.js debug)
         // ═══════════════════════════════════════════════════════════════════════
         {
