@@ -23,7 +23,6 @@ on:
           - functions
           - cloudrun
 
-# Cancel in-progress runs on the same branch
 concurrency:
   group: deploy-${{ github.ref }}
   cancel-in-progress: true
@@ -32,9 +31,6 @@ env:
   NODE_VERSION: "20"
   PROJECT_ID: sentient-ai-browser
 
-# ─────────────────────────────────────────────
-# JOB 1 — Build Expo Web → upload artifact
-# ─────────────────────────────────────────────
 jobs:
   build-web:
     name: 🏗️ Build Web
@@ -72,9 +68,6 @@ jobs:
           path: dist/
           retention-days: 1
 
-  # ─────────────────────────────────────────────
-  # JOB 2 — Build Firebase Functions → upload artifact
-  # ─────────────────────────────────────────────
   build-functions:
     name: 🏗️ Build Functions
     runs-on: ubuntu-latest
@@ -107,9 +100,6 @@ jobs:
           path: functions/lib/
           retention-days: 1
 
-  # ─────────────────────────────────────────────
-  # JOB 3 — Deploy GitHub Pages
-  # ─────────────────────────────────────────────
   deploy-hosting:
     name: 🐙 Deploy GitHub Pages
     needs: build-web
@@ -139,11 +129,6 @@ jobs:
         id: deploy-pages
         uses: actions/deploy-pages@v4
 
-  # ─────────────────────────────────────────────
-  # JOB 4 — Deploy Firestore Rules + Indexes
-  # Note: Firebase Functions are intentionally deleted — Cloud Run is the executor.
-  # This job ONLY syncs Firestore security rules and indexes.
-  # ─────────────────────────────────────────────
   deploy-functions:
     name: 🔥 Deploy Firestore Rules
     runs-on: ubuntu-latest
@@ -169,12 +154,6 @@ jobs:
             --non-interactive \
             --project ${{ env.PROJECT_ID }}
 
-  # ─────────────────────────────────────────────
-  # JOB 5 — Deploy Cloud Run (functions container)
-  # Cloud Run only accepts images from gcr.io / docker.pkg.dev / docker.io.
-  # GHCR is used as a secondary tag for GitHub Packages history only.
-  # Primary build target is gcr.io so Cloud Run can pull it directly.
-  # ─────────────────────────────────────────────
   deploy-cloudrun:
     name: ☁️ Deploy Cloud Run
     needs: build-functions
@@ -197,17 +176,17 @@ jobs:
         with:
           credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
 
-      # ── Configure Docker to push to gcr.io using GCP credentials ──
+      # ── Configure Docker for GCR ──
       - name: Configure Docker for GCR
         run: gcloud auth configure-docker gcr.io --quiet
 
-      # ── Set image names (GCR primary, GHCR secondary) ──────────────
+      # ── Set image names (GCR primary, GHCR secondary) ──
       - name: Set image names
         run: |
           echo "GCR_IMAGE=gcr.io/${{ env.PROJECT_ID }}/sentient-proxy" >> $GITHUB_ENV
           echo "GHCR_IMAGE=ghcr.io/$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
 
-      # ── Also login to GHCR so we can push a secondary tag there ────
+      # ── Login to GHCR ──
       - name: Login to GitHub Container Registry
         uses: docker/login-action@v3
         with:
@@ -215,7 +194,7 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      # ── Build once, push to GCR (primary) + GHCR (secondary) ───────
+      # ── Build once, push to GCR + GHCR ──
       - name: Build & push Docker image
         uses: docker/build-push-action@v5
         with:
@@ -227,7 +206,7 @@ jobs:
             ${{ env.GHCR_IMAGE }}:${{ github.sha }}
             ${{ env.GHCR_IMAGE }}:latest
 
-      # ── Deploy the GCR image to Cloud Run ───────────────────────────
+      # ── Deploy the GCR image to Cloud Run ──
       - name: Deploy to Cloud Run
         uses: google-github-actions/deploy-cloudrun@v2
         with:
