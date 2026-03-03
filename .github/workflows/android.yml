@@ -7,7 +7,7 @@ name: 🤖 Android Build
 
 on:
   push:
-    branches: [main, android, 'android/*']
+    branches: [main, android, 'android/*', 'feature/*']
     tags:     ['v*']
   workflow_dispatch:
     inputs:
