@@ -1,0 +1,29 @@
+# AIDDE TRACE HEADER
+# Dockerfile for Android app build (Expo/React Native)
+# Why: Enables containerized Android builds for local/CI/CD, similar to Cloud Run
+
+FROM node:20-bullseye
+
+# Install Android SDK dependencies
+RUN apt-get update && \
+    apt-get install -y openjdk-17-jdk wget unzip && \
+    wget https://dl.google.com/android/repository/commandlinetools-linux-10406996_latest.zip -O cmdline-tools.zip && \
+    mkdir -p /sdk/cmdline-tools && \
+    unzip cmdline-tools.zip -d /sdk/cmdline-tools && \
+    rm cmdline-tools.zip
+
+ENV ANDROID_HOME=/sdk
+ENV PATH="$PATH:/sdk/cmdline-tools/cmdline-tools/bin:/sdk/platform-tools:/sdk/emulator"
+
+# Install Expo CLI globally (if using Expo)
+RUN npm install -g expo-cli
+
+# Set workdir and copy app
+WORKDIR /app
+COPY . /app
+
+# Install dependencies
+RUN npm install
+
+# Default command: build Android APK
+CMD ["npx", "expo", "run:android"]

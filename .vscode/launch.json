@@ -1,42 +1,36 @@
 {
     "version": "0.2.0",
     "configurations": [
-
         // ═══════════════════════════════════════════════════════════════════════
         // ANDROID
         // ═══════════════════════════════════════════════════════════════════════
-
-        // Build APK locally (expo prebuild + gradlew) and install via ADB
         {
             "name": "Android: ADB build + install + launch",
             "type": "node",
             "request": "launch",
             "runtimeExecutable": "powershell",
             "runtimeArgs": ["-ExecutionPolicy","Bypass","-File","${workspaceFolder}/deploy-android.ps1","-Target","adb"],
-            "console": "integratedTerminal",
+            
             "presentation": { "group": "android", "order": 1 }
         },
-        // Download latest APK from GitHub Releases and sideload via ADB (no local build)
         {
             "name": "Android: GitHub release → ADB install",
             "type": "node",
             "request": "launch",
             "runtimeExecutable": "powershell",
             "runtimeArgs": ["-ExecutionPolicy","Bypass","-File","${workspaceFolder}/deploy-android.ps1","-Target","gh-adb"],
-            "console": "integratedTerminal",
+            
             "presentation": { "group": "android", "order": 2 }
         },
-        // Build only (CI preview APK, no install)
         {
             "name": "Android: Build preview APK",
             "type": "node",
             "request": "launch",
             "runtimeExecutable": "powershell",
             "runtimeArgs": ["-ExecutionPolicy","Bypass","-File","${workspaceFolder}/deploy-android.ps1","-Target","build","-Profile","preview"],
-            "console": "integratedTerminal",
+            
             "presentation": { "group": "android", "order": 3 }
         },
-        // Attach Chrome DevTools to running Android app via ADB port-forward
         {
             "name": "Android: Attach Hermes debugger (ADB)",
             "type": "node",
@@ -47,7 +41,6 @@
             "remoteRoot": "/",
             "presentation": { "group": "android", "order": 4 }
         },
-
         // ═══════════════════════════════════════════════════════════════════════
         // GITHUB DEPLOY
         // ═══════════════════════════════════════════════════════════════════════
@@ -57,7 +50,7 @@
             "request": "launch",
             "runtimeExecutable": "powershell",
             "runtimeArgs": ["-ExecutionPolicy","Bypass","-File","${workspaceFolder}/deploy-github.ps1","-Target","all"],
-            "console": "integratedTerminal",
+            
             "presentation": { "group": "deploy", "order": 1 }
         },
         {
@@ -66,7 +59,7 @@
             "request": "launch",
             "runtimeExecutable": "powershell",
             "runtimeArgs": ["-ExecutionPolicy","Bypass","-File","${workspaceFolder}/deploy-github.ps1","-Target","cloudrun"],
-            "console": "integratedTerminal",
+            
             "presentation": { "group": "deploy", "order": 2 }
         },
         {
@@ -75,7 +68,7 @@
             "request": "launch",
             "runtimeExecutable": "powershell",
             "runtimeArgs": ["-ExecutionPolicy","Bypass","-File","${workspaceFolder}/deploy-github.ps1","-Target","hosting"],
-            "console": "integratedTerminal",
+            
             "presentation": { "group": "deploy", "order": 3 }
         },
         {
@@ -84,26 +77,34 @@
             "request": "launch",
             "runtimeExecutable": "powershell",
             "runtimeArgs": ["-ExecutionPolicy","Bypass","-File","${workspaceFolder}/deploy-github.ps1","-Target","functions"],
-            "console": "integratedTerminal",
             "presentation": { "group": "deploy", "order": 4 }
         },
-
+        // ═══════════════════════════════════════════════════════════════════════
+        // ANDROID: GITHUB FULL AUTOMATION
+        // ═══════════════════════════════════════════════════════════════════════
+        {
+            "name": "Android: GitHub Full Automation (Build + Push + Test)",
+            "type": "node",
+            "request": "launch",
+            "runtimeExecutable": "powershell",
+            "runtimeArgs": ["-ExecutionPolicy","Bypass","-File","${workspaceFolder}/scripts/run-full-automation.ps1"],
+            "presentation": { "group": "android", "order": 99 },
+            
+            "preLaunchTask": "Ensure GitHub CLI is installed and authenticated",
+            "postDebugTask": "Show build and test results in VS Code terminal"
+        },
         // ═══════════════════════════════════════════════════════════════════════
         // PROXY / FUNCTIONS (Node.js debug)
         // ═══════════════════════════════════════════════════════════════════════
-
-        // Launch the proxy server with full Node.js debugger attached
         {
             "name": "Debug: Proxy server",
             "type": "node",
             "request": "launch",
             "runtimeExecutable": "powershell",
             "runtimeArgs": ["-ExecutionPolicy","Bypass","-File","${workspaceFolder}/run-proxy.ps1"],
-            "console": "integratedTerminal",
             "skipFiles": ["<node_internals>/**"],
             "presentation": { "group": "debug", "order": 1 }
         },
-        // Attach to an already-running proxy (e.g. spawned by run-proxy.ps1)
         {
             "name": "Debug: Attach to proxy (9229)",
             "type": "node",
@@ -116,52 +117,15 @@
             "restart": true,
             "presentation": { "group": "debug", "order": 2 }
         },
-        // Debug Cloud Functions TypeScript source (compile first)
-        {
-            "name": "Debug: Functions (ts-node)",
-            "type": "node",
-            "request": "launch",
-            "runtimeExecutable": "${workspaceFolder}/functions/node_modules/.bin/ts-node",
-            "args": ["--project","tsconfig.json","src/index.ts"],
-            "cwd": "${workspaceFolder}/functions",
-            "env": { "NODE_ENV": "development" },
-            "console": "integratedTerminal",
-            "skipFiles": ["<node_internals>/**"],
-            "presentation": { "group": "debug", "order": 3 }
-        },
-
-        // ═══════════════════════════════════════════════════════════════════════
-        // WEB / LOCAL
-        // ═══════════════════════════════════════════════════════════════════════
-        {
-            "name": "Dev: Run Expo web",
-            "type": "node",
-            "request": "launch",
-            "runtimeExecutable": "powershell",
-            "runtimeArgs": ["-ExecutionPolicy","Bypass","-File","${workspaceFolder}/run-web.ps1"],
-            "console": "integratedTerminal",
-            "presentation": { "group": "dev", "order": 1 }
-        },
-        {
-            "name": "Dev: Serve local web (export + HTTP)",
-            "type": "node",
-            "request": "launch",
-            "runtimeExecutable": "powershell",
-            "runtimeArgs": ["-ExecutionPolicy","Bypass","-File","${workspaceFolder}/serve-local.ps1"],
-            "console": "integratedTerminal",
-            "presentation": { "group": "dev", "order": 2 }
-        },
         {
             "name": "Dev: Start Chrome debug session",
             "type": "node",
             "request": "launch",
             "runtimeExecutable": "powershell",
             "runtimeArgs": ["-ExecutionPolicy","Bypass","-File","${workspaceFolder}/start-chrome-debug.ps1"],
-            "console": "integratedTerminal",
             "presentation": { "group": "dev", "order": 3 }
         }
     ],
-
     "compounds": [
         {
             "name": "Android: Full local CI (build + install)",

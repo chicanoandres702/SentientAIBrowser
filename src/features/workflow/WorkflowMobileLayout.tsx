@@ -55,7 +55,7 @@ export const WorkflowMobileLayout: React.FC<WorkflowMobileLayoutProps> = ({ work
 
   // Wire backend modal triggers to frontend event handling in WorkflowMobileLayout
   // Listen for WebSocket events and trigger modal when AI confidence is low
-  const wsUrl = 'ws://localhost:8080'; // Replace with your WebSocket server URL
+  const wsUrl = 'wss://ghcr.io/<your-org-or-user>/<repo>/playwright-proxy:latest'; // GHCR proxy container endpoint
   useEffect(() => {
     const ws = new WebSocket(wsUrl);
     ws.onmessage = (event) => {
