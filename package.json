@@ -48,11 +48,7 @@
     "react-dom": "19.2.4",
     "react-native": "0.84.1",
     "react-native-animatable": "^1.4.0",
-<<<<<<< HEAD
     "react-native-web": "^0.21.2",
-=======
-    "react-native-web": "^0.21.2",
->>>>>>> ccad9cd70b8350db459f270acd324bd016ca1149
     "react-native-webview": "13.16.1",
     "zod": "^4.3.6"
   },
