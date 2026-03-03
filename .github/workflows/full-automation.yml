@@ -42,17 +42,14 @@ jobs:
           key: ${{ runner.os }}-gradle-${{ hashFiles('android/**/*.gradle*', 'android/**/*.kts') }}
           restore-keys: |
             ${{ runner.os }}-gradle-
-
-        run: |
-          chmod +x gradlew
-          # Ensure node is in path for react-native gradle tasks
-          export PATH=$PATH:$(dirname $(which node))
-          ./gradlew assembleRelease
-        working-directory: android
-        env:
-          NODE_ENV: production
       - name: Install Node.js dependencies
         run: npm install
+        working-directory: .
+
+      - name: Build React Native Android AAR
+        run: |
+          cd node_modules/react-native
+          npm run build:android || true
         working-directory: .
       - name: Build APK
         run: |

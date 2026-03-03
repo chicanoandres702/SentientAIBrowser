@@ -1,3 +1,4 @@
+# Ignore large Gradle binary
 # --- Node / Dependencies ---
 node_modules/
 .pnp
