@@ -25,7 +25,7 @@ export const Card: React.FC<CardProps> = ({ children, padding = 'md', radius = '
   <View style={[{ padding: SPACING[padding], borderRadius: RADIUS[radius], backgroundColor: '#fff', shadowOpacity: 0.1 }, style]}>
     {React.Children.map(children, child =>
       (typeof child === 'string' || typeof child === 'number')
-        ? <Text style={{ color: 'red', fontWeight: 'bold' }}>WRONG: Text must be wrapped in &lt;Text&gt; ({String(child)})</Text>
+        ? <Text>{String(child)}</Text>
         : child
     )}
   </View>
@@ -43,7 +43,7 @@ export const Section: React.FC<SectionProps> = ({ children, title, padding = 'lg
     {title && <View style={{ marginBottom: SPACING.md }}><Text style={{ fontWeight: 'bold', fontSize: 16 }}>{title}</Text></View>}
     {React.Children.map(children, child =>
       (typeof child === 'string' || typeof child === 'number')
-        ? <Text style={{ color: 'red', fontWeight: 'bold' }}>WRONG: Text must be wrapped in &lt;Text&gt; ({String(child)})</Text>
+        ? <Text>{String(child)}</Text>
         : child
     )}
   </View>
@@ -69,7 +69,7 @@ export const Stack: React.FC<StackProps> = ({
   <View style={[{ flexDirection: direction, gap: SPACING[gap], alignItems: align, justifyContent: justify }, style]}>
     {React.Children.map(children, child =>
       (typeof child === 'string' || typeof child === 'number')
-        ? <Text style={{ color: 'red', fontWeight: 'bold' }}>WRONG: Text must be wrapped in &lt;Text&gt; ({String(child)})</Text>
+        ? <Text>{String(child)}</Text>
         : child
     )}
   </View>
@@ -86,7 +86,7 @@ export const Grid: React.FC<GridProps> = ({ children, columns: _columns = 2, gap
   <View style={[{ display: 'flex', flexDirection: 'row', flexWrap: 'wrap', gap: SPACING[gap] }, style]}>
     {React.Children.map(children, child =>
       (typeof child === 'string' || typeof child === 'number')
-        ? <Text style={{ color: 'red', fontWeight: 'bold' }}>WRONG: Text must be wrapped in &lt;Text&gt; ({String(child)})</Text>
+        ? <Text>{String(child)}</Text>
         : child
     )}
   </View>
