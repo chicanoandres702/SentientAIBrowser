@@ -41,6 +41,22 @@
             "remoteRoot": "/",
             "presentation": { "group": "android", "order": 4 }
         },
+        {
+            "name": "Android: Build + Install + Launch (Cloud Run)",
+            "type": "node",
+            "request": "launch",
+            "runtimeExecutable": "powershell",
+            "runtimeArgs": ["-ExecutionPolicy","Bypass","-File","${workspaceFolder}/deploy-android.ps1","-Target","adb","-Profile","production"],
+            "presentation": { "group": "android", "order": 5 }
+        },
+        {
+            "name": "Android: Build + Install + Launch (GitHub Container)",
+            "type": "node",
+            "request": "launch",
+            "runtimeExecutable": "powershell",
+            "runtimeArgs": ["-ExecutionPolicy","Bypass","-File","${workspaceFolder}/build-android-container.ps1"],
+            "presentation": { "group": "android", "order": 6 }
+        },
         // ═══════════════════════════════════════════════════════════════════════
         // GITHUB DEPLOY
         // ═══════════════════════════════════════════════════════════════════════
@@ -161,6 +177,26 @@
             "runtimeExecutable": "powershell",
             "runtimeArgs": ["-ExecutionPolicy","Bypass","-File","${workspaceFolder}/start-chrome-debug.ps1"],
             "presentation": { "group": "dev", "order": 3 }
+        },
+        // ═══════════════════════════════════════════════════════════════════════
+        // ANDROID: APK INSTALL TASK
+        // ═══════════════════════════════════════════════════════════════════════
+        {
+            "name": "Android: Install APK to device",
+            "type": "process",
+            "request": "launch",
+            "preLaunchTask": "Install APK to device",
+            "presentation": { "group": "android", "order": 100 }
+        },
+        // ═══════════════════════════════════════════════════════════════════════
+        // FULL AUTOMATION: GH WORKFLOW + APK INSTALL
+        // ═══════════════════════════════════════════════════════════════════════
+        {
+            "name": "Full Automation: Build, Download, Install APK",
+            "type": "process",
+            "request": "launch",
+            "preLaunchTask": "Full Automation: Build, Download, Install APK",
+            "presentation": { "group": "android", "order": 101 }
         }
     ]
 }

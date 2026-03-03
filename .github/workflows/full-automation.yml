@@ -1,74 +1,35 @@
-# AIDDE TRACE HEADER
-# GitHub Actions workflow for full automation: proxy container + Android app
-# Why: Automate build, push, test, and artifact publishing for both components
-
 name: Full Automation Pipeline
 
 on:
+  workflow_dispatch:
   push:
     branches:
-      - feature-proxy
-    paths:
-      - Dockerfile.playwright-proxy
-      - Dockerfile.android
-      - scripts/**
-      - src/**
-      - shared/**
-      - package.json
-      - yarn.lock
-      - .github/workflows/full-automation.yml
+      - main  # Change to your default branch if different
 
 jobs:
-  build-proxy:
+  build:
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
-      - name: Log in to GHCR
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Build proxy container
-        run: |
-          repo_lower=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
-          docker build -f Dockerfile.playwright-proxy -t ghcr.io/$repo_lower/playwright-proxy:latest .
-      - name: Push proxy container
-        run: |
-          repo_lower=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
-          docker push ghcr.io/$repo_lower/playwright-proxy:latest
+        uses: actions/checkout@v3
 
-  build-android:
-    runs-on: ubuntu-latest
-    needs: build-proxy
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-      - name: Build Android app in container
-        run: |
-          docker build -f Dockerfile.android -t android-app-build .
-          docker run --rm -v ${{ github.workspace }}/android-artifacts:/app/app/build/outputs android-app-build
-      - name: Upload Android build artifacts
-        uses: actions/upload-artifact@v4
+      - name: Set up Java
+        uses: actions/setup-java@v3
         with:
-          name: android-app-artifacts
-          path: android-artifacts
+          distribution: 'temurin'
+          java-version: '17'
 
-  integration-test:
-    runs-on: ubuntu-latest
-    needs: [build-proxy, build-android]
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-      - name: Run proxy health check
+      - name: Download Android SDK Platform-Tools
         run: |
-          npm install
-          npm test src/features/workflow/proxyHealth.utils.test.ts
-      - name: Notify on failure
-        if: failure()
-        run: |
-          echo "Build or integration test failed!" # Extend with Slack/email notification as needed
+          wget https://dl.google.com/android/repository/platform-tools-latest-linux.zip -O platform-tools.zip
+          unzip platform-tools.zip -d $HOME
+          echo "$HOME/platform-tools" >> $GITHUB_PATH
+
+      - name: Build APK
+        run: ./gradlew assembleRelease
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: app-release-apk
+          path: app/build/outputs/apk/release/app-release.apk
