@@ -1,260 +1,116 @@
-﻿{
+{
     "version": "2.0.0",
     "tasks": [
+
+        // ── Expo / npm ────────────────────────────────────────────────────────────
         {
             "label": "npm: web",
             "type": "shell",
             "command": "npm",
             "args": ["run", "web"],
-            "windows": {
-                "command": "npm",
-                "args": ["run", "web"]
-            },
             "isBackground": true,
             "problemMatcher": {
-                "pattern": {
-                    "regexp": "^.*$",
-                    "file": 1,
-                    "location": 2,
-                    "message": 3
-                },
-                "background": {
-                    "activeOnStart": true,
-                    "beginsPattern": ".*Expo.*",
-                    "endsPattern": ".*on the web.*"
-                }
+                "pattern": { "regexp": "^.*$", "file": 1, "location": 2, "message": 3 },
+                "background": { "activeOnStart": true, "beginsPattern": ".*Expo.*", "endsPattern": ".*on the web.*" }
             },
-            "presentation": {
-                "reveal": "always",
-                "panel": "dedicated",
-                "focus": true
-            }
+            "presentation": { "reveal": "always", "panel": "dedicated", "focus": true }
         },
         {
             "label": "npm: start",
             "type": "shell",
             "command": "npm",
             "args": ["run", "start"],
-            "windows": {
-                "command": "npm",
-                "args": ["run", "start"]
-            },
             "isBackground": true,
             "problemMatcher": {
-                "pattern": {
-                    "regexp": "^.*$",
-                    "file": 1,
-                    "location": 2,
-                    "message": 3
-                },
-                "background": {
-                    "activeOnStart": true,
-                    "beginsPattern": ".*Expo.*",
-                    "endsPattern": ".*Press.*"
-                }
+                "pattern": { "regexp": "^.*$", "file": 1, "location": 2, "message": 3 },
+                "background": { "activeOnStart": true, "beginsPattern": ".*Expo.*", "endsPattern": ".*Press.*" }
             },
-            "presentation": {
-                "reveal": "always",
-                "panel": "dedicated"
-            }
-        },
-        {
-            "label": "Sync Cloud Logic",
-            "type": "shell",
-            "command": ".\\deploy-cloud.bat",
-            "windows": {
-                "command": ".\\deploy-cloud.bat"
-            },
-            "presentation": {
-                "reveal": "always",
-                "panel": "dedicated"
-            }
-        },
-        {
-            "label": "Clear Cache & Rebuild Web",
-            "type": "shell",
-            "command": "powershell",
-            "args": [
-                "-NoProfile",
-                "-ExecutionPolicy",
-                "Bypass",
-                "-Command",
-                "rm -Force -Recurse ./node_modules/.cache -ErrorAction SilentlyContinue; rm -Force -Recurse ./.expo -ErrorAction SilentlyContinue; npm run build:web"
-            ],
-            "windows": {
-                "command": "powershell",
-                "args": [
-                    "-NoProfile",
-                    "-ExecutionPolicy",
-                    "Bypass",
-                    "-Command",
-                    "rm -Force -Recurse ./node_modules/.cache -ErrorAction SilentlyContinue; rm -Force -Recurse ./.expo -ErrorAction SilentlyContinue; npm run build:web"
-                ]
-            },
-            "presentation": {
-                "reveal": "always",
-                "panel": "dedicated"
-            }
-        },
-        {
-            "label": "ðŸ” Validate Sentient Code (Watch)",
-            "type": "shell",
-            "command": "node",
-            "args": ["validate-sentient-code.js"],
-            "windows": {
-                "command": "node",
-                "args": ["validate-sentient-code.js"]
-            },
-            "isBackground": true,
-            "runOptions": {
-                "runOn": "folderOpen"
-            },
-            "problemMatcher": {
-                "pattern": {
-                    "regexp": "^\\[(.*)\\](.*)$",
-                    "severity": 1,
-                    "message": 2
-                },
-                "background": {
-                    "activeOnStart": true,
-                    "beginsPattern": ".*VALIDATION.*",
-                    "endsPattern": ".*PASSED.*|.*FAILED.*"
-                }
-            },
-            "presentation": {
-                "reveal": "silent",
-                "panel": "shared",
-                "focus": false
-            }
-        },
-        {
-            "label": "ðŸ”„ Sync GitHub Tree (Watch)",
-            "type": "shell",
-            "command": "node",
-            "args": ["sync-gh-tree.js"],
-            "windows": {
-                "command": "node",
-                "args": ["sync-gh-tree.js"]
-            },
-            "isBackground": true,
-            "runOptions": {
-                "runOn": "folderOpen"
-            },
-            "problemMatcher": {
-                "pattern": {
-                    "regexp": "^\\[(.*?)\\](.*)$",
-                    "severity": 1,
-                    "message": 2
-                },
-                "background": {
-                    "activeOnStart": true,
-                    "beginsPattern": ".*GH-Sync.*",
-                    "endsPattern": ".*sync.*"
-                }
-            },
-            "presentation": {
-                "reveal": "silent",
-                "panel": "shared",
-                "focus": false
-            }
-        },
-        {
-            "label": "ðŸŽ¼ Orchestrator Service (Watch)",
-            "type": "shell",
-            "command": "node",
-            "args": ["orchestrator.service.js"],
-            "windows": {
-                "command": "node",
-                "args": ["orchestrator.service.js"]
-            },
-            "isBackground": true,
-            "runOptions": {
-                "runOn": "folderOpen"
-            },
-            "problemMatcher": {
-                "pattern": {
-                    "regexp": "^\\[(.*?)\\](.*)$",
-                    "severity": 1,
-                    "message": 2
-                },
-                "background": {
-                    "activeOnStart": true,
-                    "beginsPattern": ".*Orchestrator.*",
-                    "endsPattern": ".*failed.*|.*Active.*"
-                }
-            },
-            "presentation": {
-                "reveal": "silent",
-                "panel": "shared",
-                "focus": false
-            }
+            "presentation": { "reveal": "always", "panel": "dedicated" }
         },
 
-        // â”€â”€ IAM: grant Firebase Admin SDK service account the roles needed for CI deploy â”€â”€
+        // ── Android ───────────────────────────────────────────────────────────────
         {
-            "label": "ðŸ”‘ Fix IAM: Grant Firebase SA deploy roles",
+            "label": "[Android] Build: preview",
             "type": "shell",
             "command": "powershell",
-            "args": [
-                "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command",
-                "$SA='firebase-adminsdk-fbsvc@sentient-ai-browser.iam.gserviceaccount.com'; $P='sentient-ai-browser'; $CSA='184717935920-compute@developer.gserviceaccount.com'; Write-Host '=== Step 1: Enabling required GCP APIs ==='; @('run.googleapis.com','containerregistry.googleapis.com','artifactregistry.googleapis.com','cloudbuild.googleapis.com','firestore.googleapis.com','firebase.googleapis.com','iam.googleapis.com','logging.googleapis.com','monitoring.googleapis.com') | ForEach-Object { Write-Host \"  Enabling $_ ...\"; gcloud services enable $_ --project=$P --quiet 2>&1 | Out-Null }; Write-Host 'All APIs enabled.'; Write-Host '=== Step 2: Granting project-level roles ==='; @('roles/serviceusage.serviceUsageConsumer','roles/firebaserules.admin','roles/datastore.indexAdmin','roles/datastore.user','roles/run.admin','roles/storage.admin','roles/artifactregistry.writer','roles/cloudbuild.builds.builder','roles/logging.logWriter','roles/monitoring.metricWriter','roles/firebase.sdkAdminServiceAgent','roles/firebaseauth.admin','roles/iam.serviceAccountTokenCreator') | ForEach-Object { Write-Host \"  Granting $_ ...\"; gcloud projects add-iam-policy-binding $P --member=serviceAccount:$SA --role=$_ --quiet 2>&1 | Select-String 'Updated IAM|ERROR' }; Write-Host '=== Step 3: Granting iam.serviceAccountUser on compute SA ==='; gcloud iam service-accounts add-iam-policy-binding $CSA --project=$P --member=serviceAccount:$SA --role=roles/iam.serviceAccountUser --quiet 2>&1 | Select-String 'Updated IAM|ERROR'; Write-Host '=== Done. Allow ~60s for propagation then re-run deploy. ==>'"
-            ],
+            "args": ["-ExecutionPolicy","Bypass","-File","${workspaceFolder}/deploy-android.ps1","-Target","build","-Profile","preview"],
+            "group": "build",
             "problemMatcher": [],
-            "presentation": { "reveal": "always", "panel": "dedicated", "clear": true }
+            "presentation": { "reveal": "always", "panel": "dedicated", "clear": true, "focus": true }
         },
-
-        // â”€â”€ Deploy: trigger GitHub Actions workflow â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         {
-            "label": "ðŸš€ Deploy All (Firebase + Cloud Run)",
+            "label": "[Android] ADB: build + install + launch",
             "type": "shell",
             "command": "powershell",
-            "args": [
-                "-ExecutionPolicy", "Bypass",
-                "-File", "${workspaceFolder}/deploy-github.ps1",
-                "-Target", "all"
-            ],
+            "args": ["-ExecutionPolicy","Bypass","-File","${workspaceFolder}/deploy-android.ps1","-Target","adb","-SkipTsCheck"],
+            "group": "build",
+            "problemMatcher": [],
+            "presentation": { "reveal": "always", "panel": "dedicated", "clear": true, "focus": true }
+        },
+        {
+            "label": "[Android] GitHub: download release APK + ADB install",
+            "type": "shell",
+            "command": "powershell",
+            "args": ["-ExecutionPolicy","Bypass","-File","${workspaceFolder}/deploy-android.ps1","-Target","gh-adb"],
+            "group": "build",
+            "problemMatcher": [],
+            "presentation": { "reveal": "always", "panel": "dedicated", "clear": true, "focus": true }
+        },
+        {
+            "label": "[Android] Start ADB debug session",
+            "type": "shell",
+            "command": "powershell",
+            "args": ["-ExecutionPolicy","Bypass","-File","${workspaceFolder}/start-android-debug.ps1"],
+            "problemMatcher": [],
+            "presentation": { "reveal": "always", "panel": "dedicated", "focus": true }
+        },
+
+        // ── GitHub Actions deploy ─────────────────────────────────────────────────
+        {
+            "label": "[GitHub] Deploy: All",
+            "type": "shell",
+            "command": "powershell",
+            "args": ["-ExecutionPolicy","Bypass","-File","${workspaceFolder}/deploy-github.ps1","-Target","all"],
             "problemMatcher": [],
             "presentation": { "reveal": "always", "panel": "dedicated", "clear": true },
             "group": { "kind": "build", "isDefault": false }
         },
         {
-            "label": "â˜ï¸  Deploy Cloud Run only",
+            "label": "[GitHub] Deploy: Cloud Run only",
             "type": "shell",
             "command": "powershell",
-            "args": [
-                "-ExecutionPolicy", "Bypass",
-                "-File", "${workspaceFolder}/deploy-github.ps1",
-                "-Target", "cloudrun"
-            ],
+            "args": ["-ExecutionPolicy","Bypass","-File","${workspaceFolder}/deploy-github.ps1","-Target","cloudrun"],
             "problemMatcher": [],
             "presentation": { "reveal": "always", "panel": "dedicated", "clear": true }
         },
         {
-            "label": "ðŸ”¥ Deploy Firestore Rules only",
+            "label": "[GitHub] Deploy: Firebase Hosting only",
             "type": "shell",
             "command": "powershell",
-            "args": [
-                "-ExecutionPolicy", "Bypass",
-                "-File", "${workspaceFolder}/deploy-github.ps1",
-                "-Target", "functions"
-            ],
+            "args": ["-ExecutionPolicy","Bypass","-File","${workspaceFolder}/deploy-github.ps1","-Target","hosting"],
             "problemMatcher": [],
             "presentation": { "reveal": "always", "panel": "dedicated", "clear": true }
         },
-        // Compound: grant missing IAM roles first, then full deploy
         {
-            "label": "ðŸ”‘+ðŸš€ Fix IAM then Deploy All",
-            "dependsOrder": "sequence",
-            "dependsOn": [
-                "ðŸ”‘ Fix IAM: Grant Firebase SA deploy roles",
-                "ðŸš€ Deploy All (Firebase + Cloud Run)"
-            ],
-            "problemMatcher": []
+            "label": "[GitHub] Deploy: Firestore Rules only",
+            "type": "shell",
+            "command": "powershell",
+            "args": ["-ExecutionPolicy","Bypass","-File","${workspaceFolder}/deploy-github.ps1","-Target","functions"],
+            "problemMatcher": [],
+            "presentation": { "reveal": "always", "panel": "dedicated", "clear": true }
+        },
+        {
+            "label": "[GitHub] Deploy: All (no push)",
+            "type": "shell",
+            "command": "powershell",
+            "args": ["-ExecutionPolicy","Bypass","-File","${workspaceFolder}/deploy-github.ps1","-Target","all","-NoPush"],
+            "problemMatcher": [],
+            "presentation": { "reveal": "always", "panel": "dedicated", "clear": true }
         },
 
-        // â”€â”€ Direct deploy tasks (no GitHub Actions) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        // ── Direct deploy (no GitHub Actions) ────────────────────────────────────
         {
-            "label": "ðŸš€ Direct Deploy: All (Firebase + Cloud Run)",
+            "label": "[Direct] Deploy: All",
             "type": "shell",
             "command": "powershell",
             "args": ["-ExecutionPolicy","Bypass","-File","${workspaceFolder}/deploy-direct.ps1","-Target","all"],
@@ -262,7 +118,7 @@
             "presentation": { "reveal": "always", "panel": "dedicated", "clear": true }
         },
         {
-            "label": "â˜ï¸  Direct Deploy: Cloud Run only",
+            "label": "[Direct] Deploy: Cloud Run only",
             "type": "shell",
             "command": "powershell",
             "args": ["-ExecutionPolicy","Bypass","-File","${workspaceFolder}/deploy-direct.ps1","-Target","cloudrun"],
@@ -270,21 +126,164 @@
             "presentation": { "reveal": "always", "panel": "dedicated", "clear": true }
         },
         {
-            "label": "ðŸ”¥ Direct Deploy: Firestore Rules only",
+            "label": "[Direct] Deploy: Cloud Run (skip TS build)",
+            "type": "shell",
+            "command": "powershell",
+            "args": ["-ExecutionPolicy","Bypass","-File","${workspaceFolder}/deploy-direct.ps1","-Target","cloudrun","-SkipBuild"],
+            "problemMatcher": [],
+            "presentation": { "reveal": "always", "panel": "dedicated", "clear": true }
+        },
+        {
+            "label": "[Direct] Deploy: Firestore Rules only",
             "type": "shell",
             "command": "powershell",
             "args": ["-ExecutionPolicy","Bypass","-File","${workspaceFolder}/deploy-direct.ps1","-Target","rules"],
             "problemMatcher": [],
             "presentation": { "reveal": "always", "panel": "dedicated", "clear": true }
         },
+
+        // ── Dev servers ───────────────────────────────────────────────────────────
         {
-            "label": "â˜ï¸  Direct Deploy: Cloud Run (skip TS build)",
+            "label": "[Dev] Run proxy server",
             "type": "shell",
             "command": "powershell",
-            "args": ["-ExecutionPolicy","Bypass","-File","${workspaceFolder}/deploy-direct.ps1","-Target","cloudrun","-SkipBuild"],
+            "args": ["-ExecutionPolicy","Bypass","-File","${workspaceFolder}/run-proxy.ps1"],
+            "isBackground": true,
+            "problemMatcher": [],
+            "presentation": { "reveal": "always", "panel": "dedicated", "focus": false }
+        },
+        {
+            "label": "[Dev] Run proxy (local Chrome CDP)",
+            "type": "shell",
+            "command": "powershell",
+            "args": ["-ExecutionPolicy","Bypass","-File","${workspaceFolder}/run-proxy.ps1","-LocalChrome"],
+            "isBackground": true,
+            "problemMatcher": [],
+            "presentation": { "reveal": "always", "panel": "dedicated", "focus": false }
+        },
+        {
+            "label": "[Dev] Serve local web (export + HTTP server)",
+            "type": "shell",
+            "command": "powershell",
+            "args": ["-ExecutionPolicy","Bypass","-File","${workspaceFolder}/serve-local.ps1"],
+            "isBackground": true,
+            "problemMatcher": [],
+            "presentation": { "reveal": "always", "panel": "dedicated", "focus": false }
+        },
+        {
+            "label": "[Dev] Export web to dist/",
+            "type": "shell",
+            "command": "npx expo export --platform web --output-dir dist",
+            "group": "build",
+            "problemMatcher": [],
+            "presentation": { "reveal": "always", "panel": "dedicated" }
+        },
+        {
+            "label": "[Dev] Start Chrome debug session",
+            "type": "shell",
+            "command": "powershell",
+            "args": ["-ExecutionPolicy","Bypass","-File","${workspaceFolder}/start-chrome-debug.ps1"],
+            "problemMatcher": [],
+            "presentation": { "reveal": "always", "panel": "dedicated", "focus": true }
+        },
+
+        // ── Type-check / validate ─────────────────────────────────────────────────
+        {
+            "label": "[Check] TypeScript (root)",
+            "type": "shell",
+            "command": "npx tsc --noEmit",
+            "group": { "kind": "build", "isDefault": true },
+            "problemMatcher": ["$tsc"],
+            "presentation": { "reveal": "always", "panel": "shared" }
+        },
+        {
+            "label": "[Check] TypeScript (functions)",
+            "type": "shell",
+            "command": "npx tsc --noEmit",
+            "options": { "cwd": "${workspaceFolder}/functions" },
+            "group": "build",
+            "problemMatcher": ["$tsc"],
+            "presentation": { "reveal": "always", "panel": "shared" }
+        },
+        {
+            "label": "[Check] Validate sentient code",
+            "type": "shell",
+            "command": "node validate-sentient-code.js",
+            "group": "test",
+            "problemMatcher": [],
+            "presentation": { "reveal": "always", "panel": "shared" }
+        },
+
+        // ── Background watchers (auto-start on folder open) ───────────────────────
+        {
+            "label": "Validate Sentient Code (Watch)",
+            "type": "shell",
+            "command": "node",
+            "args": ["validate-sentient-code.js"],
+            "isBackground": true,
+            "runOptions": { "runOn": "folderOpen" },
+            "problemMatcher": {
+                "pattern": { "regexp": "^\\[(.*)\\](.*)$", "severity": 1, "message": 2 },
+                "background": { "activeOnStart": true, "beginsPattern": ".*VALIDATION.*", "endsPattern": ".*PASSED.*|.*FAILED.*" }
+            },
+            "presentation": { "reveal": "silent", "panel": "shared", "focus": false }
+        },
+        {
+            "label": "Sync GitHub Tree (Watch)",
+            "type": "shell",
+            "command": "node",
+            "args": ["sync-gh-tree.js"],
+            "isBackground": true,
+            "runOptions": { "runOn": "folderOpen" },
+            "problemMatcher": {
+                "pattern": { "regexp": "^\\[(.*?)\\](.*)$", "severity": 1, "message": 2 },
+                "background": { "activeOnStart": true, "beginsPattern": ".*GH-Sync.*", "endsPattern": ".*sync.*" }
+            },
+            "presentation": { "reveal": "silent", "panel": "shared", "focus": false }
+        },
+        {
+            "label": "Orchestrator Service (Watch)",
+            "type": "shell",
+            "command": "node",
+            "args": ["orchestrator.service.js"],
+            "isBackground": true,
+            "runOptions": { "runOn": "folderOpen" },
+            "problemMatcher": {
+                "pattern": { "regexp": "^\\[(.*?)\\](.*)$", "severity": 1, "message": 2 },
+                "background": { "activeOnStart": true, "beginsPattern": ".*Orchestrator.*", "endsPattern": ".*failed.*|.*Active.*" }
+            },
+            "presentation": { "reveal": "silent", "panel": "shared", "focus": false }
+        },
+
+        // ── Misc ──────────────────────────────────────────────────────────────────
+        {
+            "label": "[Util] Clear cache and rebuild web",
+            "type": "shell",
+            "command": "powershell",
+            "args": ["-NoProfile","-ExecutionPolicy","Bypass","-Command","rm -Force -Recurse ./node_modules/.cache -ErrorAction SilentlyContinue; rm -Force -Recurse ./.expo -ErrorAction SilentlyContinue; npm run build:web"],
+            "presentation": { "reveal": "always", "panel": "dedicated" }
+        },
+        {
+            "label": "[Util] Sync Cloud Logic (legacy bat)",
+            "type": "shell",
+            "command": ".\\deploy-cloud.bat",
+            "presentation": { "reveal": "always", "panel": "dedicated" }
+        },
+        {
+            "label": "[IAM] Fix IAM: Grant Firebase SA deploy roles",
+            "type": "shell",
+            "command": "powershell",
+            "args": ["-NoProfile","-ExecutionPolicy","Bypass","-Command","$SA='firebase-adminsdk-fbsvc@sentient-ai-browser.iam.gserviceaccount.com'; $P='sentient-ai-browser'; $CSA='184717935920-compute@developer.gserviceaccount.com'; gcloud projects add-iam-policy-binding $P --member=serviceAccount:$SA --role=roles/run.admin --quiet"],
             "problemMatcher": [],
             "presentation": { "reveal": "always", "panel": "dedicated", "clear": true }
+        },
+
+        // ── Compound ──────────────────────────────────────────────────────────────
+        {
+            "label": "[Compound] Fix IAM then Deploy All",
+            "dependsOrder": "sequence",
+            "dependsOn": ["[IAM] Fix IAM: Grant Firebase SA deploy roles", "[GitHub] Deploy: All"],
+            "problemMatcher": []
         }
     ]
 }
-
