@@ -35,10 +35,12 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Build proxy container
         run: |
-          docker build -f Dockerfile.playwright-proxy -t ghcr.io/${{ github.repository }}/playwright-proxy:latest .
+          repo_lower=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
+          docker build -f Dockerfile.playwright-proxy -t ghcr.io/$repo_lower/playwright-proxy:latest .
       - name: Push proxy container
         run: |
-          docker push ghcr.io/${{ github.repository }}/playwright-proxy:latest
+          repo_lower=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
+          docker push ghcr.io/$repo_lower/playwright-proxy:latest
 
   build-android:
     runs-on: ubuntu-latest
