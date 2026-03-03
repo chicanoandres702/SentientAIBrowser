@@ -36,6 +36,36 @@ tmp/
 coverage/
 *.sql
 
+# IDE & Editor
+.idea/
+.vscode/
+.DS_Store
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Misc
+*.tmp
+*.bak
+*.orig
+*.rej
+*.lock
+*.sqlite
+*.db
+*.tgz
+*.egg-info/
+*.egg
+*.whl
+*.ipynb_checkpoints/
+*.ipynb
+*.cache
+*.test.js
+*.test.ts
+*.test.tsx
+
 # System generated artifacts (Brain)
 .gemini/
 .antigravity/

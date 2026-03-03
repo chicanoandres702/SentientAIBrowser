@@ -15,6 +15,8 @@
             },
             "presentation": { "reveal": "always", "panel": "dedicated", "focus": true }
         },
+
+        t7
         {
             "label": "npm: start",
             "type": "shell",
@@ -39,6 +41,25 @@
             "presentation": { "reveal": "always", "panel": "dedicated", "clear": true, "focus": true }
         },
         {
+            "label": "[Android] Build + Install + Launch (Cloud Run)",
+            "type": "shell",
+            "command": "powershell",
+            "args": [
+                "-ExecutionPolicy","Bypass",
+                "-File","${workspaceFolder}/deploy-android.ps1",
+                "-Target","adb",
+                "-Profile","production"
+            ],
+            "group": "build",
+            "problemMatcher": [],
+            "presentation": { "reveal": "always", "panel": "dedicated", "clear": true, "focus": true }
+        },
+            {
+                "label": "Install APK to device",
+                "type": "shell",
+                "command": "adb install -r ${workspaceFolder}/app-release-apk/app-release.apk"
+            },
+        {
             "label": "[Android] ADB: build + install + launch",
             "type": "shell",
             "command": "powershell",
@@ -51,7 +72,11 @@
             "label": "[Android] GitHub: download release APK + ADB install",
             "type": "shell",
             "command": "powershell",
-            "args": ["-ExecutionPolicy","Bypass","-File","${workspaceFolder}/deploy-android.ps1","-Target","gh-adb"],
+            "args": [
+                "-ExecutionPolicy","Bypass",
+                "-File","${workspaceFolder}/deploy-android.ps1",
+                "-Target","gh-adb"
+            ],
             "group": "build",
             "problemMatcher": [],
             "presentation": { "reveal": "always", "panel": "dedicated", "clear": true, "focus": true }
@@ -277,13 +302,46 @@
             "problemMatcher": [],
             "presentation": { "reveal": "always", "panel": "dedicated", "clear": true }
         },
+        {
+            "label": "Ensure GitHub CLI is installed and authenticated",
+            "type": "shell",
+            "command": "gh auth status",
+            "problemMatcher": [],
+            "presentation": { "reveal": "always", "panel": "dedicated", "focus": true },
+            "options": {
+                "env": {
+                    "GH_FORCE_TTY": "true"
+                }
+            }
+        },
 
         // ── Compound ──────────────────────────────────────────────────────────────
+        {
+            "label": "[Compound] GH Auth then Full Automation",
+            "dependsOrder": "sequence",
+            "dependsOn": [
+                "Ensure GitHub CLI is installed and authenticated",
+                "[GitHub] Deploy: All"
+            ],
+            "problemMatcher": []
+        },
         {
             "label": "[Compound] Fix IAM then Deploy All",
             "dependsOrder": "sequence",
             "dependsOn": ["[IAM] Fix IAM: Grant Firebase SA deploy roles", "[GitHub] Deploy: All"],
             "problemMatcher": []
+        },
+        {
+            "label": "Full Automation: Build, Download, Install APK",
+            "type": "shell",
+            "command": "powershell",
+            "args": [
+                "-NoProfile",
+                "-ExecutionPolicy",
+                "Bypass",
+                "-Command",
+                "gh workflow run full-automation.yml --repo chicanoandres702/SentientAIBrowser --ref main; $runId = (gh run list --repo chicanoandres702/SentientAIBrowser | Select-String 'full-automation' | Select-Object -First 1).ToString().Split()[0]; gh run download $runId --name app-release-apk --repo chicanoandres702/SentientAIBrowser; adb install -r app-release-apk/app-release.apk"
+            ]
         }
     ]
 }
