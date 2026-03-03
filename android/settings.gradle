@@ -8,7 +8,6 @@ pluginManagement {
         gradlePluginPortal()
     }
 }
-
 rootProject.name = 'SentientAIBrowser'
 include ':app'
 // Ensure local Maven repo for React Native AAR

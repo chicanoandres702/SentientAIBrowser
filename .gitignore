@@ -1,4 +1,11 @@
 # Ignore large Gradle binary
+# --- React Native Android ---
+node_modules/react-native/android/
+node_modules/react-native/ReactAndroid/build/
+node_modules/react-native/ReactAndroid/external-artifacts/
+node_modules/react-native/ReactAndroid/hermes-engine/
+node_modules/react-native/ReactAndroid/api/
+node_modules/react-native/ReactAndroid/src/
 # --- Node / Dependencies ---
 node_modules/
 .pnp
