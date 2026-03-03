@@ -10,6 +10,8 @@ on:
     branches:
       - main
       - feature-proxy
+
+
   build:
     runs-on: ubuntu-latest
     steps:
@@ -21,6 +23,11 @@ on:
         with:
           distribution: 'temurin'
           java-version: '17'
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
 
       - name: Download Android SDK Platform-Tools
         run: |
@@ -35,11 +42,12 @@ on:
           key: ${{ runner.os }}-gradle-${{ hashFiles('android/**/*.gradle*', 'android/**/*.kts') }}
           restore-keys: |
             ${{ runner.os }}-gradle-
-          - name: Build APK
-            run: |
-              chmod +x gradlew
-              ./gradlew assembleRelease
-            working-directory: android
+
+      - name: Build APK
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleRelease
+        working-directory: android
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
