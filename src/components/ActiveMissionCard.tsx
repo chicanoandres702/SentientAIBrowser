@@ -19,11 +19,13 @@ interface Props {
     onPause?: () => void;
     onResume?: () => void;
     onSave?: () => void;
+    /** Trigger AI replanner to assess current page and extend the plan */
+    onExtendPlan?: () => void;
 }
 
 export const ActiveMissionCard: React.FC<Props> = ({
     mission, completedCount, total, isActive, isPaused, accent, barColor,
-    onCloseMission, onPause, onResume, onSave,
+    onCloseMission, onPause, onResume, onSave, onExtendPlan,
 }) => {
     const pct = total > 0 ? Math.round((completedCount / total) * 100) : 0;
 
@@ -63,6 +65,7 @@ export const ActiveMissionCard: React.FC<Props> = ({
                 onPause={() => onPause?.()}
                 onStop={handleStop}
                 onSave={onSave || (() => {})}
+                onExtendPlan={onExtendPlan}
                 accentColor={accent}
             />
         </View>

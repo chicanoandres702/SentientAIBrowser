@@ -3,11 +3,15 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
 import { TaskItem, TaskStatus } from '../../features/tasks/types';
 import { wp } from './WorkflowPanel.styles';
+import { TaskActionRow } from './TaskActionRow';
 
 interface Props {
     item: TaskItem;
     accentColor: string;
     removeTask: (id: string) => void;
+    onPlay?:    (id: string) => void;
+    onRetry?:   (id: string) => void;
+    onAllowMe?: (id: string) => void;
 }
 
 const DOT: Record<TaskStatus, string> = {
@@ -34,7 +38,7 @@ const LABEL: Record<TaskStatus, string> = {
     blocked_on_user: 'PAUSED',
 };
 
-export const WorkflowTaskRow: React.FC<Props> = React.memo(({ item, accentColor, removeTask }) => {
+export const WorkflowTaskRow: React.FC<Props> = React.memo(({ item, accentColor, removeTask, onPlay, onRetry, onAllowMe }) => {
     const actions = item.subActions ?? [];
     const canExpand = actions.length > 0;
     // Why: initial state auto-expands in_progress tasks
@@ -66,6 +70,8 @@ export const WorkflowTaskRow: React.FC<Props> = React.memo(({ item, accentColor,
                         </Text>
                     )}
                 </View>
+
+                <TaskActionRow taskId={item.id} status={item.status} onPlay={onPlay} onRetry={onRetry} onAllowMe={onAllowMe} />
 
                 {/* SubAction timeline — visible when expanded */}
                 {canExpand && expanded && (

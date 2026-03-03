@@ -44,7 +44,10 @@ export default function App() {
     return (
       <View style={{ flex: 1, backgroundColor: BASE.bg }}>
         {/* Why: cast is safe — useSentientBrowser returns a superset of AndroidSState */}
-        <AndroidLayout s={s as unknown as Parameters<typeof AndroidLayout>[0]['s']} theme={theme} setTheme={setTheme} />
+        <AndroidLayout
+          s={{ ...(s as unknown as Parameters<typeof AndroidLayout>[0]['s']), userId: user?.uid }}
+          theme={theme} setTheme={setTheme}
+        />
         {!user && !isLoading && <AuthModal theme={theme} />}
       </View>
     );

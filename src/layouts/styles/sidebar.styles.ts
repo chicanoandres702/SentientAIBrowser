@@ -1,6 +1,10 @@
 // Feature: Layout | Why: Sidebar styles — tokenized via ui.primitives
+/*
+ * [Parent Feature/Milestone] Control Panel UI — Tabbed Command Drawer
+ * [Law Check] 72 lines | Passed 100-Line Law
+ */
 import { StyleSheet, Platform } from 'react-native';
-import { BASE, webShadow } from '../../features/ui/theme/ui.primitives';
+import { BASE, webShadow, webInteractive } from '../../features/ui/theme/ui.primitives';
 
 export const sidebarStyles = StyleSheet.create({
   sidebar: {
@@ -16,9 +20,7 @@ export const sidebarStyles = StyleSheet.create({
   },
   sidebarCompact: { width: 280 },
   sidebarFocus: { width: 300 },
-  sidebarSplit: {
-    width: '45%' as any, minWidth: 300, maxWidth: 560,
-  },
+  sidebarSplit: { width: '45%' as any, minWidth: 300, maxWidth: 560 },
   sidebarCockpit: { width: 400, minWidth: 340, maxWidth: 500 },
   sidebarDashboard: { width: 380 },
   sidebarAccent: {
@@ -31,14 +33,40 @@ export const sidebarStyles = StyleSheet.create({
     backgroundColor: BASE.panel2,
     ...webShadow('0 -2px 12px rgba(0,0,0,0.3)'),
   },
+  /* ── Tab Bar ── */
+  tabBar: {
+    flexDirection: 'row', borderBottomWidth: 1,
+    borderBottomColor: BASE.borderMed,
+    backgroundColor: BASE.panelGlass,
+  },
+  tab: {
+    flex: 1, paddingVertical: 9, alignItems: 'center', justifyContent: 'center',
+    flexDirection: 'row', gap: 5,
+    ...webInteractive,
+  },
+  tabActive: { borderBottomWidth: 2 },
+  tabIcon: { fontSize: 12 },
+  tabLabel: { fontSize: 9, fontWeight: '800', letterSpacing: 1.2, color: BASE.textFaint },
+  tabLabelActive: { fontWeight: '800' },
+  tabContent: { flex: 1 },
+  /* ── Intel panel ── */
+  intelPanel: { flex: 1, padding: 12, gap: 10 },
+  intelTitle: { fontSize: 9, fontWeight: '800', letterSpacing: 2, color: BASE.textFaint, marginBottom: 4 },
+  intelRow: {
+    flexDirection: 'row', justifyContent: 'space-between',
+    paddingVertical: 7, borderBottomWidth: 1, borderBottomColor: BASE.borderSubtle,
+  },
+  intelKey: { fontSize: 10, fontWeight: '600', color: BASE.textMuted },
+  intelVal: { fontSize: 10, fontWeight: '800', color: BASE.text },
+  /* ── Mobile drawer ── */
   mobileSidebarHeader: {
     flexDirection: 'row', justifyContent: 'space-between',
-    alignItems: 'center', paddingHorizontal: 14, paddingVertical: 12,
+    alignItems: 'center', paddingHorizontal: 14, paddingVertical: 10,
     borderBottomWidth: 1, borderBottomColor: BASE.border,
   },
-  mobileSidebarTitle: { fontSize: 10, fontWeight: '800', letterSpacing: 2 },
+  mobileSidebarTitle: { fontSize: 9, fontWeight: '800', letterSpacing: 2 },
   mobileSidebarClose: {
-    width: 32, height: 32, borderRadius: 8, borderWidth: 1,
+    width: 30, height: 30, borderRadius: 7, borderWidth: 1,
     justifyContent: 'center', alignItems: 'center',
     backgroundColor: BASE.controlBg,
   },

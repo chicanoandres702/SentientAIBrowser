@@ -6,17 +6,21 @@ import { TaskItem, TaskStatus, SubAction } from '../../features/tasks/types';
 import { styles } from './TaskQueueUI.styles';
 import { TaskProgressBar } from '@features/tasks';
 import { getElapsedTime, getStatusBadge, taskItemLocalStyles as ls, subStyles } from './TaskItemView.styles';
+import { TaskActionRow } from './TaskActionRow';
 
 interface Props {
   item: TaskItem;
   accentColor: string;
   removeTask: (id: string) => void;
   editTask: (id: string, title: string) => void;
+  onPlay?:    (id: string) => void;
+  onRetry?:   (id: string) => void;
+  onAllowMe?: (id: string) => void;
 }
 
 const SubActionIcon = ({ action }: { action: string }) => (<Text style={subStyles.actionIcon}>{{click:'🖱',type:'⌨',wait:'⏳',navigate:'🧭',scan_dom:'🔍',verify:'✅',interact:'👆',done:'🏁'}[action]||'▸'}</Text>);
 
-export const TaskItemView = React.memo(({ item, accentColor, removeTask, editTask }: Props) => {
+export const TaskItemView = React.memo(({ item, accentColor, removeTask, editTask, onPlay, onRetry, onAllowMe }: Props) => {
   const [isEditing, setIsEditing] = useState(false); const [editValue, setEditValue] = useState(item.title); const [expanded, setExpanded] = useState(false);
   const cardRef = useRef<any>(null);
   const prevStatus = useRef(item.status);
@@ -95,6 +99,7 @@ export const TaskItemView = React.memo(({ item, accentColor, removeTask, editTas
             })}
           </View>
         )}
+        <TaskActionRow taskId={item.id} status={item.status} onPlay={onPlay} onRetry={onRetry} onAllowMe={onAllowMe} />
       </View>
       <TouchableOpacity onPress={() => removeTask(item.id)} style={styles.cardAction}><Text style={[styles.closeIcon, { color: 'rgba(255,255,255,0.2)' }]}>×</Text></TouchableOpacity>
     </Animatable.View>

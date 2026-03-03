@@ -12,21 +12,24 @@ import { useEffect, useRef, useCallback } from 'react';
 import { setWsSend, type ClientMsg } from '../features/remote-mirror/tab-sync-socket.singleton';
 
 type ServerMsg =
-    | { type: 'url';        tabId: string; url: string; title: string }
-    | { type: 'screenshot'; tabId: string; data: string; url: string }
-    | { type: 'frame';      tabId: string; data: string; url: string }
-    | { type: 'cursor';     tabId: string; x: number; y: number }
-    | { type: 'status';     tabId: string; message: string }
-    | { type: 'connected';  tabId: string };
+    | { type: 'url';         tabId: string; url: string; title: string }
+    | { type: 'screenshot';  tabId: string; data: string; url: string }
+    | { type: 'frame';       tabId: string; data: string; url: string }
+    | { type: 'cursor';      tabId: string; x: number; y: number }
+    | { type: 'status';      tabId: string; message: string }
+    | { type: 'task_status'; tabId: string; taskId: string; status: 'in_progress' | 'completed' | 'failed'; nextTaskId?: string }
+    | { type: 'connected';   tabId: string };
 
 interface Options {
-    baseUrl:     string;
-    tabId:       string;
-    enabled:     boolean;
-    onUrlChange: (url: string, title: string, tabId: string) => void;
-    onFrame?:    (data: string, tabId: string) => void;
-    onCursor?:   (x: number, y: number, tabId: string) => void;
-    onStatus?:   (message: string, tabId: string) => void;
+    baseUrl:        string;
+    tabId:          string;
+    enabled:        boolean;
+    onUrlChange:    (url: string, title: string, tabId: string) => void;
+    onFrame?:       (data: string, tabId: string) => void;
+    onCursor?:      (x: number, y: number, tabId: string) => void;
+    onStatus?:      (message: string, tabId: string) => void;
+    /** Why: bypass Firestore onSnapshot lag — WS delivers task state changes in <10ms */
+    onTaskStatus?:  (taskId: string, status: 'in_progress' | 'completed' | 'failed', nextTaskId?: string, tabId?: string) => void;
 }
 
 const BASE_MS = 2_000;
@@ -37,11 +40,12 @@ const MAX_MS  = 30_000;
  * send() is stable across renders (useCallback + wsRef) — safe to pass to service layer.
  * Why noStore: all callbacks are refs so the effect never re-runs on render.
  */
-export const useTabSyncSocket = ({ baseUrl, tabId, enabled, onUrlChange, onFrame, onCursor, onStatus }: Options) => {
-    const cbUrl    = useRef(onUrlChange); useEffect(() => { cbUrl.current    = onUrlChange; }, [onUrlChange]);
-    const cbFrame  = useRef(onFrame);     useEffect(() => { cbFrame.current  = onFrame;     }, [onFrame]);
-    const cbCursor = useRef(onCursor);    useEffect(() => { cbCursor.current = onCursor;    }, [onCursor]);
-    const cbStatus = useRef(onStatus);    useEffect(() => { cbStatus.current = onStatus;    }, [onStatus]);
+export const useTabSyncSocket = ({ baseUrl, tabId, enabled, onUrlChange, onFrame, onCursor, onStatus, onTaskStatus }: Options) => {
+    const cbUrl        = useRef(onUrlChange);    useEffect(() => { cbUrl.current        = onUrlChange;    }, [onUrlChange]);
+    const cbFrame      = useRef(onFrame);        useEffect(() => { cbFrame.current      = onFrame;        }, [onFrame]);
+    const cbCursor     = useRef(onCursor);       useEffect(() => { cbCursor.current     = onCursor;       }, [onCursor]);
+    const cbStatus     = useRef(onStatus);       useEffect(() => { cbStatus.current     = onStatus;       }, [onStatus]);
+    const cbTaskStatus = useRef(onTaskStatus);   useEffect(() => { cbTaskStatus.current = onTaskStatus;   }, [onTaskStatus]);
     const wsRef    = useRef<WebSocket | null>(null);
 
     // Why: stable send ref — never changes, wsRef.current always points to live socket.
@@ -85,6 +89,7 @@ export const useTabSyncSocket = ({ baseUrl, tabId, enabled, onUrlChange, onFrame
                             cbFrame.current?.(msg.data, msg.tabId);
                         if (msg.type === 'cursor') cbCursor.current?.(msg.x, msg.y, msg.tabId);
                         if (msg.type === 'status') cbStatus.current?.(msg.message, msg.tabId);
+                        if (msg.type === 'task_status') cbTaskStatus.current?.(msg.taskId, msg.status, msg.nextTaskId, msg.tabId);
                     } catch { /* malformed frame — ignore */ }
                 };
             }, delay);

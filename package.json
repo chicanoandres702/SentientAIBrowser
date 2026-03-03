@@ -11,8 +11,8 @@
     "run-web": "powershell -ExecutionPolicy Bypass -File ./run-web.ps1",
     "run-android": "powershell -ExecutionPolicy Bypass -File ./run-android.ps1",
     "run-proxy": "bash ./start-proxy.sh",
-    "build:web": "powershell -ExecutionPolicy Bypass -File ./build-web.ps1",
-    "genkit-dev": "npx tsx src/index.ts",
+    "build:web": "powershell -ExecutionPolicy Bypass -File ./build-web.ps1",    "export:web":   "expo export --platform web --output-dir dist",
+    "serve:local":  "powershell -ExecutionPolicy Bypass -File ./serve-local.ps1",    "genkit-dev": "npx tsx src/index.ts",
     "firebase": "powershell -ExecutionPolicy Bypass -File ./build-web.ps1 && firebase deploy --only hosting --project sentient-ai-browser",
     "firebase:all": "powershell -ExecutionPolicy Bypass -File ./build-web.ps1 && npm run build --prefix functions && firebase deploy --project sentient-ai-browser",
     "lint": "tsc --noEmit"

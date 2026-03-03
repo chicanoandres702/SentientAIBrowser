@@ -45,3 +45,13 @@ export const uiDuration = Object.freeze({
   fast: 120, normal: 200, slow: 350,
   spring: { tension: 80, friction: 10 },
 });
+
+/** Control-panel / dock dimension tokens */
+export const uiDock = Object.freeze({
+  commandBarHeight: 44,
+  dockHeight: 52,
+  controlPanelGap: 6,
+  accentLineWidth: 3,
+  zoneAccentOpacity: 0.35,
+  tabBarHeight: 32,
+});

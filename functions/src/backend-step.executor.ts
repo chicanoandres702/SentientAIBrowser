@@ -12,7 +12,7 @@ import { Page } from 'playwright';
 import { recordActionOutcome } from './features/llm/llm-memory-service';
 import { saveContextualKnowledge } from './features/llm/knowledge-hierarchy.service';
 import { executeAriaAction, AriaStep } from './playwright-mcp-adapter';
-import { broadcastStatus } from './proxy-tab-sync.broker';
+import { broadcastStatus, broadcastTaskStatus } from './proxy-tab-sync.broker';
 import { findCurrentSegmentTask, setSubActionStatus, completeSegmentTask } from './task-queue-bridge';
 
 type DocRef = { update: (data: Record<string, unknown>) => Promise<unknown> };
@@ -40,6 +40,7 @@ export async function executeStepQueue(
         const step = stepQueue[idx];
         taskDocs[idx].status = 'in_progress';
         if (segDocId) setSubActionStatus(segDocId, idx, 'in_progress').catch(() => {});
+        if (segDocId) broadcastTaskStatus(tabId, segDocId, 'in_progress');
         const label = `${step.action}: ${step.explanation ?? ''}`;
         broadcastStatus(tabId, `⚙️ ${label}`.substring(0, 80));
         await missionRef.update({ tasks: live(), lastAction: `⚙️ ${label}`.substring(0, 120), updated_at: new Date().toISOString() });
@@ -88,6 +89,7 @@ export async function executeStepQueue(
 
         taskDocs[idx].status = result === 'success' ? 'completed' : 'failed';
         if (segDocId) setSubActionStatus(segDocId, idx, result === 'success' ? 'completed' : 'failed').catch(() => {});
+        if (segDocId) broadcastTaskStatus(tabId, segDocId, result === 'success' ? 'completed' : 'failed');
         const pageUrl = await Promise.resolve().then(() => page.url()).catch(() => String(data.currentUrl ?? 'unknown'));
         await recordActionOutcome(userId, String(data.goal), step.action, result, observation, new URL(pageUrl || 'http://unknown').hostname).catch(() => {});
         const n = stepCount + idx + 1;

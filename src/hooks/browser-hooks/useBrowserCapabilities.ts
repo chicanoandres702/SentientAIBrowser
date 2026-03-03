@@ -31,12 +31,15 @@ export const useBrowserCapabilities = () => {
     // Why: server WebSocket is the URL authority — no Firestore write-back on WS events.
     // Connects to /proxy/ws/<tabId>; reconnects with exponential backoff automatically.
     useTabSyncSocket({
-        baseUrl:      s.PROXY_BASE_URL || '',
-        tabId:        activeTab?.id || 'default',
-        enabled:      !!s.PROXY_BASE_URL,
-        onUrlChange:  (url, title, id) => applyServerSync(id, url, title),
+        baseUrl:       s.PROXY_BASE_URL || '',
+        tabId:         activeTab?.id || 'default',
+        enabled:       !!s.PROXY_BASE_URL,
+        onUrlChange:   (url, title, id) => applyServerSync(id, url, title),
         // Why: backend broadcasts mission progress over WS — surface in status bar immediately
-        onStatus:     (msg) => s.setStatusMessage(msg),
+        onStatus:      (msg) => s.setStatusMessage(msg),
+        // Why: task_status WS events arrive <10ms after backend step transitions —
+        // update local state immediately instead of waiting for Firestore onSnapshot (~200ms lag).
+        onTaskStatus:  (taskId, status) => updateTask(taskId, status),
     });
 
     // Why: when a new tab is opened, register it in the active workflow so the tab bar filters correctly
