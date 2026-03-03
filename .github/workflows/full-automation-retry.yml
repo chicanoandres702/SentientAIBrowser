@@ -46,6 +46,10 @@ jobs:
           key: ${{ runner.os }}-gradle-${{ hashFiles('android/**/*.gradle*', 'android/**/*.kts') }}
           restore-keys: |
             ${{ runner.os }}-gradle-
+      - name: Install Node.js dependencies
+        run: |
+          npm install
+        working-directory: .
       - name: Debug Node in Android dir
         run: |
           cd android
