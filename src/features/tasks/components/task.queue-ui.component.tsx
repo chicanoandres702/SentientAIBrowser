@@ -7,13 +7,14 @@
  * [Law Check] 38 lines | Passed 100-Line Law
  */
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import type { TaskItem } from '@features/tasks/types';
 import type { AppTheme } from '../../../../App';
 import { WorkflowPanel } from '../../../components/WorkflowPanel';
+import { listenToTasks } from '@features/tasks';
 
 interface Props {
-  tasks: TaskItem[];
+  userId: string;
   theme: AppTheme;
   addTask: (t: string) => void;
   removeTask: (id: string) => void;
@@ -31,7 +32,7 @@ interface Props {
 
 export const TaskQueueUI: React.FC<Props> = React.memo(
   ({
-    tasks,
+    userId,
     theme,
     addTask,
     removeTask,
@@ -43,22 +44,30 @@ export const TaskQueueUI: React.FC<Props> = React.memo(
     proxyBaseUrl,
     onCloseMission,
     activeTabId,
-  }) => (
-    <WorkflowPanel
-      tasks={tasks}
-      theme={theme}
-      addTask={addTask}
-      removeTask={removeTask}
-      clearTasks={clearTasks}
-      editTask={editTask}
-      isPaused={isPaused}
-      onPause={onPause}
-      onResume={onResume}
-      proxyBaseUrl={proxyBaseUrl}
-      onCloseMission={onCloseMission}
-      activeTabId={activeTabId}
-    />
-  )
+  }) => {
+    const [tasks, setTasks] = useState<TaskItem[]>([]);
+    useEffect(() => {
+      if (!userId) return;
+      const unsubscribe = listenToTasks(userId, setTasks);
+      return () => unsubscribe && unsubscribe();
+    }, [userId]);
+    return (
+      <WorkflowPanel
+        tasks={tasks}
+        theme={theme}
+        addTask={addTask}
+        removeTask={removeTask}
+        clearTasks={clearTasks}
+        editTask={editTask}
+        isPaused={isPaused}
+        onPause={onPause}
+        onResume={onResume}
+        proxyBaseUrl={proxyBaseUrl}
+        onCloseMission={onCloseMission}
+        activeTabId={activeTabId}
+      />
+    );
+  }
 );
 
 TaskQueueUI.displayName = 'TaskQueueUI';
