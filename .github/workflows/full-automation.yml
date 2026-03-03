@@ -49,6 +49,15 @@ jobs:
       - name: Install Node.js dependencies
         run: npm install --force
         working-directory: .
+      - name: Build and Copy React Native AAR
+        run: |
+          cd node_modules/react-native/ReactAndroid
+          ./gradlew :ReactAndroid:installArchives
+          cd ../../..
+          mkdir -p android/local-maven/com/facebook/react/react-native/0.84.1/
+          cp node_modules/react-native/ReactAndroid/build/outputs/aar/react-native-release.aar android/local-maven/com/facebook/react/react-native/0.84.1/react-native-0.84.1.aar
+          cp node_modules/react-native/ReactAndroid/build/outputs/aar/react-native-release.pom android/local-maven/com/facebook/react/react-native/0.84.1/react-native-0.84.1.pom
+        working-directory: .
       - name: Debug Node in Android dir
         run: |
           cd android
@@ -60,7 +69,7 @@ jobs:
           cd android
           chmod +x gradlew
           export PATH=$PATH:$(dirname $(which node))
-          ./gradlew assembleRelease
+          ./gradlew assembleRelease --stacktrace
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
