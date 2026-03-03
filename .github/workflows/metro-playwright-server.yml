@@ -1,0 +1,50 @@
+# AIDDE Trace: Metro + Playwright Server Workflow
+# Feature: CI/CD | Trace: .github/workflows/metro-playwright-server.yml
+
+name: Metro & Playwright Servers
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - develop
+
+jobs:
+  metro-playwright-servers:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Start Metro server
+        run: |
+          nohup npx react-native start &
+          sleep 10
+        env:
+          CI: true
+
+      - name: Install Playwright
+        run: npx playwright install
+
+      - name: Start Playwright server (example)
+        run: |
+          nohup npx playwright test --project=chromium &
+          sleep 10
+        env:
+          CI: true
+
+      - name: Show running servers
+        run: |
+          ps aux | grep node
+          ps aux | grep playwright
+
+      # Add additional steps for integration, e2e, or browser automation as needed

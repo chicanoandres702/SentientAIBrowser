@@ -16,8 +16,7 @@
     "serve:local": "powershell -ExecutionPolicy Bypass -File ./serve-local.ps1",
     "genkit-dev": "npx tsx src/index.ts",
     "firebase": "powershell -ExecutionPolicy Bypass -File ./build-web.ps1 && firebase deploy --only hosting --project sentient-ai-browser",
-    "firebase:all": "powershell -ExecutionPolicy Bypass -File ./build-web.ps1 && npm run build --prefix functions && firebase deploy --project sentient-ai-browser",
-    "lint": "tsc --noEmit"
+    "firebase:all": "powershell -ExecutionPolicy Bypass -File ./build-web.ps1 && npm run build --prefix functions && firebase deploy --project sentient-ai-browser"
   },
   "dependencies": {
     "@expo/metro-runtime": "~6.1.2",
@@ -53,6 +52,8 @@
     "zod": "^4.3.6"
   },
   "devDependencies": {
+    "@react-native-community/cli": "latest",
+    "@react-native/metro-config": "latest",
     "@playwright/test": "^1.58.2",
     "@types/jest": "^30.0.0",
     "@types/react": "~19.1.0",
