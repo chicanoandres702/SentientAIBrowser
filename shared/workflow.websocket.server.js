@@ -22,6 +22,7 @@ let userDataPaths = {};
         status: 'running',
         startedAt: Date.now()
       });
+      broadcastNotification('info', `Workflow ${data.workflowId} started.`, userId);
       // ...existing broadcast logic...
     }
     // On workflow result, save to Firestore
@@ -34,6 +35,7 @@ let userDataPaths = {};
         status: 'completed',
         completedAt: Date.now()
       });
+      broadcastNotification('success', `Workflow ${data.workflowId} completed: ${data.result}`, userId);
       // ...existing broadcast logic...
     }
 // Map workflowId to Playwright page/session (stub for demo)
@@ -58,6 +60,7 @@ let workflowPages = {};
           }));
         }
       });
+      broadcastNotification('info', `Keystroke ${data.key} sent to tab ${data.tab}.`, ws.user.uid);
       return;
     }
 // Feature: Workflow WebSocket Server | Trace: shared/workflow.websocket.server.js
@@ -145,6 +148,7 @@ wss.on('connection', ws => {
           }));
         }
       });
+      broadcastNotification('info', `Workflow ${data.workflowId} started.`, userId);
       return;
     }
 
@@ -184,6 +188,7 @@ wss.on('connection', ws => {
           }));
         }
       });
+      broadcastNotification('success', `Workflow ${data.workflowId} completed: ${data.result}`, userId);
       return;
     }
 
@@ -243,3 +248,14 @@ wss.on('connection', ws => {
 server.listen(8080, () => {
   console.log('WebSocket server running on ws://localhost:8080 with Google Auth');
 });
+
+// Notification broadcast utility
+function broadcastNotification(type, message, userId = null) {
+  wss.clients.forEach(client => {
+    if (client.readyState === WebSocket.OPEN && client.isAuthenticated) {
+      if (!userId || client.user.uid === userId) {
+        client.send(JSON.stringify({ type: 'notification', notification: { type, message, timestamp: Date.now() } }));
+      }
+    }
+  });
+}

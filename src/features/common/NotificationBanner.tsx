@@ -21,7 +21,7 @@ const NotificationBanner: React.FC = () => {
   }, []);
 
   return (
-    <div style={{ position: 'fixed', top: 16, right: 16, zIndex: 1000 }}>
+    <div style={{ position: 'fixed', top: 16, right: 16, zIndex: 1000, maxWidth: '90vw' }} role="status" aria-live="polite">
       {notifications.map(n => (
         <div key={n.id} style={{
           background: n.type === 'error' ? '#ffdddd' : n.type === 'success' ? '#ddffdd' : '#eeeeee',
@@ -31,6 +31,9 @@ const NotificationBanner: React.FC = () => {
           padding: '8px 16px',
           marginBottom: 8,
           boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+          fontSize: '1rem',
+          wordBreak: 'break-word',
+          maxWidth: '100%',
         }}>
           {n.message}
         </div>
