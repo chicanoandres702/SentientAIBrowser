@@ -70,6 +70,7 @@
     "pm2": "^6.0.14",
     "ts-jest": "^29.4.6",
     "typescript": "~5.9.3"
+    "@react-native-community/cli": "latest",
   },
   "private": true
 }
