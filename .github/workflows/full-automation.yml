@@ -1,0 +1,72 @@
+# AIDDE TRACE HEADER
+# GitHub Actions workflow for full automation: proxy container + Android app
+# Why: Automate build, push, test, and artifact publishing for both components
+
+name: Full Automation Pipeline
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - Dockerfile.playwright-proxy
+      - Dockerfile.android
+      - scripts/**
+      - src/**
+      - shared/**
+      - package.json
+      - yarn.lock
+      - .github/workflows/full-automation.yml
+
+jobs:
+  build-proxy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build proxy container
+        run: |
+          docker build -f Dockerfile.playwright-proxy -t ghcr.io/${{ github.repository }}/playwright-proxy:latest .
+      - name: Push proxy container
+        run: |
+          docker push ghcr.io/${{ github.repository }}/playwright-proxy:latest
+
+  build-android:
+    runs-on: ubuntu-latest
+    needs: build-proxy
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Build Android app in container
+        run: |
+          docker build -f Dockerfile.android -t android-app-build .
+          docker run --rm -v ${{ github.workspace }}/android-artifacts:/app/app/build/outputs android-app-build
+      - name: Upload Android build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-app-artifacts
+          path: android-artifacts
+
+  integration-test:
+    runs-on: ubuntu-latest
+    needs: [build-proxy, build-android]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Run proxy health check
+        run: |
+          npm install
+          npm test src/features/workflow/proxyHealth.utils.test.ts
+      - name: Notify on failure
+        if: failure()
+        run: |
+          echo "Build or integration test failed!" # Extend with Slack/email notification as needed

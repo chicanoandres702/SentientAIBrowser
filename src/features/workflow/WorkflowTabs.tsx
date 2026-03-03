@@ -13,7 +13,8 @@ interface WorkflowTab {
   results: string;
 }
 
-const wsUrl = 'ws://localhost:8080'; // Replace with your WebSocket server URL
+// Use GHCR proxy container endpoint for WebSocket
+const wsUrl = 'wss://ghcr.io/<your-org-or-user>/<repo>/playwright-proxy:latest'; // GHCR proxy container endpoint
 
 export const WorkflowTabs: React.FC<{ workflows: WorkflowTab[] }> = ({ workflows }) => {
         // Helper for AI confidence-based modal for step actions

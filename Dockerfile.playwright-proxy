@@ -1,0 +1,17 @@
+# AIDDE TRACE HEADER
+# Dockerfile for Playwright + Proxy container
+# Why: Deploy browser automation and proxy as a GitHub Container Registry image
+
+FROM mcr.microsoft.com/playwright:v1.41.0-focal
+
+WORKDIR /app
+COPY . /app
+
+# Install dependencies (Node.js, proxy, etc)
+RUN npm install
+
+# Expose proxy and API ports
+EXPOSE 8080 9222
+
+# Start proxy and Playwright orchestration
+CMD ["node", "scripts/proxy.worker.js"]
