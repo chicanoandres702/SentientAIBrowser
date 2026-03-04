@@ -1,0 +1,46 @@
+name: Android Full Automation
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - master
+
+jobs:
+  build-android:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+      - name: Install Android SDK
+        uses: android-actions/setup-android@v3
+      - name: Install dependencies
+        run: npm ci
+      - name: Build APK
+        run: |
+          cd android
+          ./gradlew assembleRelease
+      - name: Generate keystore
+        run: |
+          keytool -genkey -v -keystore my-release-key.keystore -alias my-key-alias -keyalg RSA -keysize 2048 -validity 10000 -storepass password123 -keypass password123 -dname "CN=SentientAI, OU=Dev, O=SentientAI, L=World, S=Earth, C=US"
+        continue-on-error: true
+      - name: Sign APK
+        run: |
+          jarsigner -verbose -sigalg SHA1withRSA -digestalg SHA1 -keystore my-release-key.keystore -storepass password123 -keypass password123 app/build/outputs/apk/release/app-release-unsigned.apk my-key-alias
+      - name: Align APK
+        run: |
+          zipalign -v 4 app/build/outputs/apk/release/app-release-unsigned.apk app/build/outputs/apk/release/app-release.apk
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-app-release
+          path: android/app/build/outputs/apk/release/app-release.apk
