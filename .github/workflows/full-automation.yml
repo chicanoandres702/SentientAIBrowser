@@ -56,12 +56,13 @@ jobs:
           node --version
           which node
           echo $PATH
-      - name: Build APK
+      - name: Build APK (always create APK)
         run: |
           cd android
           chmod +x gradlew
           export PATH=$PATH:$(dirname $(which node))
           ./gradlew assembleRelease --stacktrace
+        # This command builds the APK even if no device is connected
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
