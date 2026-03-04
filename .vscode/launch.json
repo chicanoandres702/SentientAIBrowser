@@ -197,6 +197,13 @@
             "request": "launch",
             "preLaunchTask": "Full Automation: Build, Download, Install APK",
             "presentation": { "group": "android", "order": 101 }
+        },
+        {
+            "name": "Android: Poll npm run android until success",
+            "type": "node",
+            "request": "launch",
+            "program": "${workspaceFolder}/poll-android-build.js",
+            "presentation": { "group": "android", "order": 99 }
         }
     ]
 }
