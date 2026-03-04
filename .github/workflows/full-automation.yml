@@ -57,6 +57,11 @@ jobs:
           cp android/gradle/wrapper/gradle-wrapper.properties node_modules/react-native/ReactAndroid/gradle/wrapper/gradle-wrapper.properties
           chmod +x node_modules/react-native/ReactAndroid/gradlew
         working-directory: .
+      - name: List files in ReactAndroid (debug)
+        run: |
+          ls -l node_modules/react-native/ReactAndroid
+          ls -l node_modules/react-native/ReactAndroid/gradle/wrapper
+        working-directory: .
       - name: Build and Copy React Native AAR
         run: |
           ./gradlew :ReactAndroid:installArchives
