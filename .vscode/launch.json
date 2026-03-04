@@ -204,6 +204,14 @@
             "request": "launch",
             "program": "${workspaceFolder}/poll-android-build.js",
             "presentation": { "group": "android", "order": 99 }
+        },
+        {
+            "name": "General: Poll npm script until success",
+            "type": "node",
+            "request": "launch",
+            "program": "${workspaceFolder}/poll-android-build.js",
+            "args": ["android"],
+            "presentation": { "group": "general", "order": 99 }
         }
     ]
 }
