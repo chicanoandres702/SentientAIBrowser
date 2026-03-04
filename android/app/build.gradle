@@ -1,5 +1,6 @@
 // Copilot test patch: verifying patching works
 apply plugin: 'com.android.application'
+apply plugin: "com.facebook.react"
 repositories {
     mavenCentral()
     google()
