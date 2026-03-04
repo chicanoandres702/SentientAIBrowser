@@ -49,6 +49,9 @@ jobs:
       - name: Install Node.js dependencies
         run: npm install --force
         working-directory: .
+      - name: Copy gradlew to ReactAndroid
+        run: cp android/gradlew node_modules/react-native/ReactAndroid/gradlew
+        working-directory: .
       - name: Build and Copy React Native AAR
         run: |
           cd node_modules/react-native/ReactAndroid
