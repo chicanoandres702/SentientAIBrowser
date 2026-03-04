@@ -50,17 +50,20 @@ jobs:
         run: npm install --force
         working-directory: .
       - name: Copy gradlew to ReactAndroid
-        run: cp android/gradlew node_modules/react-native/ReactAndroid/gradlew
+        run: |
+          cp android/gradlew node_modules/react-native/ReactAndroid/gradlew
+          mkdir -p node_modules/react-native/ReactAndroid/gradle/wrapper
+          cp android/gradle/wrapper/gradle-wrapper.jar node_modules/react-native/ReactAndroid/gradle/wrapper/gradle-wrapper.jar
+          cp android/gradle/wrapper/gradle-wrapper.properties node_modules/react-native/ReactAndroid/gradle/wrapper/gradle-wrapper.properties
+          chmod +x node_modules/react-native/ReactAndroid/gradlew
         working-directory: .
       - name: Build and Copy React Native AAR
         run: |
-          cd node_modules/react-native/ReactAndroid
           ./gradlew :ReactAndroid:installArchives
-          cd ../../..
           mkdir -p android/local-maven/com/facebook/react/react-native/0.84.1/
-          cp node_modules/react-native/ReactAndroid/build/outputs/aar/react-native-release.aar android/local-maven/com/facebook/react/react-native/0.84.1/react-native-0.84.1.aar
-          cp node_modules/react-native/ReactAndroid/build/outputs/aar/react-native-release.pom android/local-maven/com/facebook/react/react-native/0.84.1/react-native-0.84.1.pom
-        working-directory: .
+          cp build/outputs/aar/react-native-release.aar ../../../android/local-maven/com/facebook/react/react-native/0.84.1/react-native-0.84.1.aar
+          cp build/outputs/aar/react-native-release.pom ../../../android/local-maven/com/facebook/react/react-native/0.84.1/react-native-0.84.1.pom
+        working-directory: node_modules/react-native/ReactAndroid
       - name: Debug Node in Android dir
         run: |
           cd android
