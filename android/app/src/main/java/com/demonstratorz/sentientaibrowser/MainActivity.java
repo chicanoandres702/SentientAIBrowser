@@ -10,7 +10,7 @@ import android.app.Activity;
 public class MainActivity extends ReactActivity {
     @Override
     protected String getMainComponentName() {
-        return "SentientAIBrowser";
+        return "main";
     }
 
     // Optionally, override onCreate to set up a WebView-like experience

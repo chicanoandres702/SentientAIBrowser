@@ -1,0 +1,39 @@
+jobs:
+
+name: Do It Check
+on:
+  pull_request:
+    branches: [ main ]
+jobs:
+  aidde-gates:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '16'
+      - name: Install dependencies
+        run: npm install
+      - name: Orchestration Gate
+        run: |
+          grep -E 'Resolves #[0-9]+' $GITHUB_EVENT_PATH || (echo 'Missing issue link' && exit 1)
+      - name: Parent Hierarchy Gate
+        run: |
+          [[ $GITHUB_HEAD_REF =~ feature/.+/.+ ]] || (echo 'Branch does not follow hierarchy' && exit 1)
+      - name: Template Gate
+        run: |
+          grep '🎯 Purpose' $GITHUB_EVENT_PATH || (echo 'Missing Purpose section' && exit 1)
+          grep '🔄 System Flow' $GITHUB_EVENT_PATH || (echo 'Missing System Flow section' && exit 1)
+          grep '☑️ Subtasks' $GITHUB_EVENT_PATH || (echo 'Missing Subtasks section' && exit 1)
+      - name: Static Analysis Gate
+        run: npm run lint || exit 1
+      - name: Wiring Gate
+        run: npm run lint || exit 1
+      - name: Test Gate
+        run: npm test || exit 1
+      - name: Complexity Gate
+        run: |
+          find . -name '*.js' -exec awk 'NF > 0 {c++} END {if (c>100) exit 1}' {} +
+      - name: Security Architect Scan
+        run: npm audit --audit-level=high

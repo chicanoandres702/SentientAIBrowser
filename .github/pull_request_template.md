@@ -1,12 +1,17 @@
-## Why
-Describe the reason for this change.
+# Pull Request Template
 
-## Changes
-- List key changes here.
+## Milestone
+- [ ] Reference milestone (feature):
 
-## Verification
-- [ ] Manual testing (screenshots/walkthrough)
-- [ ] Automated tests (if applicable)
+## Issue
+- [ ] Reference issue (task):
 
-## Screenshots / Evidence
-Add images or videos here.
+## Tasks (Sub-issues)
+- [ ] List all subtasks as checkboxes:
+
+## Summary
+- [ ] Professional documentation of changes, rationale, and compliance evidence
+
+---
+
+> All PRs must pass the 8 CI/CD gates and reference the correct milestone and issue.
