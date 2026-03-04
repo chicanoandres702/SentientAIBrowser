@@ -49,26 +49,7 @@ jobs:
       - name: Install Node.js dependencies
         run: npm install --force
         working-directory: .
-      - name: Copy gradlew to ReactAndroid
-        run: |
-          cp android/gradlew node_modules/react-native/ReactAndroid/gradlew
-          mkdir -p node_modules/react-native/ReactAndroid/gradle/wrapper
-          cp android/gradle/wrapper/gradle-wrapper.jar node_modules/react-native/ReactAndroid/gradle/wrapper/gradle-wrapper.jar
-          cp android/gradle/wrapper/gradle-wrapper.properties node_modules/react-native/ReactAndroid/gradle/wrapper/gradle-wrapper.properties
-          chmod +x node_modules/react-native/ReactAndroid/gradlew
-        working-directory: .
-      - name: List files in ReactAndroid (debug)
-        run: |
-          ls -l node_modules/react-native/ReactAndroid
-          ls -l node_modules/react-native/ReactAndroid/gradle/wrapper
-        working-directory: .
-      - name: Build and Copy React Native AAR
-        run: |
-          ./gradlew :ReactAndroid:installArchives
-          mkdir -p android/local-maven/com/facebook/react/react-native/0.84.1/
-          cp build/outputs/aar/react-native-release.aar ../../../android/local-maven/com/facebook/react/react-native/0.84.1/react-native-0.84.1.aar
-          cp build/outputs/aar/react-native-release.pom ../../../android/local-maven/com/facebook/react/react-native/0.84.1/react-native-0.84.1.pom
-        working-directory: node_modules/react-native/ReactAndroid
+      # Removed legacy ReactAndroid AAR build and directory copy steps for React Native 0.84.x compatibility
       - name: Debug Node in Android dir
         run: |
           cd android
