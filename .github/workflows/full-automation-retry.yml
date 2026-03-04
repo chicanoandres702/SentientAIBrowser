@@ -56,12 +56,11 @@ jobs:
           node --version
           which node
           echo $PATH
-      - name: Generate React Native Android AAR
+      - name: Print React Native version and config
         run: |
           npx react-native --version
           npx react-native config
-          npx react-native build-android-aar || echo "AAR build step is not available in all versions, continuing"
-          ls -l node_modules/react-native/android/com/facebook/react/react-native/0.84.1/
+      # The erroneous AAR build step has been removed!
       - name: Build APK
         run: |
           cd android
@@ -73,4 +72,3 @@ jobs:
         with:
           name: app-release-apk
           path: android/app/build/outputs/apk/release/app-release.apk
-
