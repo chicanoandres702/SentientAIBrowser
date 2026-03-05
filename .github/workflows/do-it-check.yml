@@ -1,5 +1,3 @@
-jobs:
-
 name: Do It Check
 on:
   pull_request:

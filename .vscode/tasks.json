@@ -16,7 +16,7 @@
             "presentation": { "reveal": "always", "panel": "dedicated", "focus": true }
         },
 
-        t7
+        
         {
             "label": "npm: start",
             "type": "shell",
