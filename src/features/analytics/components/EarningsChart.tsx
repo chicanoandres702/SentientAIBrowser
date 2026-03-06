@@ -18,7 +18,7 @@ export const EarningsChart: React.FC<Props> = ({ theme, data }) => {
             <View style={styles.header}><Text style={[styles.title, { color: theme.text }]}>REWARDS VELOCITY</Text><Text style={styles.subtitle}>SB ACCUMULATION TREND</Text></View>
             <View style={[styles.chartArea, { height: chartHeight }]}>
                 <View style={styles.barsContainer}>
-                    {data.map((val, i) => (
+                    {(Array.isArray(data) ? data : []).map((val, i) => (
                         <View key={i} style={styles.barWrapper}>
                             <Animatable.View animation="bounceInUp" delay={i * 100} style={[styles.bar, { height: (val / maxVal) * chartHeight, backgroundColor: theme.accent, shadowColor: theme.accent, shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.8, shadowRadius: 10 }]}><LinearGradient colors={[theme.accent, theme.accent + '22']} style={StyleSheet.absoluteFill} /></Animatable.View>
                         </View>

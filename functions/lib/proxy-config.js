@@ -37,6 +37,14 @@ exports.isCdpMode = exports.CHROME_DEFAULT_ARGS = exports.CHROME_STEALTH_ARGS = 
 exports.isPortInUse = isPortInUse;
 exports.getBrowser = getBrowser;
 exports.stripSecurityHeaders = stripSecurityHeaders;
+/**
+ * Sentient File Header
+ * Why: System utilities and browser config for Sentient AI Browser
+ * Filepath: functions/src/proxy-config.ts
+ * Description: Chrome arg constants, port detection, and Firebase exports for backend
+ * Trace: Used by proxy server, orchestrator, and backend modules
+ * Wiring: Exported constants and functions, consumed by backend and orchestrator
+ */
 // Feature: System Utilities | Trace: README.md
 // Technique: browser-use/web-ui — named Chrome arg constants + port conflict detection (BrowserConfig)
 const net = __importStar(require("net"));

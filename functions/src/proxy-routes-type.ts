@@ -1,3 +1,11 @@
+/**
+ * Sentient File Header
+ * Why: Keyboard input relay for Sentient AI Browser
+ * Filepath: functions/src/proxy-routes-type.ts
+ * Description: Handles POST /proxy/type, forwards keyboard input to Playwright
+ * Trace: Used by proxy server, orchestrator, and browser sync modules
+ * Wiring: Exported setupKeyTypeRoute function, consumed by Express app and orchestrator
+ */
 // Feature: Browser | Why: POST /proxy/type — forward raw keyboard input to Playwright
 import { Express } from 'express';
 import { activePages, captureAndSyncTab } from './proxy-page-handler';

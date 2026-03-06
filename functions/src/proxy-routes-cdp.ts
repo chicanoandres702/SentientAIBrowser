@@ -1,3 +1,11 @@
+/**
+ * Sentient File Header
+ * Why: Chrome DevTools Protocol bridge for Sentient AI Browser
+ * Filepath: functions/src/proxy-routes-cdp.ts
+ * Description: Exposes Playwright's CDP over HTTPS for manual session control
+ * Trace: Used by proxy server, orchestrator, and browser sync modules
+ * Wiring: Exported setupCdpRoutes function, consumed by Express app and orchestrator
+ */
 // Feature: CDP Bridge | Why: Expose Playwright's Chrome DevTools Protocol over HTTPS so any
 // browser (desktop chrome://inspect or mobile DevTools frontend) can connect to the live
 // Playwright session — essential for manually solving CAPTCHAs without breaking the session.

@@ -20,7 +20,7 @@ export const LayoutPickerModal: React.FC<Props> = ({ visible, current, accent, o
         <View style={s.mobileHandle} />
         <Text style={s.mobileTitle}>LAYOUT</Text>
         <ScrollView showsVerticalScrollIndicator={false}>
-          {LAYOUTS.map(l => {
+          {(Array.isArray(LAYOUTS) ? LAYOUTS : []).map(l => {
             const active = l.mode === current;
             return (
               <TouchableOpacity

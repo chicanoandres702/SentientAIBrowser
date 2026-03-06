@@ -1,3 +1,11 @@
+/**
+ * Sentient File Header
+ * Why: Mission sync service for Sentient AI Browser
+ * Filepath: functions/src/shared/mission-sync.service.ts
+ * Description: Syncs missions to Firestore and listens for updates
+ * Trace: Used by backend, orchestrator, and mission modules
+ * Wiring: Exported functions, consumed by backend and orchestrator
+ */
 // Feature: Missions | Trace: src/utils/browser-sync-service.ts
 import { db } from '../auth/firebase-config';
 import { sanitizeForCloud } from './safe-cloud.utils';

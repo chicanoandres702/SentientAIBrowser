@@ -29,7 +29,7 @@ export const MobileLayoutSwitcher: React.FC<Props> = ({ active, onSelect, accent
         <View>
             {/* Variant selector row */}
             <View style={s.row}>
-                {VARIANTS.map(v => {
+                {(Array.isArray(VARIANTS) ? VARIANTS : []).map(v => {
                     const isActive = active === v.key;
                     return (
                         <TouchableOpacity
@@ -51,7 +51,7 @@ export const MobileLayoutSwitcher: React.FC<Props> = ({ active, onSelect, accent
             {hierarchy.length > 0 && (
                 <Animatable.View animation="fadeIn" duration={250} style={s.treeWrap}>
                     <ScrollView horizontal={false} showsVerticalScrollIndicator={false} style={s.treeScroll} nestedScrollEnabled>
-                        {hierarchy.map((row) => (
+                        {(Array.isArray(hierarchy) ? hierarchy : []).map((row) => (
                             <HierarchyRowView key={row.type === 'mission' ? row.mission.id : row.task.id} row={row} accent={accentColor} />
                         ))}
                     </ScrollView>

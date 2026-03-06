@@ -1,21 +1,31 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.executeStepQueue = executeStepQueue;
+const sentientLogger_1 = require("./core/sentientLogger");
 const llm_memory_service_1 = require("./features/llm/llm-memory-service");
 const knowledge_hierarchy_service_1 = require("./features/llm/knowledge-hierarchy.service");
 const playwright_mcp_adapter_1 = require("./playwright-mcp-adapter");
 const proxy_tab_sync_broker_1 = require("./proxy-tab-sync.broker");
+const task_queue_bridge_1 = require("./task-queue-bridge");
 async function executeStepQueue(page, stepQueue, taskDocs, existingTasks, missionRef, data, context, stepCount, tabId, userId) {
-    var _a, _b, _c;
+    var _a, _b, _c, _d, _e;
     const live = () => [...existingTasks, ...taskDocs];
+    // Why: locate the current task_queues card so backend advances it alongside execution
+    const segTask = await (0, task_queue_bridge_1.findCurrentSegmentTask)(context.unitId).catch(() => null);
+    const segDocId = (_a = segTask === null || segTask === void 0 ? void 0 : segTask.id) !== null && _a !== void 0 ? _a : null;
+    const segOrder = (_b = segTask === null || segTask === void 0 ? void 0 : segTask.order) !== null && _b !== void 0 ? _b : 0;
     for (let idx = 0; idx < stepQueue.length; idx++) {
         const step = stepQueue[idx];
         taskDocs[idx].status = 'in_progress';
-        const label = `${step.action}: ${(_a = step.explanation) !== null && _a !== void 0 ? _a : ''}`;
+        if (segDocId)
+            (0, task_queue_bridge_1.setSubActionStatus)(segDocId, idx, 'in_progress').catch(() => { });
+        if (segDocId)
+            (0, proxy_tab_sync_broker_1.broadcastTaskStatus)(tabId, segDocId, 'in_progress');
+        const label = `${step.action}: ${(_c = step.explanation) !== null && _c !== void 0 ? _c : ''}`;
         (0, proxy_tab_sync_broker_1.broadcastStatus)(tabId, `⚙️ ${label}`.substring(0, 80));
         await missionRef.update({ tasks: live(), lastAction: `⚙️ ${label}`.substring(0, 120), updated_at: new Date().toISOString() });
         if (step.action === 'wait_for_user' || step.action === 'ask_user') {
-            (0, proxy_tab_sync_broker_1.broadcastStatus)(tabId, `⏳ Waiting: ${(_b = step.explanation) !== null && _b !== void 0 ? _b : ''}`);
+            (0, proxy_tab_sync_broker_1.broadcastStatus)(tabId, `⏳ Waiting: ${(_d = step.explanation) !== null && _d !== void 0 ? _d : ''}`);
             await missionRef.update({ status: 'waiting', lastAction: `⏳ Waiting: ${step.explanation}`, tasks: live() });
             return 'pending';
         }
@@ -31,10 +41,12 @@ async function executeStepQueue(page, stepQueue, taskDocs, existingTasks, missio
             taskDocs[idx].status = 'completed';
             (0, proxy_tab_sync_broker_1.broadcastStatus)(tabId, '✅ Mission complete');
             await missionRef.update({ status: 'completed', progress: 100, stepCount: stepCount + idx + 1, lastAction: '✅ Mission Completed Successfully', tasks: live() });
+            if (segDocId)
+                await (0, task_queue_bridge_1.completeSegmentTask)(segDocId, context.unitId, segOrder).catch(() => { });
             return 'done';
         }
         let result = 'success';
-        let observation = (_c = step.explanation) !== null && _c !== void 0 ? _c : step.action;
+        let observation = (_e = step.explanation) !== null && _e !== void 0 ? _e : step.action;
         try {
             if (['done', 'wait_for_user', 'ask_user', 'record_knowledge'].includes(step.action)) {
                 // handled above — no executeAriaAction needed
@@ -56,16 +68,23 @@ async function executeStepQueue(page, stepQueue, taskDocs, existingTasks, missio
         catch (err) {
             result = 'failure';
             observation = `Action failed: ${err.message}`;
-            console.error(`[StepExecutor] ❌ ${step.action} | ${err.message}`);
+            sentientLogger_1.sentientLogger.error(`[StepExecutor] ❌ ${step.action} | ${err.message}`);
         }
         taskDocs[idx].status = result === 'success' ? 'completed' : 'failed';
+        if (segDocId)
+            (0, task_queue_bridge_1.setSubActionStatus)(segDocId, idx, result === 'success' ? 'completed' : 'failed').catch(() => { });
+        if (segDocId)
+            (0, proxy_tab_sync_broker_1.broadcastTaskStatus)(tabId, segDocId, result === 'success' ? 'completed' : 'failed');
         const pageUrl = await Promise.resolve().then(() => page.url()).catch(() => { var _a; return String((_a = data.currentUrl) !== null && _a !== void 0 ? _a : 'unknown'); });
         await (0, llm_memory_service_1.recordActionOutcome)(userId, String(data.goal), step.action, result, observation, new URL(pageUrl || 'http://unknown').hostname).catch(() => { });
         const n = stepCount + idx + 1;
         await missionRef.update({ tasks: live(), lastAction: `${result === 'success' ? '✅' : '❌'} ${observation}`.substring(0, 120), progress: Math.min(99, Math.round((n / (n + 8)) * 100)), stepCount: n, updated_at: new Date().toISOString() });
         if (result === 'failure')
-            console.warn(`[StepExecutor] ⚠️ step failed but continuing: ${observation}`);
+            sentientLogger_1.sentientLogger.error(`[StepExecutor] ⚠️ step failed but continuing: ${observation}`);
     }
+    // Why: all steps done — mark card complete and auto-advance next pending card to in_progress
+    if (segDocId)
+        await (0, task_queue_bridge_1.completeSegmentTask)(segDocId, context.unitId, segOrder).catch(() => { });
     return 'pending';
 }
 //# sourceMappingURL=backend-step.executor.js.map

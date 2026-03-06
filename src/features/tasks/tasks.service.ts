@@ -13,7 +13,8 @@ export const syncTaskToFirestore = async (userId: string, task: TaskItem): Promi
     try {
         await setDoc(doc(db, 'users', userId, 'tasks', task.id), task, { merge: true });
     } catch (err) {
-        console.error('[TaskService] syncTaskToFirestore failed:', err);
+        const traceGate = require('../../core/traceGate');
+        traceGate(__filename, '[TaskService] syncTaskToFirestore failed:', err);
     }
 };
 
@@ -26,7 +27,7 @@ export const updateTaskStatusInFirestore = async (missionId: string, taskId: str
         const updated = tasks.map((t: MissionTask) => (t.id === taskId ? { ...t, status } : t));
         await updateDoc(missionRef, { tasks: updated });
     } catch (err) {
-        console.error('[TaskService] updateTaskStatusInFirestore failed:', err);
+        traceGate(__filename, '[TaskService] updateTaskStatusInFirestore failed:', err);
     }
 };
 
@@ -42,7 +43,7 @@ export const getCurrentMissionTasks = async (missionId: string): Promise<Mission
         const snap = await getDoc(doc(db, 'missions', missionId));
         return snap.exists() ? (snap.data()?.tasks || []) : [];
     } catch (err) {
-        console.error('[TaskService] getCurrentMissionTasks failed:', err);
+        traceGate(__filename, '[TaskService] getCurrentMissionTasks failed:', err);
         return [];
     }
 };

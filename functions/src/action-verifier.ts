@@ -1,3 +1,11 @@
+/**
+ * Sentient File Header
+ * Why: Mission action verifier for Sentient AI Browser
+ * Filepath: functions/src/action-verifier.ts
+ * Description: Verifies that a Playwright action had observable page effect
+ * Trace: Used by backend, orchestrator, and mission executor modules
+ * Wiring: Exported function, consumed by backend and orchestrator
+ */
 // Feature: Mission | Why: Verifies an action had observable page effect so we don't mark
 // "completed" when Playwright didn't throw but nothing actually changed on screen.
 import { Page } from 'playwright';

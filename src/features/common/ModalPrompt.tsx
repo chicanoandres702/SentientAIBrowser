@@ -1,3 +1,4 @@
+// Feature: ModalPrompt | Trace: src/features/common/ModalPrompt.tsx
 /*
 AIDDE TRACE HEADER
 File: ModalPrompt.tsx
@@ -44,7 +45,7 @@ export const ModalPrompt: React.FC<ModalPromptProps> = ({
           </div>
         )}
         <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-          {options.map(opt => (
+            {(Array.isArray(options) ? options : []).map(opt => (
             <button
               key={opt}
               style={{ padding: '8px 20px', borderRadius: 6, border: 'none', background: '#007bff', color: '#fff', fontWeight: 500, cursor: 'pointer' }}

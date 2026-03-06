@@ -15,7 +15,7 @@ export class AgentService {
      */
     public static async startMission(goal: string, tabId: string, runtimeGeminiApiKey?: string): Promise<any> {
         const userId = auth.currentUser?.uid || 'anonymous';
-        console.log(`[AgentService] Starting mission: ${goal}`);
+        sentientLogger.trace(`[AgentService] Starting mission: ${goal}`);
 
         // 1. Plan tactical steps using the LLM (High-Fidelity)
         const missionResponse = await planTacticalSteps(goal, runtimeGeminiApiKey);

@@ -1,3 +1,11 @@
+/**
+ * Sentient File Header
+ * Why: Playwright MCP adapter for Sentient AI Browser
+ * Filepath: functions/src/playwright-mcp-adapter.ts
+ * Description: Exposes ARIA snapshot and role-based locator primitives for backend mission executor
+ * Trace: Used by backend, orchestrator, and mission executor modules
+ * Wiring: Exported functions and interfaces, consumed by backend and orchestrator
+ */
 // Feature: Playwright MCP Adapter | Why: @playwright/mcp uses ARIA snapshots + role-based
 // locators under the hood. We expose the same primitives directly on our persistent page
 // so backend-mission.executor never touches fragile index-based data-ai-id attributes again.

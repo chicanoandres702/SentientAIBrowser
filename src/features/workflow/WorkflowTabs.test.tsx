@@ -1,3 +1,4 @@
+// Feature: Workflow Tabs Test | Trace: src/features/workflow/WorkflowTabs.test.tsx
 /*
 AIDDE TRACE HEADER
 Test: WorkflowTabs

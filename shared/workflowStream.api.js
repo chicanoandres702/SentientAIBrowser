@@ -1,3 +1,4 @@
+// Feature: Workflow Stream API | Trace: shared/workflowStream.api.js
 /*
 AIDDE TRACE HEADER
 File: workflowStream.api.js

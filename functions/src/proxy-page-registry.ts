@@ -1,3 +1,11 @@
+/**
+ * Sentient File Header
+ * Why: Page registry for Sentient AI Browser
+ * Filepath: functions/src/proxy-page-registry.ts
+ * Description: Tracks active pages, contexts, userIds, intervals, and closed tabs
+ * Trace: Used by backend, orchestrator, and page lifecycle modules
+ * Wiring: Exported maps/sets, consumed by backend and page handler
+ */
 // Feature: Page Registry | Trace: README.md
 import { Page, BrowserContext } from 'playwright';
 

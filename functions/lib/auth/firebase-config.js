@@ -34,6 +34,14 @@ var __importStar = (this && this.__importStar) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.FieldValue = exports.auth = exports.db = void 0;
+/**
+ * Sentient File Header
+ * Why: Firebase Admin config for Sentient AI Browser backend
+ * Filepath: functions/src/auth/firebase-config.ts
+ * Description: Initializes Firebase Admin SDK for backend functions and proxy logic
+ * Trace: Used by backend, orchestrator, and proxy modules
+ * Wiring: Exported db, auth, FieldValue for backend and orchestrator
+ */
 // Feature: Auth Config | Trace: README.md
 const admin = __importStar(require("firebase-admin"));
 // Initialize Firebase Admin for the backend

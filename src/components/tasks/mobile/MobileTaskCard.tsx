@@ -54,7 +54,7 @@ export const MobileTaskCard: React.FC<Props> = ({ item, accentColor, removeTask,
                 {item.details && <Text style={[m.body, { marginTop: 4, fontSize: 9 }]} numberOfLines={expanded ? 5 : 1}>{item.details}</Text>}
                 {expanded && hasSubActions && (
                     <Animatable.View animation="fadeIn" duration={200} style={s.subActions}>
-                        {item.subActions!.map((sa: SubAction, idx: number) => (
+                        {(Array.isArray(item.subActions) ? item.subActions : []).map((sa: SubAction, idx: number) => (
                             <View key={idx} style={s.subRow}><SubActionIcon action={sa.action} /><Text style={s.subText} numberOfLines={1}>{sa.explanation}</Text><View style={[s.subStatusDot, { backgroundColor: sa.status === 'completed' ? BASE.success : sa.status === 'in_progress' ? accentColor : BASE.textFaint }]} /></View>
                         ))}
                     </Animatable.View>

@@ -1,3 +1,11 @@
+/**
+ * Sentient File Header
+ * Why: Page lifecycle handler for Sentient AI Browser
+ * Filepath: functions/src/proxy-page-handler.ts
+ * Description: Coordinates page creation, session restore, and event listeners
+ * Trace: Used by backend, orchestrator, and all route files
+ * Wiring: Exported helpers, consumed by backend and route modules
+ */
 // Feature: Page Lifecycle | Trace: README.md
 /*
  * [Parent Feature/Milestone] Page Lifecycle

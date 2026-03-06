@@ -37,7 +37,7 @@ export const MobileQuickActions: React.FC<Props> = ({
         <View style={s.wrap} pointerEvents="box-none">
             {open && (
                 <Animatable.View animation="fadeInUp" duration={200} style={s.menu}>
-                    {actions.map((a, i) => (
+                    {(Array.isArray(actions) ? actions : []).map((a, i) => (
                         <Animatable.View key={a.key} animation="fadeInUp" delay={i * 60} duration={200}>
                             <TouchableOpacity style={[s.action, m.shadowSm]} onPress={() => handleAction(a.key)} activeOpacity={0.7}>
                                 <Text style={s.actionIcon}>{a.icon}</Text>

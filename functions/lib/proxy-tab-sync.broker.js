@@ -1,14 +1,19 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.broadcastCursor = exports.broadcastStatus = exports.setFrameProvider = void 0;
+exports.broadcastCursor = exports.broadcastTaskStatus = exports.broadcastStatus = exports.setFrameProvider = exports.setCachedFrame = exports.getCachedFrame = exports.frameCache = void 0;
 exports.broadcastTabSync = broadcastTabSync;
 exports.registerWsClient = registerWsClient;
 exports.unregisterWsClient = unregisterWsClient;
 exports.handleWsUpgrade = handleWsUpgrade;
+const proxy_frame_cache_1 = require("./proxy-frame-cache");
+var proxy_frame_cache_2 = require("./proxy-frame-cache");
+Object.defineProperty(exports, "frameCache", { enumerable: true, get: function () { return proxy_frame_cache_2.frameCache; } });
+Object.defineProperty(exports, "getCachedFrame", { enumerable: true, get: function () { return proxy_frame_cache_2.getCachedFrame; } });
+Object.defineProperty(exports, "setCachedFrame", { enumerable: true, get: function () { return proxy_frame_cache_2.setCachedFrame; } });
 // Why: keyed by tabId so broadcasts only reach clients watching that specific tab.
 const clients = new Map();
 const frameIntervals = new Map();
-const FRAME_MS = 200; // ~5 fps between navigation events
+const FRAME_MS = 250; // 4 fps — gives page.screenshot() time to finish before next tick
 let _frameProvider = async () => null;
 const setFrameProvider = (fn) => { _frameProvider = fn; };
 exports.setFrameProvider = setFrameProvider;
@@ -25,6 +30,11 @@ function broadcastTabSync(tabId, payload) {
 }
 const broadcastStatus = (tabId, message) => broadcastTabSync(tabId, { type: 'status', tabId, message });
 exports.broadcastStatus = broadcastStatus;
+/** Why: push per-task state changes to the frontend instantly via WS so the queue
+ * reflects in_progress / completed / failed <10ms after backend execution, not on
+ * the next Firestore onSnapshot poll (~200ms). */
+const broadcastTaskStatus = (tabId, taskId, status, nextTaskId) => broadcastTabSync(tabId, { type: 'task_status', tabId, taskId, status, nextTaskId });
+exports.broadcastTaskStatus = broadcastTaskStatus;
 const broadcastCursor = (tabId, x, y) => broadcastTabSync(tabId, { type: 'cursor', tabId, x, y });
 exports.broadcastCursor = broadcastCursor;
 function startFrameStream(tabId) {
@@ -34,9 +44,21 @@ function startFrameStream(tabId) {
         var _a;
         if (!((_a = clients.get(tabId)) === null || _a === void 0 ? void 0 : _a.size))
             return;
-        const frame = await _frameProvider(tabId);
-        if (frame)
-            broadcastTabSync(tabId, Object.assign({ type: 'frame', tabId }, frame));
+        // Why: skip if the previous screenshot is still resolving — prevents stacked
+        //      pending ops that arrive in a burst and cause the choppy / hang behaviour.
+        if (proxy_frame_cache_1.capturingTabs.has(tabId))
+            return;
+        proxy_frame_cache_1.capturingTabs.add(tabId);
+        try {
+            const frame = await _frameProvider(tabId);
+            if (frame) {
+                (0, proxy_frame_cache_1.setCachedFrame)(tabId, frame);
+                broadcastTabSync(tabId, Object.assign({ type: 'frame', tabId }, frame));
+            }
+        }
+        finally {
+            proxy_frame_cache_1.capturingTabs.delete(tabId);
+        }
     }, FRAME_MS);
     frameIntervals.set(tabId, t);
 }
@@ -46,6 +68,8 @@ function stopFrameStream(tabId) {
         clearInterval(t);
         frameIntervals.delete(tabId);
     }
+    proxy_frame_cache_1.capturingTabs.delete(tabId); // Why: clear stale in-flight flag so next client starts clean
+    proxy_frame_cache_1.frameCache.delete(tabId); // Why: free memory when no clients are watching this tab
 }
 function registerWsClient(tabId, ws) {
     if (!clients.has(tabId))

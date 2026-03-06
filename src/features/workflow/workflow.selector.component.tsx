@@ -29,14 +29,17 @@ interface Props {
   theme: AppTheme;
 }
 
-export const WorkflowSelector: React.FC<Props> = ({ tabs, onSelectTab, onCloseTab, onNewTab, theme }) => {
+export const WorkflowSelector: React.FC<Props> = ({ tabs = [], onSelectTab, onCloseTab, onNewTab, theme }) => {
   const colors = uiColors(theme);
+
+  // Guard for options
+  const optionsToRender = Array.isArray(tabs) ? tabs : [];
 
   return (
     <View style={[wss.container, { borderBottomColor: colors.border }]}>
       <Text style={[wss.header, { color: colors.textDim }]}>WORKFLOW</Text>
       <ScrollView scrollEnabled showsVerticalScrollIndicator={false} contentContainerStyle={wss.workflowList}>
-        {tabs.map((tab) => (
+        {(Array.isArray(optionsToRender) ? optionsToRender : []).map((tab) => (
           <TouchableOpacity
             key={tab.id}
             style={[wss.workflowButton, tab.isActive && wss.workflowButtonActive, tab.isActive && { borderColor: colors.accent }]}

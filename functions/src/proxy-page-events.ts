@@ -1,3 +1,11 @@
+/**
+ * Sentient File Header
+ * Why: Page event listeners for Sentient AI Browser
+ * Filepath: functions/src/proxy-page-events.ts
+ * Description: Attaches lifetime event listeners to Playwright pages
+ * Trace: Used by backend, orchestrator, and page lifecycle modules
+ * Wiring: Exported function, consumed by backend and page handler
+ */
 // Feature: Page Event Listeners | Trace: README.md
 import { Page, BrowserContext } from 'playwright';
 import { isCdpMode } from './proxy-config';

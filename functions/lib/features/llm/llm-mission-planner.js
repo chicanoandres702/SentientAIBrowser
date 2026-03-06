@@ -1,6 +1,15 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.generateLLMPlanResponse = exports.planMissionWithLLM = void 0;
+const sentientLogger_1 = require("../../core/sentientLogger");
+/**
+ * Sentient File Header
+ * Why: LLM mission planner for Sentient AI Browser
+ * Filepath: functions/src/features/llm/llm-mission-planner.ts
+ * Description: Decomposes user prompts into actionable mission tasks via Gemini
+ * Trace: Used by proxy server, orchestrator, and browser sync modules
+ * Wiring: Exported planMissionWithLLM and generateLLMPlanResponse functions, consumed by backend routes
+ */
 // Feature: LLM Mission Planner | Why: Decomposes user prompts into actionable mission tasks via Gemini
 const generative_ai_1 = require("@google/generative-ai");
 const llm_planner_prompt_1 = require("./llm-planner-prompt");
@@ -29,7 +38,7 @@ const planMissionWithLLM = async (prompt, schemaPrompt) => {
         return missionResponse;
     }
     catch (error) {
-        console.error('LLM Mission Planning failed:', error);
+        sentientLogger_1.sentientLogger.error('LLM Mission Planning failed:', error);
         return (0, llm_planner_fallback_1.buildFallbackMissionResponse)();
     }
 };

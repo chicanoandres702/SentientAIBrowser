@@ -1,3 +1,11 @@
+/**
+ * Sentient File Header
+ * Why: LLM memory service for Sentient AI Browser
+ * Filepath: functions/src/features/llm/llm-memory-service.ts
+ * Description: Handles learning loop, records action outcomes, retrieves lessons learned
+ * Trace: Used by proxy server, orchestrator, and browser sync modules
+ * Wiring: Exported recordActionOutcome and getLessonsLearned functions, consumed by decision engine
+ */
 // Feature: LLM Memory | Trace: src/features/llm/llm-decision.engine.ts
 import { logMissionOutcome, getRelevantOutcomes, MissionOutcome } from '../../shared/outcome-sync.service';
 import { db } from '../../auth/firebase-config';

@@ -8,7 +8,7 @@ export const syncTaskToFirestore = async (task: TaskItem, userId: string) => {
     const taskRef = doc(db, 'task_queues', task.id);
     const payload = sanitizeForCloud({
         ...task,
-        user_id: userId,
+        userId,
         server_timestamp: serverTimestamp(),
         updated_at: serverTimestamp(),
     });
@@ -34,7 +34,7 @@ export const removeTaskFromFirestore = async (id: string) => {
 export const listenToTasks = (userId: string, callback: (tasks: TaskItem[]) => void) => {
     const q = query(
         collection(db, 'task_queues'),
-        where('user_id', '==', userId),
+        where('userId', '==', userId),
         orderBy('timestamp', 'asc'),
         limit(50)
     );
@@ -56,7 +56,7 @@ export const listenToTasks = (userId: string, callback: (tasks: TaskItem[]) => v
 export const hydrateTasksFromFirestore = async (userId: string) => {
     const q = query(
         collection(db, 'task_queues'),
-        where('user_id', '==', userId),
+        where('userId', '==', userId),
         orderBy('timestamp', 'desc'),
         limit(10)
     );

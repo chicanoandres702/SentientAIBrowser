@@ -1,3 +1,11 @@
+/**
+ * Sentient File Header
+ * Why: Mission executor orchestration shell for Sentient AI Browser
+ * Filepath: functions/src/backend-mission.executor.ts
+ * Description: Orchestrates mission execution, delegates step queue, broadcasts state
+ * Trace: Used by backend, orchestrator, and mission executor modules
+ * Wiring: Exported function, consumed by backend and orchestrator
+ */
 // Feature: Mission Executor | Why: Orchestration shell — guards, ARIA snapshot, LLM call.
 // Step execution is delegated to backend-step.executor (100-Line Law).
 // Every state transition broadcasts over WebSocket for sub-100ms UI feedback.
@@ -9,13 +17,15 @@
  * [Law Check] 78 lines | Passed 100-Line Law
  */
 import { db } from './proxy-config';
+import { sentientLogger } from './core/sentientLogger';
 import { getPersistentPage } from './proxy-page-handler';
 import { determineNextAction } from './features/llm/llm-decision.engine';
-import { getAriaSnapshot, AriaStep } from './playwright-mcp-adapter';
-import { resolveGeminiApiKey } from './features/llm/api-key.resolver';
-import { isBotCheckUrl, isAuthWallUrl } from './proxy-nav-controller';
-import { broadcastStatus, getCachedFrame } from './proxy-tab-sync.broker';
+import { AriaStep } from './playwright-mcp-adapter';
 import { executeStepQueue } from './backend-step.executor';
+import { acquireBackendAgentLock, resolveMissionApiKey } from './mission-agent-lock';
+import { handleUrlChecks } from './mission-status-checks';
+import { getMissionSnapshot } from './mission-snapshot';
+import { createTaskDocs } from './mission-step-queue';
 
 export async function processMissionStep(missionId: string) {
   try {
@@ -24,65 +34,41 @@ export async function processMissionStep(missionId: string) {
     if (!snap.exists || snap.data()?.status !== 'active') return;
     const data = snap.data()!;
 
-    // Why: frontend may hold execution lock (e.g. manual user action). Yield immediately.
-    if (data.executingAgent && data.executingAgent !== 'backend') {
-      console.log('[Executor] ⏭ Skipping — non-backend agent has execution lock');
-      return;
-    }
-    try {
-      await missionRef.update({ executingAgent: 'backend', updated_at: new Date().toISOString() });
-    } catch {
-      console.log('[Executor] ⏭ Execution lock conflict — skipping cycle');
-      return;
-    }
+    // Agent lock
+    if (!await acquireBackendAgentLock(missionRef, data)) return;
 
     const { tabId = 'default', userId } = data;
-    const apiKey = (data.runtimeApiKey as string | undefined) || await resolveGeminiApiKey(userId);
-    if (!apiKey) {
-      broadcastStatus(tabId, '❌ No Gemini API key — set one in Settings');
-      await missionRef.update({ lastAction: '❌ No Gemini API key — add one in Settings > LLM OVERRIDE', updated_at: new Date().toISOString() });
-      return;
-    }
+    // API key resolution
+    const apiKey = await resolveMissionApiKey(data, userId, tabId, missionRef);
+    if (!apiKey) return;
 
     const context = { groupId: data.groupId || 'DefaultGroup', contextId: data.contextId || 'DefaultContext', unitId: missionId };
     const stepCount: number = data.stepCount || 0;
     const startUrl: string | null = (data.tabUrl && data.tabUrl !== 'about:blank') ? data.tabUrl : null;
     const page = await getPersistentPage(startUrl, tabId, userId);
-    if (!page) { console.error('[Executor] ❌ getPersistentPage returned null'); return; }
+    if (!page) { sentientLogger.error('[Executor] ❌ getPersistentPage returned null'); return; }
     const currentUrl = page.url();
 
-    if (isBotCheckUrl(currentUrl)) {
-      broadcastStatus(tabId, '🤖 Bot check detected — complete then resume');
-      await missionRef.update({ status: 'waiting', lastAction: '🤖 Bot check / CAPTCHA — complete in browser then resume', updated_at: new Date().toISOString() });
-      return 'pending';
-    }
-    if (isAuthWallUrl(currentUrl)) {
-      broadcastStatus(tabId, '🔐 Auth required — complete login then resume');
-      // Why: persist pre-auth returnUrl so resume navigates to original dest, not the expired SAML/SSO URL
-      const returnUrl = (data.authWallReturnUrl as string | undefined) || startUrl || currentUrl;
-      await missionRef.update({ status: 'waiting', lastAction: '🔐 Auth / MFA required — complete login then resume', currentUrl, authWallReturnUrl: returnUrl, updated_at: new Date().toISOString() });
-      return 'pending';
-    }
+    // URL checks
+    const urlCheckResult = await handleUrlChecks(currentUrl, tabId, missionRef, data, startUrl);
+    if (urlCheckResult) return urlCheckResult;
+
+    // Stuck URL loop detection
     const prevUrl = data.lastExecutorUrl as string | undefined;
     const sameCount = (prevUrl === currentUrl) ? ((data.sameUrlCycles as number || 0) + 1) : 0;
     await missionRef.update({ lastExecutorUrl: currentUrl, sameUrlCycles: sameCount, updated_at: new Date().toISOString() });
     if (sameCount >= 4) {
-      broadcastStatus(tabId, `🔁 Stuck at ${new URL(currentUrl || 'http://x').hostname} — check and resume`);
-      await missionRef.update({ status: 'waiting', lastAction: `🔁 Redirect loop at ${new URL(currentUrl || 'http://x').hostname} — check the page and resume`, sameUrlCycles: 0, updated_at: new Date().toISOString() });
+      const host = new URL(currentUrl || 'http://x').hostname;
+      await missionRef.update({ status: 'waiting', lastAction: `🔁 Redirect loop at ${host} — check the page and resume`, sameUrlCycles: 0, updated_at: new Date().toISOString() });
       return 'pending';
     }
 
-    const ariaSnapshot = await getAriaSnapshot(page);
-    const _cf = getCachedFrame(tabId);
-    const screenshot = (_cf && Date.now() - _cf.ts < 2000)
-      ? _cf.data.replace('data:image/jpeg;base64,', '')
-      : await page.screenshot({ quality: 30, type: 'jpeg', timeout: 8000 })
-          .then(buf => buf.toString('base64'))
-          .catch(() => { console.warn('[Executor] ⏱ screenshot timeout — proceeding with ARIA only'); return ''; });
+    // ARIA snapshot and screenshot
+    const { ariaSnapshot, screenshot } = await getMissionSnapshot(page, tabId);
     await missionRef.update({ lastAction: `📍 On: ${currentUrl}`, currentUrl, updated_at: new Date().toISOString() });
-    broadcastStatus(tabId, '🤔 Thinking...');
     await missionRef.update({ lastAction: '🤔 Thinking...', updated_at: new Date().toISOString() });
 
+    // LLM decision
     const response = await determineNextAction(userId, data.goal, [], screenshot, new URL(currentUrl || 'http://blank').hostname, [], true, context, ariaSnapshot, apiKey);
     if (!response) {
       await missionRef.update({ lastAction: '❌ LLM returned no response', updated_at: new Date().toISOString() });
@@ -90,18 +76,16 @@ export async function processMissionStep(missionId: string) {
     }
     await missionRef.update({ intelligenceSignals: response.meta.intelligenceSignals || [], lastReasoning: response.meta.reasoning || '', updated_at: new Date().toISOString() });
 
+    // Step queue and task docs
     const stepQueue = response.execution.segments.flatMap((s: any) => s.steps) as AriaStep[];
     const existingTasks = (data.tasks as any[] || []).filter((t: any) => t.status === 'completed' || t.status === 'failed');
-    const taskDocs = stepQueue.map((step, i) => ({
-      id: `step-${Date.now()}-${i}`, action: step.action, explanation: step.explanation,
-      title: `${step.action}: ${step.explanation}`.substring(0, 80), status: 'pending',
-    }));
+    const taskDocs = createTaskDocs(stepQueue);
     await missionRef.update({ tasks: [...existingTasks, ...taskDocs], updated_at: new Date().toISOString() });
 
     return await executeStepQueue(page, stepQueue, taskDocs, existingTasks, missionRef as any, data as any, context, stepCount, tabId, userId);
   } catch (e: unknown) {
     const msg = (e as Error).message;
-    console.error(`[Executor] 🔥 Fatal: ${msg}`);
+    sentientLogger.error(`[Executor] 🔥 Fatal: ${msg}`);
     try { await db.collection('missions').doc(missionId).update({ lastAction: `🔥 Error: ${msg}`.substring(0, 120), updated_at: new Date().toISOString() }); } catch {}
   }
   return 'pending';

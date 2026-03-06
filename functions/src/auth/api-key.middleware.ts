@@ -1,3 +1,11 @@
+/**
+ * Sentient File Header
+ * Why: API key middleware for external routes in Sentient AI Browser
+ * Filepath: functions/src/auth/api-key.middleware.ts
+ * Description: Express middleware to validate x-api-key header or apiKey query param
+ * Trace: Used by backend, orchestrator, and proxy modules
+ * Wiring: Exported middleware, consumed by Express app and orchestrator
+ */
 // Feature: External API | Why: Protect external-facing routes from unauthorized Chromium access.
 // Keys are stored in PROXY_API_KEY env var as a comma-separated list — easy to rotate without code changes.
 import { Request, Response, NextFunction } from 'express';

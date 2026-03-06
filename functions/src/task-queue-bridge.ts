@@ -1,3 +1,11 @@
+/**
+ * Sentient File Header
+ * Why: Mission task queue bridge for Sentient AI Browser
+ * Filepath: functions/src/task-queue-bridge.ts
+ * Description: Bridges backend executor step results to Firestore task_queues docs
+ * Trace: Used by backend, orchestrator, and mission executor modules
+ * Wiring: Exported functions, consumed by backend and orchestrator
+ */
 // Feature: Mission | Why: Bridges backend executor step results → task_queues Firestore docs
 // so the frontend onSnapshot listener sees live subAction completions without any polling.
 import { db } from './proxy-config';

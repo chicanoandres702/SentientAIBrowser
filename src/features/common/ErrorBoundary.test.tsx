@@ -1,3 +1,4 @@
+// Feature: ErrorBoundary Test | Trace: src/features/common/ErrorBoundary.test.tsx
 /*
 AIDDE TRACE HEADER
 Test: ErrorBoundary

@@ -1,5 +1,29 @@
+/**
+ * Sentient File Header
+ * Why: On-demand DOM map extraction for Sentient AI Browser remote control
+ * Filepath: functions/src/proxy-dom-map.ts
+ * Description: Extracts visible DOM nodes and viewport info for Playwright automation
+ * Trace: Used by proxy server, orchestrator, and browser sync modules
+ * Wiring: Exported buildDomMap function, consumed by proxy routes and orchestrator
+ */
 // Feature: Browser | Why: On-demand DOM map extraction for remote control
 import { Page } from 'playwright';
+
+interface DomMapResult {
+    map: Array<Record<string, unknown>>;
+    viewport: { vw: number; vh: number };
+    url: string;
+}
+/**
+ * Sentient File Header
+ * Why: On-demand DOM map extraction for Sentient AI Browser remote control
+ * Filepath: functions/src/proxy-dom-map.ts
+ * Description: Extracts visible DOM nodes and viewport info for Playwright automation
+ * Trace: Used by proxy server, orchestrator, and browser sync modules
+ * Wiring: Exported buildDomMap function, consumed by proxy routes and orchestrator
+ */
+// Feature: Browser | Why: On-demand DOM map extraction for remote control
+// Duplicate import removed
 
 interface DomMapResult {
     map: Array<Record<string, unknown>>;

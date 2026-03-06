@@ -1,3 +1,11 @@
+/**
+ * Sentient File Header
+ * Why: Direct mouse control endpoints for Sentient AI Browser
+ * Filepath: functions/src/proxy-routes-mouse.ts
+ * Description: Handles POST /proxy/mouse/*, syncs tab after every mouse action
+ * Trace: Used by proxy server, orchestrator, and browser sync modules
+ * Wiring: Exported setupMouseRoutes function, consumed by Express app and orchestrator
+ */
 // Feature: Remote Input | Why: Full direct mouse control in remote mode — move, scroll,
 // right-click, double-click, drag. Complements POST /proxy/click (single left-click).
 // Every action syncs the tab immediately so the screenshot stream stays current.

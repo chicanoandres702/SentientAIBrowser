@@ -1,3 +1,4 @@
+// Feature: Proxy Health Utils Test | Trace: src/features/workflow/proxyHealth.utils.test.ts
 /*
 AIDDE TRACE HEADER
 Test: Proxy Health Check

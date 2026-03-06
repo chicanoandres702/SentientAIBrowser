@@ -1,3 +1,20 @@
+/**
+ * Sentient File Header
+ * Why: Clean, auth-protected endpoints for external callers in Sentient AI Browser
+ * Filepath: functions/src/proxy-routes-external.ts
+ * Description: Handles external API routes, returns raw content for scrapers and integrations
+ * Trace: Used by proxy server, orchestrator, and browser sync modules
+ * Wiring: Exported route setup functions, consumed by Express app and orchestrator
+ */
+// Feature: External API | Why: Clean, auth-protected endpoints for external callers.
+/**
+ * Sentient File Header
+ * Why: Clean, auth-protected endpoints for external callers in Sentient AI Browser
+ * Filepath: functions/src/proxy-routes-external.ts
+ * Description: Handles external API routes, returns raw content for scrapers and integrations
+ * Trace: Used by proxy server, orchestrator, and browser sync modules
+ * Wiring: Exported route setup functions, consumed by Express app and orchestrator
+ */
 // Feature: External API | Why: Clean, auth-protected endpoints for external callers.
 // Unlike /proxy, these routes return raw content — no link rewriting, no scanner injection.
 import { Express } from 'express';

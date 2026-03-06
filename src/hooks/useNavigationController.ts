@@ -66,7 +66,8 @@ export function useNavigationController(
                 // Falling back to the original URL would write an unresolved URL to Firestore,
                 // which causes the LLM to retry the same navigate task in a loop.
                 // Instead, fall back silently — the Firestore listener will re-sync on next cycle.
-                console.warn('[NavCtrl] proxy returned non-JSON body — skipping fallback nav to avoid loop');
+                const traceGate = require('../core/traceGate');
+                traceGate(__filename, '[NavCtrl] proxy returned non-JSON body — skipping fallback nav to avoid loop');
                 return;
             }
 
@@ -75,7 +76,7 @@ export function useNavigationController(
             // Why: don't pause on bot-check — stealth headers may already bypass it and
             // refusing to write finalUrl desync the address bar from the real page.
             if (isBotCheck) {
-                console.warn('[NavCtrl] Bot-check detected — updating URL and continuing:', finalUrl);
+                traceGate(__filename, '[NavCtrl] Bot-check detected — updating URL and continuing:', finalUrl);
             }
 
             // Write the RESOLVED URL — not the originally requested URL
@@ -85,7 +86,7 @@ export function useNavigationController(
             // Network-level failure (CORS, offline, DNS) — safe to fall back to raw nav.
             // This is NOT a JSON parse error (those are handled above), so the proxy
             // was never reached; the original URL is the best we can do.
-            console.warn('[NavCtrl] network error on navigate, falling back to raw nav:', e);
+            traceGate(__filename, '[NavCtrl] network error on navigate, falling back to raw nav:', e);
             await navigateTab(targetUrl);
         } finally {
             pendingRef.current = null;
@@ -104,7 +105,7 @@ export function useNavigationController(
             const { finalUrl } = await res.json();
             if (finalUrl) await navigateTab(finalUrl);
         } catch (e) {
-            console.warn('[NavCtrl] back error:', e);
+            traceGate(__filename, '[NavCtrl] back error:', e);
         }
     }, [proxyBaseUrl, tabId, navigateTab]);
 
@@ -120,7 +121,7 @@ export function useNavigationController(
             const { finalUrl } = await res.json();
             if (finalUrl) await navigateTab(finalUrl);
         } catch (e) {
-            console.warn('[NavCtrl] forward error:', e);
+            traceGate(__filename, '[NavCtrl] forward error:', e);
         }
     }, [proxyBaseUrl, tabId, navigateTab]);
 

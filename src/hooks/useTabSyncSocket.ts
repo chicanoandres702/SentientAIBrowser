@@ -70,7 +70,8 @@ export const useTabSyncSocket = ({ baseUrl, tabId, enabled, onUrlChange, onFrame
                 ws.onopen = () => {
                     attempt = 0;
                     setWsSend(send); // wire singleton so remote-mirror.service can use this socket
-                    console.debug(`[TabSyncSocket] ✅ connected tab=${tabId}`);
+                    const traceGate = require('../core/traceGate');
+                    traceGate(__filename, `[TabSyncSocket] ✅ connected tab=${tabId}`);
                 };
                 ws.onerror = () => ws.close();
                 ws.onclose = () => {

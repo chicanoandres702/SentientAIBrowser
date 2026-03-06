@@ -1,3 +1,11 @@
+/**
+ * Sentient File Header
+ * Why: Survey memory database for Sentient AI Browser
+ * Filepath: functions/src/shared/survey-memory-db.ts
+ * Description: Records and retrieves survey answers and success weights from Firestore
+ * Trace: Used by backend, orchestrator, and survey modules
+ * Wiring: Exported functions, consumed by backend and orchestrator
+ */
 // Feature: Survey Memory | Trace: README.md
 import { db, FieldValue } from './firebase.utils';
 

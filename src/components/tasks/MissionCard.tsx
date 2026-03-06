@@ -79,7 +79,7 @@ export const MissionCard: React.FC<Props> = ({ node, accentColor, removeTask, ed
       {actions && <MissionQueueControls missionId={node.mission.id} isActive={isActive} isPaused={actions.isPaused} onPlay={actions.onPlay} onPause={actions.onPause} onStop={actions.onStop} onSave={actions.onSave} onExtendPlan={actions.onExtendPlan} accentColor={accentColor} />}
 
       <View style={ms.childList}>
-        {node.children.map((child: TaskItem) => (
+        {(Array.isArray(node.children) ? node.children : []).map((child: TaskItem) => (
           <TouchableOpacity key={child.id} style={ms.childItem} onPress={child.status === 'pending' && actions ? () => actions.onActivateTask(child.id) : undefined} activeOpacity={child.status === 'pending' && actions ? 0.6 : 1}>
             <TaskItemView item={child} accentColor={accentColor} removeTask={removeTask} editTask={editTask} onPlay={child.status==='pending'&&actions?()=>actions.onActivateTask(child.id):undefined} onRetry={actions?.onRetryTask?()=>actions.onRetryTask!(child.id):undefined} onAllowMe={actions?.onAllowMe?()=>actions.onAllowMe!(child.id):undefined} />
           </TouchableOpacity>

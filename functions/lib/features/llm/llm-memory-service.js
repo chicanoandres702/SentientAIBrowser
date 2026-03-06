@@ -1,6 +1,14 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.getLessonsLearned = exports.recordActionOutcome = void 0;
+/**
+ * Sentient File Header
+ * Why: LLM memory service for Sentient AI Browser
+ * Filepath: functions/src/features/llm/llm-memory-service.ts
+ * Description: Handles learning loop, records action outcomes, retrieves lessons learned
+ * Trace: Used by proxy server, orchestrator, and browser sync modules
+ * Wiring: Exported recordActionOutcome and getLessonsLearned functions, consumed by decision engine
+ */
 // Feature: LLM Memory | Trace: src/features/llm/llm-decision.engine.ts
 const outcome_sync_service_1 = require("../../shared/outcome-sync.service");
 const firebase_config_1 = require("../../auth/firebase-config");

@@ -1,3 +1,11 @@
+/**
+ * Sentient File Header
+ * Why: Webview relay and session sync for Sentient AI Browser
+ * Filepath: functions/src/proxy-routes-proxy.ts
+ * Description: Handles GET /proxy?url&tabId, keeps Playwright session in sync and redirects caller
+ * Trace: Used by proxy server, orchestrator, and browser sync modules
+ * Wiring: Exported setupProxyRoute function, consumed by Express app and orchestrator
+ */
 // Feature: Browser Proxy | Trace: functions/src/proxy-routes-proxy.ts
 /*
  * [Parent Feature/Milestone] Browser Proxy

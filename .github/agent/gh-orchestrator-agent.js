@@ -1,3 +1,4 @@
+// Feature: GH Orchestrator Agent | Trace: .github/agent/gh-orchestrator-agent.js
 // GitHub CLI Orchestrator Agent
 const { execSync } = require('child_process');
 

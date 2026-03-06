@@ -19,7 +19,7 @@ export const useKnowledgeSync = (contextId: string) => {
         // Hydrate then listen
         getKnowledge(auth.currentUser.uid, contextId)
             .then(setEntries)
-            .catch(e => console.error('Knowledge hydration failed:', e));
+            .catch(e => sentientLogger.error('Knowledge hydration failed:', e));
 
         const unsubscribe = listenToKnowledge(
             auth.currentUser.uid, contextId, setEntries
@@ -40,7 +40,7 @@ export const useKnowledgeSync = (contextId: string) => {
         setEntries(prev => [entry, ...prev]);
         try {
             await saveKnowledge(entry);
-        } catch (e) { console.error('Knowledge save failed:', e); }
+        } catch (e) { sentientLogger.error('Knowledge save failed:', e); }
     }, [contextId]);
 
     return { entries, addEntry };

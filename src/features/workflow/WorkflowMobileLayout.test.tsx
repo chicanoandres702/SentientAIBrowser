@@ -1,3 +1,4 @@
+// Feature: Workflow Mobile Layout Test | Trace: src/features/workflow/WorkflowMobileLayout.test.tsx
 /*
 AIDDE TRACE HEADER
 File: WorkflowMobileLayout.test.tsx

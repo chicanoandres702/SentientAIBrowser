@@ -21,7 +21,8 @@ export class MissionTaskExecutor {
   start(context: TaskExecutorContext) {
     this.ctx = context;
     if (this.unsubscribe || !auth.currentUser) return;
-    console.log('[MissionTaskExecutor] Starting mission task execution listener...');
+    const traceGate = require('../core/traceGate');
+    traceGate(__filename, '[MissionTaskExecutor] Starting mission task execution listener...');
     const q = query(collection(db, 'missions'), where('userId', '==', auth.currentUser.uid), where('status', '==', 'active'));
     this.unsubscribe = onSnapshot(q, (snapshot) => {
       snapshot.forEach(async (docSnap) => {
@@ -43,7 +44,7 @@ export class MissionTaskExecutor {
   stop() {
     if (this.unsubscribe) { this.unsubscribe(); this.unsubscribe = null; }
     this.currentlyExecuting = null;
-    console.log('[MissionTaskExecutor] Stopped');
+    traceGate(__filename, '[MissionTaskExecutor] Stopped');
   }
 
   private async executeTask(missionId: string, task: MissionTask, missionGoal: string) {
@@ -92,7 +93,7 @@ export class MissionTaskExecutor {
       });
       this.ctx.setStatusMessage(`Completed: ${task.title}`);
     } catch (e) {
-      console.error(`[MissionTaskExecutor] Task execution failed:`, e);
+      traceGate(__filename, `[MissionTaskExecutor] Task execution failed:`, e);
       const missionRef = doc(db, 'missions', missionId);
       await updateDoc(missionRef, {
         tasks: await updateMissionTaskStatus(missionId, task.id, 'failed'),

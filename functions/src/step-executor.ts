@@ -1,3 +1,11 @@
+/**
+ * Sentient File Header
+ * Why: Mission step retry and verify wrapper for Sentient AI Browser
+ * Filepath: functions/src/step-executor.ts
+ * Description: Retries and verifies Playwright actions, ensures robust mission execution
+ * Trace: Used by backend, orchestrator, and mission executor modules
+ * Wiring: Exported function, consumed by backend and orchestrator
+ */
 // Feature: Mission | Why: Retry + verify wrapper per action step so the executor
 // stays under the 100-Line Law and failures get a real second chance before giving up.
 import { Page } from 'playwright';
@@ -6,6 +14,8 @@ import { MissionStep } from './features/llm/llm-decision.engine';
 import { verifyAction, trySolveCaptcha } from './action-verifier';
 
 export type StepResult = 'success' | 'failure';
+
+// import { sentientLogger } from './core/sentientLogger';
 
 const MAX_RETRIES = 2;
 const RETRY_DELAY_MS = 900;

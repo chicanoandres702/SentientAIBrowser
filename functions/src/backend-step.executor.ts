@@ -1,3 +1,12 @@
+import { sentientLogger } from './core/sentientLogger';
+/**
+ * Sentient File Header
+ * Why: Step-queue runner for Sentient AI Browser mission executor
+ * Filepath: functions/src/backend-step.executor.ts
+ * Description: Runs ARIA step queue, broadcasts state, records outcomes
+ * Trace: Used by backend, orchestrator, and mission executor modules
+ * Wiring: Exported function, consumed by backend and orchestrator
+ */
 // Feature: Mission Executor | Why: Step-queue runner extracted (100-Line Law).
 // Owns the for-loop over ARIA steps. processMissionStep delegates here after planning.
 // Broadcasts each step state over WebSocket so the UI reacts in <10ms (no Firestore lag).
@@ -84,7 +93,7 @@ export async function executeStepQueue(
         } catch (err: unknown) {
             result = 'failure';
             observation = `Action failed: ${(err as Error).message}`;
-            console.error(`[StepExecutor] ❌ ${step.action} | ${(err as Error).message}`);
+            sentientLogger.error(`[StepExecutor] ❌ ${step.action} | ${(err as Error).message}`);
         }
 
         taskDocs[idx].status = result === 'success' ? 'completed' : 'failed';
@@ -94,7 +103,7 @@ export async function executeStepQueue(
         await recordActionOutcome(userId, String(data.goal), step.action, result, observation, new URL(pageUrl || 'http://unknown').hostname).catch(() => {});
         const n = stepCount + idx + 1;
         await missionRef.update({ tasks: live(), lastAction: `${result === 'success' ? '✅' : '❌'} ${observation}`.substring(0, 120), progress: Math.min(99, Math.round((n / (n + 8)) * 100)), stepCount: n, updated_at: new Date().toISOString() });
-        if (result === 'failure') console.warn(`[StepExecutor] ⚠️ step failed but continuing: ${observation}`);
+        if (result === 'failure') sentientLogger.error(`[StepExecutor] ⚠️ step failed but continuing: ${observation}`);
     }
     // Why: all steps done — mark card complete and auto-advance next pending card to in_progress
     if (segDocId) await completeSegmentTask(segDocId, context.unitId, segOrder).catch(() => {});

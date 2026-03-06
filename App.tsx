@@ -1,3 +1,11 @@
+/**
+ * Sentient File Header
+ * Why: Core entry point for Sentient AI Browser app
+ * Filepath: App.tsx
+ * Description: Main React Native app component, handles theme, auth, layout, and passive event listeners
+ * Trace: Used by all features, orchestrator, and workflow modules
+ * Wiring: Default export, consumed by React Native runtime
+ */
 // Feature: Core | Trace: README.md
 import React, { useState, useEffect } from 'react';
 import { View, Platform } from 'react-native';

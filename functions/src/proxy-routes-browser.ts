@@ -1,3 +1,20 @@
+/**
+ * Sentient File Header
+ * Why: Registers all Playwright control endpoints for Sentient AI Browser
+ * Filepath: functions/src/proxy-routes-browser.ts
+ * Description: Orchestrates browser control routes (navigate, click, type, screenshot, etc.)
+ * Trace: Used by proxy server, orchestrator, and browser sync modules
+ * Wiring: Exported setup function, consumed by Express app and orchestrator
+ */
+/**
+ * Sentient File Header
+ * Why: Registers all Playwright control endpoints for Sentient AI Browser
+ * Filepath: functions/src/proxy-routes-browser.ts
+ * Description: Orchestrates browser control routes (navigate, click, type, screenshot, etc.)
+ * Trace: Used by proxy server, orchestrator, and browser sync modules
+ * Wiring: Exported setup function, consumed by Express app and orchestrator
+ */
+
 // Feature: Browser | Why: Route orchestrator — registers all Playwright control endpoints.
 // No HTML proxy layer: the frontend receives screenshots from Firestore, not served HTML.
 // All browser control (navigate, click, type, screenshot) talks directly to Playwright.

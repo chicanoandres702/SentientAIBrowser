@@ -1,3 +1,11 @@
+/**
+ * Sentient File Header
+ * Why: Academic memory service for Sentient AI Browser
+ * Filepath: functions/src/shared/academic-memory.service.ts
+ * Description: Records and retrieves academic context, instructions, and deadlines from Firestore
+ * Trace: Used by backend, orchestrator, and academic modules
+ * Wiring: Exported functions, consumed by backend and orchestrator
+ */
 // Feature: Academic | Trace: README.md
 import { db } from './firebase.utils';
 import { sanitizeForCloud } from './safe-cloud.utils';

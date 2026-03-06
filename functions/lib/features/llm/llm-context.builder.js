@@ -1,9 +1,18 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.buildGeminiPromptWithMemoryContext = void 0;
+/**
+ * Sentient File Header
+ * Why: LLM context builder for Sentient AI Browser
+ * Filepath: functions/src/features/llm/llm-context.builder.ts
+ * Description: Injects historical memory and domain context into LLM system instructions
+ * Trace: Used by proxy server, orchestrator, and browser sync modules
+ * Wiring: Exported buildGeminiPromptWithMemoryContext function, consumed by decision engine and planner
+ */
 // Feature: LLM | Trace: README.md
 const survey_memory_db_1 = require("../../shared/survey-memory-db");
 const academic_memory_service_1 = require("../../shared/academic-memory.service");
+const sentientLogger_1 = require("../../core/sentientLogger");
 /**
  * Intercepts the raw user prompt and injects historical memory from the
  * Firestore database into the LLM system instructions.
@@ -54,7 +63,7 @@ const buildGeminiPromptWithMemoryContext = async (basePrompt, domain, lookedUpDo
         return `SYSTEM INSTRUCTION - DOMAIN CONTEXT:\n${memoryContextString}\nCURRENT OBJECTIVE:\n${basePrompt}`;
     }
     catch (e) {
-        console.error("Failed to inject memory context:", e);
+        sentientLogger_1.sentientLogger.error("Failed to inject memory context:", e);
         return basePrompt;
     }
 };

@@ -9,7 +9,8 @@ const BACKGROUND_FETCH_TASK = 'background-fetch-swagbucks';
 // Simulated raw API check to avoid spinning up the WebView in the background
 const checkSwagbucksForSurveys = async (): Promise<boolean> => {
   try {
-    console.log("Simulating lightweight headless poll to Swagbucks API...");
+    const sentientLogger = require('../../core/sentientLogger');
+    sentientLogger.trace(__filename, "Simulating lightweight headless poll to Swagbucks API...");
     // A real implementation would fetch the endpoint using persistent cookies.
     // e.g. await fetch('https://www.swagbucks.com/surveys/api/list', { headers: { Cookie: '...' }});
 
@@ -17,7 +18,7 @@ const checkSwagbucksForSurveys = async (): Promise<boolean> => {
     const foundHighYieldSurvey = Math.random() > 0.9;
 
     if (foundHighYieldSurvey) {
-      console.log("High yield survey detected via daemon!");
+      sentientLogger.trace(__filename, "High yield survey detected via daemon!");
       // Here we would configure local Push Notifications (e.g. expo-notifications)
       // to alert the user: "New 150 SB Survey Found! Tap to execute AI Workflow."
       return true;
@@ -25,7 +26,7 @@ const checkSwagbucksForSurveys = async (): Promise<boolean> => {
 
     return false;
   } catch (e) {
-    console.error("Headless poll failed", e);
+    sentientLogger.error(__filename, "Headless poll failed", e);
     return false;
   }
 };
@@ -33,7 +34,7 @@ const checkSwagbucksForSurveys = async (): Promise<boolean> => {
 // Define the core background task
 TaskManager.defineTask(BACKGROUND_FETCH_TASK, async () => {
   const now = Date.now();
-  console.log(`Background fetch triggered at: ${new Date(now).toISOString()}`);
+  sentientLogger.trace(__filename, `Background fetch triggered at: ${new Date(now).toISOString()}`);
 
   try {
     const hasNewData = await checkSwagbucksForSurveys();
@@ -55,14 +56,14 @@ TaskManager.defineTask(BACKGROUND_FETCH_TASK, async () => {
       return BackgroundFetch.BackgroundFetchResult.NoData;
     }
   } catch (error) {
-    console.error("Error running background fetch task:", error);
+    sentientLogger.error(__filename, "Error running background fetch task:", error);
     return BackgroundFetch.BackgroundFetchResult.Failed;
   }
 });
 
 // Register the task to run every ~15 minutes
 export async function registerBackgroundFetchAsync() {
-  console.log("Registering background daemon...");
+  sentientLogger.trace(__filename, "Registering background daemon...");
   return BackgroundFetch.registerTaskAsync(BACKGROUND_FETCH_TASK, {
     minimumInterval: 15 * 60, // 15 minutes is minimum on most Android versions
     stopOnTerminate: false,   // Keeps running if app is swiped away
@@ -72,6 +73,6 @@ export async function registerBackgroundFetchAsync() {
 
 // Unregister the task
 export async function unregisterBackgroundFetchAsync() {
-  console.log("Stopping background daemon...");
+  sentientLogger.trace(__filename, "Stopping background daemon...");
   return BackgroundFetch.unregisterTaskAsync(BACKGROUND_FETCH_TASK);
 }

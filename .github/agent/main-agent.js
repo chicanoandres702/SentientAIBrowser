@@ -1,3 +1,4 @@
+// Feature: Main Agent | Trace: .github/agent/main-agent.js
 // Main Orchestrator Agent for Chain Automation
 const GhOrchestratorAgent = require('./gh-orchestrator-agent');
 const GeminiAgent = require('./gemini-agent');

@@ -1,3 +1,4 @@
+// Feature: Smoke Test | Trace: src/smoke.ts
 import { test, expect } from '@playwright/test';
 
 test('homepage loads and shows title', async ({ page }) => {

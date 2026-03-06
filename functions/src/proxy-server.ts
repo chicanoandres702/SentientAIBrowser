@@ -11,6 +11,7 @@ import { PORT, REMOTE_DEBUGGING_PORT } from './proxy-config';
 import { setupBrowserRoutes } from './proxy-routes-browser';
 import { handleWsUpgrade } from './proxy-tab-sync.broker';
 import { handleClientWsMessage } from './proxy-ws-actions';
+import { sentientLogger } from './core/sentientLogger';
 import orchestrator from './backend-ai-orchestrator';
 
 const app = express();
@@ -81,18 +82,18 @@ server.on('upgrade', (req: http.IncomingMessage, socket: net.Socket, head: Buffe
     socket.on('error', () => target.destroy());
     socket.on('end', () => target.destroy());
     target.on('error', (e) => {
-        console.warn('[CDP Proxy] tunnel error:', e.message);
+        sentientLogger.error('[CDP Proxy] tunnel error:', e.message);
         socket.destroy();
     });
     target.on('end', () => socket.destroy());
 });
 
 server.listen(PORT, () => {
-  console.log(`[Sentient Proxy] Active at http://localhost:${PORT}`);
-  console.log(`[CDP] DevTools available at GET /cdp/info after first navigation`);
+  sentientLogger.trace(`[Sentient Proxy] Active at http://localhost:${PORT}`);
+  sentientLogger.trace(`[CDP] DevTools available at GET /cdp/info after first navigation`);
   try {
     orchestrator.start();
   } catch (e: any) {
-    console.warn(`[Sentient Proxy] Orchestrator skipped (${e.message}). Proxy routes still available.`);
+    sentientLogger.error(`[Sentient Proxy] Orchestrator skipped (${e.message}). Proxy routes still available.`);
   }
 });

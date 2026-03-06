@@ -49,6 +49,7 @@ const proxy_config_1 = require("./proxy-config");
 const proxy_routes_browser_1 = require("./proxy-routes-browser");
 const proxy_tab_sync_broker_1 = require("./proxy-tab-sync.broker");
 const proxy_ws_actions_1 = require("./proxy-ws-actions");
+const sentientLogger_1 = require("./core/sentientLogger");
 const backend_ai_orchestrator_1 = __importDefault(require("./backend-ai-orchestrator"));
 const app = (0, express_1.default)();
 app.use((0, cors_1.default)({
@@ -110,19 +111,19 @@ server.on('upgrade', (req, socket, head) => {
     socket.on('error', () => target.destroy());
     socket.on('end', () => target.destroy());
     target.on('error', (e) => {
-        console.warn('[CDP Proxy] tunnel error:', e.message);
+        sentientLogger_1.sentientLogger.error('[CDP Proxy] tunnel error:', e.message);
         socket.destroy();
     });
     target.on('end', () => socket.destroy());
 });
 server.listen(proxy_config_1.PORT, () => {
-    console.log(`[Sentient Proxy] Active at http://localhost:${proxy_config_1.PORT}`);
-    console.log(`[CDP] DevTools available at GET /cdp/info after first navigation`);
+    sentientLogger_1.sentientLogger.trace(`[Sentient Proxy] Active at http://localhost:${proxy_config_1.PORT}`);
+    sentientLogger_1.sentientLogger.trace(`[CDP] DevTools available at GET /cdp/info after first navigation`);
     try {
         backend_ai_orchestrator_1.default.start();
     }
     catch (e) {
-        console.warn(`[Sentient Proxy] Orchestrator skipped (${e.message}). Proxy routes still available.`);
+        sentientLogger_1.sentientLogger.error(`[Sentient Proxy] Orchestrator skipped (${e.message}). Proxy routes still available.`);
     }
 });
 //# sourceMappingURL=proxy-server.js.map

@@ -15,7 +15,7 @@ export const syncTabToFirestore = async (tab: TabItem, userId: string) => {
     const tabRef = doc(db, 'browser_tabs', tab.id);
     await setDoc(tabRef, sanitizeForCloud({
         ...tab,
-        user_id: userId,
+        userId,
         updated_at: serverTimestamp()
     }));
 };
@@ -45,7 +45,7 @@ export const batchUpdateTabs = async (updates: Array<{ id: string; changes: Part
 export const listenToTabs = (userId: string, callback: (tabs: TabItem[]) => void) => {
     const q = query(
         collection(db, 'browser_tabs'),
-        where('user_id', '==', userId),
+        where('userId', '==', userId),
         orderBy('updated_at', 'asc'),
         limit(10)
     );

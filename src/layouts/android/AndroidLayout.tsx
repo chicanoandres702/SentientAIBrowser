@@ -7,12 +7,12 @@
  * [Upstream] useSentientBrowser -> [Downstream] AndroidMenuSheet, AndroidAISheet, AndroidTabsDrawer
  * [Law Check] 95 lines | Passed 100-Line Law
  */
-import React, { useState, useCallback, useEffect } from 'react';
-import { View, StyleSheet, BackHandler } from 'react-native';
+import React from 'react';
+import { View, StyleSheet } from 'react-native';
+import { useAndroidLayoutSheets } from './useAndroidLayoutSheets';
 import { SafeAreaView } from 'react-native';
 import { StatusBar as ExpoStatusBar } from 'expo-status-bar';
-import { BrowserPreview } from '../../components/BrowserPreview';
-import { RemoteMirrorPreview } from '../../components/RemoteMirrorPreview';
+import { AndroidViewport } from './AndroidViewport';
 import { AndroidAddressBar } from './components/android-address-bar.component';
 import { AndroidNavBar, type NavTab } from './components/android-nav-bar.component';
 import { AndroidAISheet } from './components/android-ai-sheet.component';
@@ -57,17 +57,9 @@ interface AndroidSState {
 interface Props { s: AndroidSState; theme: AppTheme; setTheme: (t: AppTheme) => void; }
 
 export const AndroidLayout: React.FC<Props> = ({ s, theme, setTheme }) => {
-  const [sheet, setSheet] = useState<NavTab | null>(null);
-  const close = useCallback(() => setSheet(null), []);
+  const { sheet, setSheet, close } = useAndroidLayoutSheets();
   const { routines, loading: routinesLoading, runRoutine } = useRoutines(s.userId);
   const nav = s.navigateWithGuard ?? s.navigateActiveTab;
-
-  useEffect(() => {
-    const handler = () => { if (sheet) { close(); return true; } return false; };
-    const sub = BackHandler.addEventListener('hardwareBackPress', handler);
-    return () => sub.remove();
-  }, [sheet, close]);
-
   return (
     <View style={s_.root}>
       <ExpoStatusBar style="light" backgroundColor={BASE.bgElevated} />
@@ -76,21 +68,10 @@ export const AndroidLayout: React.FC<Props> = ({ s, theme, setTheme }) => {
           url={s.activeUrl} onNavigate={nav}
           onBack={s.navigateBack} onForward={s.navigateForward} onReload={s.handleReload}
           theme={theme}
-        />        <AndroidStatusStrip isAIMode={s.isAIMode} isPaused={s.isPaused ?? false} statusMessage={s.statusMessage} isScholarMode={s.isScholarMode} theme={theme} />        <View style={s_.viewport}>
-          {s.isRemoteMirrorEnabled
-            ? <RemoteMirrorPreview
-                screenshot={s.remoteMirror?.screenshot ?? null}
-                error={s.remoteMirror?.lastError ?? null}
-                isConnected={s.remoteMirror?.isConnected ?? false}
-                theme={theme} onPress={s.handleManualClick}
-                onMouseMove={s.handleManualMouseMove} onScroll={s.handleManualScroll}
-              />
-            : <BrowserPreview tabId={s.activeTabId} theme={theme}
-                onPress={s.handleManualClick}
-                onMouseMove={s.handleManualMouseMove} onScroll={s.handleManualScroll}
-              />
-          }
-        </View>
+        />
+        <AndroidStatusStrip isAIMode={s.isAIMode} isPaused={s.isPaused ?? false} statusMessage={s.statusMessage} isScholarMode={s.isScholarMode} theme={theme} />
+        {/* Viewport extracted to AndroidViewport */}
+        <AndroidViewport s={s} theme={theme} />
         <AndroidNavBar
           active={sheet ?? 'browser'}
           onTabPress={(t) => setSheet(prev => prev === t ? null : t)}

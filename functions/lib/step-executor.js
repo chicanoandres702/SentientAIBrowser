@@ -3,6 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.executeStepWithRetry = executeStepWithRetry;
 const playwright_mcp_adapter_1 = require("./playwright-mcp-adapter");
 const action_verifier_1 = require("./action-verifier");
+// import { sentientLogger } from './core/sentientLogger';
 const MAX_RETRIES = 2;
 const RETRY_DELAY_MS = 900;
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));

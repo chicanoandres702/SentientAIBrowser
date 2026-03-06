@@ -1,3 +1,11 @@
+/**
+ * Sentient File Header
+ * Why: Backend entrypoint for Sentient AI Browser
+ * Filepath: functions/src/index.ts
+ * Description: Main backend entry, all mission execution runs in Cloud Run
+ * Trace: Used by backend, orchestrator, and CI/CD gates
+ * Wiring: Entrypoint, consumed by Cloud Run and orchestrator
+ */
 // Feature: Backend Entry | Trace: functions/src/index.ts
 /*
  * [Parent Feature/Milestone] Backend Execution

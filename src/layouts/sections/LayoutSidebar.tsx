@@ -7,8 +7,9 @@
  * [Law Check] 99 lines | Passed 100-Line Law
  */
 import React, { Suspense, lazy, useState } from 'react';
-import { View, Text, TouchableOpacity, ActivityIndicator, ScrollView } from 'react-native';
-import { WorkflowSelector } from '../../components/WorkflowSelector';
+import { View } from 'react-native';
+import { SidebarTabs, DrawerTab } from './SidebarTabs';
+import { SidebarTabContent } from './SidebarTabContent';
 import { uiColors } from '../../features/ui/theme/ui.theme';
 import { sidebarStyles as ss } from '../styles/sidebar.styles';
 import { styles as appStyles } from '../../../App.styles';
@@ -22,36 +23,7 @@ const PromptInterface = lazy(() => import('@features/ui/components').then(m => (
 
 type DrawerTab = 'agent' | 'queue' | 'intel';
 
-const TABS: { id: DrawerTab; icon: string; label: string }[] = [
-    { id: 'agent', icon: '🧠', label: 'AGENT' },
-    { id: 'queue', icon: '📋', label: 'QUEUE' },
-    { id: 'intel', icon: '📊', label: 'INTEL' },
-];
 
-const IntelPanel: React.FC<{ s: any; theme: any }> = ({ s, theme }) => {
-    const completedCount = s.tasks?.filter((t: any) => t.status === 'completed').length ?? 0;
-    const pendingCount  = s.tasks?.filter((t: any) => t.status === 'pending').length ?? 0;
-    const rows = [
-        ['STATUS',      s.isAIMode ? (s.isPaused ? 'PAUSED' : 'LIVE') : 'IDLE'],
-        ['MODE',        s.isScholarMode ? 'SCHOLAR' : s.isAIMode ? 'SENTIENT' : 'MANUAL'],
-        ['ACTIVE TAB',  s.activeUrl ? new URL(s.activeUrl).hostname : '—'],
-        ['TASKS DONE',  String(completedCount)],
-        ['TASKS PENDING', String(pendingCount)],
-        ['PROXY',       s.useProxy ? 'ON' : 'OFF'],
-        ['TABS OPEN',   String(s.tabs?.length ?? 0)],
-    ];
-    return (
-        <ScrollView style={ss.intelPanel}>
-            <Text style={ss.intelTitle}>MISSION INTEL</Text>
-            {rows.map(([k, v]) => (
-                <View key={k} style={ss.intelRow}>
-                    <Text style={ss.intelKey}>{k}</Text>
-                    <Text style={ss.intelVal}>{v}</Text>
-                </View>
-            ))}
-        </ScrollView>
-    );
-};
 
 export const SidebarContent: React.FC<{ s: any; theme: any }> = ({ s, theme }) => {
     const [activeTab, setActiveTab] = useState<DrawerTab>('queue');
@@ -63,44 +35,8 @@ export const SidebarContent: React.FC<{ s: any; theme: any }> = ({ s, theme }) =
 
     return (
         <View style={{ flex: 1 }}>
-            {/* Tab Bar */}
-            <View style={ss.tabBar}>
-                {TABS.map(tab => {
-                    const isActive = activeTab === tab.id;
-                    return (
-                        <TouchableOpacity
-                            key={tab.id}
-                            style={[ss.tab, isActive && { ...ss.tabActive, borderBottomColor: accent }]}
-                            onPress={() => setActiveTab(tab.id)}
-                        >
-                            <Text style={ss.tabIcon}>{tab.icon}</Text>
-                            <Text style={[ss.tabLabel, isActive && { ...ss.tabLabelActive, color: accent }]}>{tab.label}</Text>
-                        </TouchableOpacity>
-                    );
-                })}
-            </View>
-            {/* Tab Content */}
-            <View style={ss.tabContent}>
-                <Suspense fallback={<ActivityIndicator color={accent} style={{ flex: 1, marginTop: 24 }} />}>
-                    {activeTab === 'agent' && (
-                        <>
-                            <WorkflowSelector tabs={s.tabs} onSelectTab={s.selectTab} onCloseTab={s.closeTab} onNewTab={() => s.addNewTab('about:blank')} theme={theme} />
-                            <PromptInterface onExecutePrompt={s.handleExecutePrompt} theme={theme} />
-                        </>
-                    )}
-                    {activeTab === 'queue' && (
-                        <TaskQueueUI
-                            tasks={filteredTasks} theme={theme}
-                            addTask={s.addTask} removeTask={s.removeTask} clearTasks={s.clearTasks} editTask={s.editTask}
-                            isPaused={s.isPaused} onPause={() => s.setIsPaused(true)} onResume={() => s.setIsPaused(false)}
-                            onActivateTask={(id: string) => s.updateTask(id, 'in_progress')}
-                            reorderMissions={s.reorderMissions} proxyBaseUrl={s.PROXY_BASE_URL}
-                            onCloseMission={s.closeMission} activeTabId={s.activeTabId}
-                        />
-                    )}
-                    {activeTab === 'intel' && <IntelPanel s={s} theme={theme} />}
-                </Suspense>
-            </View>
+            <SidebarTabs activeTab={activeTab} setActiveTab={setActiveTab} accent={accent} />
+            <SidebarTabContent activeTab={activeTab} s={s} theme={theme} accent={accent} filteredTasks={filteredTasks} />
         </View>
     );
 };

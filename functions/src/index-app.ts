@@ -1,3 +1,11 @@
+/**
+ * Sentient File Header
+ * Why: Functions entrypoint for Sentient AI Browser
+ * Filepath: functions/src/index-app.ts
+ * Description: Firebase Functions entrypoint, sets up sentientProxy HTTP handler
+ * Trace: Used by backend, orchestrator, and CI/CD gates
+ * Wiring: Entrypoint, consumed by Firebase Functions and orchestrator
+ */
 // Feature: Functions Entry | Trace: README.md
 import { onRequest } from "firebase-functions/v2/https";
 import express from "express";

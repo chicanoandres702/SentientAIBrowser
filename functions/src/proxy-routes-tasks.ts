@@ -1,3 +1,11 @@
+/**
+ * Sentient File Header
+ * Why: Mission tasks and replanning endpoints for Sentient AI Browser
+ * Filepath: functions/src/proxy-routes-tasks.ts
+ * Description: Handles per-task operations and live replanning for missions
+ * Trace: Used by proxy server, orchestrator, and browser sync modules
+ * Wiring: Exported setupTasksRoute function, consumed by Express app and orchestrator
+ */
 // Feature: Mission Tasks | Why: Per-task operations (retry/skip/block-user) + live replanning
 /*
  * [Parent Feature/Milestone] Tasks

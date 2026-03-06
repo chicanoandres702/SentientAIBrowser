@@ -1,3 +1,11 @@
+/**
+ * Sentient File Header
+ * Why: Stealth config for Sentient AI Browser
+ * Filepath: functions/src/proxy-stealth.config.ts
+ * Description: Stealth headers, init scripts, and request blocking for Playwright
+ * Trace: Used by backend, orchestrator, and page lifecycle modules
+ * Wiring: Exported constants/functions, consumed by backend and page handler
+ */
 // Feature: Stealth Config | Trace: README.md
 import { Page } from 'playwright';
 import { isAuthWallUrl } from './proxy-nav-controller';

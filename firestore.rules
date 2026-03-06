@@ -27,23 +27,23 @@ service cloud.firestore {
 
     // Thoughts rules: Strictly user-scoped for privacy
     match /thoughts/{document} {
-      allow read: if isAuthenticated() && isOwner(resource.data.user_id);
-      allow create: if isAuthenticated() && isOwner(request.resource.data.user_id);
-      allow update, delete: if isAuthenticated() && isOwner(resource.data.user_id);
+      allow read: if isAuthenticated() && isOwner(resource.data.userId);
+      allow create: if isAuthenticated() && isOwner(request.resource.data.userId);
+      allow update, delete: if isAuthenticated() && isOwner(resource.data.userId);
     }
 
     // Task Queue rules: Strictly user-scoped
     match /task_queues/{document} {
-      allow read: if isAuthenticated() && (resource == null || isOwner(resource.data.user_id));
-      allow write, delete: if isAuthenticated() && (resource == null || isOwner(resource.data.user_id));
+      allow read: if isAuthenticated() && (resource == null || isOwner(resource.data.userId));
+      allow write, delete: if isAuthenticated() && (resource == null || isOwner(resource.data.userId));
     }
 
     // Browser Tabs: Sync across devices
     match /browser_tabs/{document} {
-      allow read: if isAuthenticated() && (resource == null || isOwner(resource.data.user_id));
-      allow create: if isAuthenticated() && isOwner(request.resource.data.user_id);
-      allow update: if isAuthenticated() && isOwner(resource.data.user_id) && isOwner(request.resource.data.user_id);
-      allow delete: if isAuthenticated() && (resource == null || isOwner(resource.data.user_id));
+      allow read: if isAuthenticated() && (resource == null || isOwner(resource.data.userId));
+      allow create: if isAuthenticated() && isOwner(request.resource.data.userId);
+      allow update: if isAuthenticated() && isOwner(resource.data.userId) && isOwner(request.resource.data.userId);
+      allow delete: if isAuthenticated() && (resource == null || isOwner(resource.data.userId));
     }
 
     // Missions: Persistent AI missions

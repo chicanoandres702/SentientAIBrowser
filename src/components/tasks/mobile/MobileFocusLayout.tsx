@@ -78,7 +78,7 @@ export const MobileFocusLayout: React.FC<Props> = ({
                             <Text style={s.breadcrumbPos}>{siblingIdx + 1}/{siblingTasks.length}</Text>
                         </Animatable.View>
                     )}
-                    <View style={s.dots}>{filtered.map((t, i) => (
+                    <View style={s.dots}>{(Array.isArray(filtered) ? filtered : []).map((t, i) => (
                         <TouchableOpacity key={t.id} onPress={() => setCurrentIdx(i)}>
                             <View style={[s.dot, i === currentIdx && { backgroundColor: accent, width: 16 }, t.status === 'completed' && { backgroundColor: BASE.success }, t.status === 'failed' && { backgroundColor: BASE.danger }, t.status === 'in_progress' && { backgroundColor: accent }]} />
                         </TouchableOpacity>

@@ -1,9 +1,18 @@
+/**
+ * Sentient File Header
+ * Why: Deep research agent for Sentient AI Browser
+ * Filepath: functions/src/features/deep-research/deep-research-agent.ts
+ * Description: Orchestrates async research pipeline, planning, execution, and synthesis
+ * Trace: Used by proxy server, orchestrator, and browser sync modules
+ * Wiring: Exported DeepResearchAgent class, consumed by backend routes and research pipeline
+ */
 // Feature: Deep Research Agent | Trace: README.md
 import * as fs from 'fs';
 import { DeepResearchState, NextNode, RunResult } from './deep-research.types';
 import { loadPreviousState } from './deep-research.persistence';
 import { planningNode, synthesisNode } from './deep-research.planning-synthesis';
 import { researchExecutionNode, shouldContinue } from './deep-research.execution';
+import { sentientLogger } from '../../core/sentientLogger';
 
 export class DeepResearchAgent {
     private stopRequested = false;
@@ -30,7 +39,7 @@ export class DeepResearchAgent {
         };
 
         if (previous) {
-            console.log(`[DeepResearch] Resuming task ${taskId} from cat=${state.current_category_index} task=${state.current_task_index}`);
+            sentientLogger.trace(`[DeepResearch] Resuming task ${taskId} from cat=${state.current_category_index} task=${state.current_task_index}`);
         }
 
         try {
@@ -45,7 +54,7 @@ export class DeepResearchAgent {
             if (state.stop_requested) return { status: 'stopped', outputDir, taskId };
             return { status: 'completed', report: state.final_report, outputDir, taskId };
         } catch (e: any) {
-            console.error(`[DeepResearch] Fatal error in task ${taskId}:`, e.message);
+            sentientLogger.error(`[DeepResearch] Fatal error in task ${taskId}:`, e.message);
             return { status: 'failed', outputDir, taskId };
         }
     }

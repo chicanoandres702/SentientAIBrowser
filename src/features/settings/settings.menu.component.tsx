@@ -10,9 +10,12 @@
 import React from 'react';
 import { Text, View, Modal, TouchableOpacity, ScrollView, TextInput } from 'react-native';
 import type { AppTheme } from '../../../App';
-import { ConfigRow } from '../../components/settings/ConfigRow';
-import { ThemeSelector } from '../../components/settings/ThemeSelector';
-import { LayoutSelector } from '../../components/settings/LayoutSelector';
+import { SettingsEngineSection } from './SettingsEngineSection';
+import { SettingsAppearanceSection } from './SettingsAppearanceSection';
+import { SettingsLayoutSection } from './SettingsLayoutSection';
+import { SettingsDaemonSection } from './SettingsDaemonSection';
+import { SettingsLLMSection } from './SettingsLLMSection';
+import { SettingsRoutinesSection } from './SettingsRoutinesSection';
 import type { LayoutMode } from '../../hooks/useBrowserState';
 import { uiColors } from '@features/ui/theme/ui.theme';
 import { settingsMenuStyles as s } from '../../components/settings/SettingsMenu.styles';
@@ -63,51 +66,18 @@ export const SettingsMenu: React.FC<Props> = (p) => {
             </TouchableOpacity>
           </View>
           <ScrollView style={s.body} showsVerticalScrollIndicator={false}>
-            <Text style={[s.section, { color: colors.textMuted }]}>CORE ENGINE</Text>
-            <View style={[s.sectionCard, { borderColor: colors.border, backgroundColor: colors.bgElevated }]}>
-              <ConfigRow label="Sentient AI Mode" sub="Enable autonomous navigation" value={p.isAIMode} onToggle={p.setIsAIMode} accent={accent} />
-              <ConfigRow label="CORS Proxy" sub="Bypass security restrictions" value={p.useProxy} onToggle={p.setUseProxy} accent={accent} />
-              <ConfigRow label="Visual Confirmer" sub="Screenshot verify + auto-solve captcha" value={p.useConfirmerAgent} onToggle={p.setUseConfirmerAgent} accent={accent} />
-              <ConfigRow label="Scholar Mode" sub="MISSION: SCHOLAR (Capella.edu)" value={p.isScholarMode} onToggle={p.setIsScholarMode} accent={scholarAccent} />
-            </View>
-            <Text style={[s.section, { color: colors.textMuted }]}>APPEARANCE</Text>
-            <View style={[s.sectionCard, { borderColor: colors.border, backgroundColor: colors.bgElevated }]}>
-              <ThemeSelector current={p.theme} onSelect={p.setTheme} />
-            </View>
-            <Text style={[s.section, { color: colors.textMuted }]}>WORKSPACE LAYOUT</Text>
-            <View style={[s.sectionCard, { borderColor: colors.border, backgroundColor: colors.bgElevated }]}>
-              <Text style={[s.layoutHint, { color: colors.textMuted }]}>Choose a layout optimized for your workflow. All layouts adapt to both desktop and mobile.</Text>
-              <LayoutSelector current={p.layoutMode} onSelect={p.setLayoutMode} accent={accent} />
-            </View>
-            <Text style={[s.section, { color: colors.textMuted }]}>DAEMON</Text>
-            <TouchableOpacity style={[s.daemonBtn, { borderColor: p.isDaemonRunning ? colors.danger + '44' : accent + '33', backgroundColor: p.isDaemonRunning ? colors.dangerSoft : `${accent}0a` }]} onPress={p.onToggleDaemon}>
-              <View style={[s.daemonDot, { backgroundColor: p.isDaemonRunning ? colors.danger : accent }]} />
-              <Text style={[s.daemonText, { color: p.isDaemonRunning ? colors.danger : accent }]}>{p.isDaemonRunning ? 'TERMINATE DAEMON' : 'LAUNCH DAEMON'}</Text>
-            </TouchableOpacity>
-            <Text style={[s.section, { color: colors.textMuted }]}>LLM OVERRIDE</Text>
-            <View style={[s.sectionCard, { borderColor: colors.border, backgroundColor: colors.bgElevated }]}>
-              <Text style={[s.layoutHint, { color: colors.textMuted }]}>Optional runtime Gemini API key override (stored locally in this browser).</Text>
-              <TextInput
-                value={p.runtimeGeminiApiKey}
-                onChangeText={p.setRuntimeGeminiApiKey}
-                placeholder="AIza..."
-                placeholderTextColor={colors.textDim}
-                autoCapitalize="none"
-                autoCorrect={false}
-                style={[s.input, { color: colors.text, borderColor: colors.border, backgroundColor: colors.panel2 }]}
-              />
-            </View>
-            {p.routines !== undefined && (
-              <>
-                <Text style={[s.section, { color: colors.textMuted }]}>SAVED WORKFLOWS</Text>
-                <View style={[s.sectionCard, { borderColor: colors.border, backgroundColor: colors.bgElevated }]}>
-                  <RoutinePicker
-                    routines={p.routines} loading={p.routinesLoading ?? false}
-                    onRun={p.onRunRoutine ?? (() => {})} theme={p.theme} maxHeight={260}
-                  />
-                </View>
-              </>
-            )}
+            <SettingsEngineSection
+              isAIMode={p.isAIMode} setIsAIMode={p.setIsAIMode}
+              useProxy={p.useProxy} setUseProxy={p.setUseProxy}
+              useConfirmerAgent={p.useConfirmerAgent} setUseConfirmerAgent={p.setUseConfirmerAgent}
+              isScholarMode={p.isScholarMode} setIsScholarMode={p.setIsScholarMode}
+              accent={accent} scholarAccent={scholarAccent} colors={colors}
+            />
+            <SettingsAppearanceSection theme={p.theme} setTheme={p.setTheme} colors={colors} />
+            <SettingsLayoutSection layoutMode={p.layoutMode} setLayoutMode={p.setLayoutMode} accent={accent} colors={colors} />
+            <SettingsDaemonSection isDaemonRunning={p.isDaemonRunning} onToggleDaemon={p.onToggleDaemon} accent={accent} colors={colors} />
+            <SettingsLLMSection runtimeGeminiApiKey={p.runtimeGeminiApiKey} setRuntimeGeminiApiKey={p.setRuntimeGeminiApiKey} colors={colors} />
+            <SettingsRoutinesSection routines={p.routines} routinesLoading={p.routinesLoading} onRunRoutine={p.onRunRoutine} theme={p.theme} colors={colors} />
           </ScrollView>
           <View style={[s.footer, { borderTopColor: colors.border }]}>
             <Text style={[s.version, { color: colors.textMuted }]}>SENTIENT BROWSER · v2.0.0</Text>

@@ -1,3 +1,4 @@
+// Feature: Session Manager Service Test | Trace: shared/sessionManager.service.test.js
 /*
 AIDDE TRACE HEADER
 Test: sessionManager.service.js

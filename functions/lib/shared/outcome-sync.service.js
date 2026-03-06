@@ -1,6 +1,14 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.getRelevantOutcomes = exports.logMissionOutcome = void 0;
+/**
+ * Sentient File Header
+ * Why: Mission outcome sync service for Sentient AI Browser
+ * Filepath: functions/src/shared/outcome-sync.service.ts
+ * Description: Records and retrieves mission outcomes from Firestore
+ * Trace: Used by backend, orchestrator, and mission modules
+ * Wiring: Exported functions, consumed by backend and orchestrator
+ */
 // Feature: Outcomes | Trace: src/utils/browser-sync-service.ts
 const firebase_config_1 = require("../auth/firebase-config");
 const safe_cloud_utils_1 = require("./safe-cloud.utils");

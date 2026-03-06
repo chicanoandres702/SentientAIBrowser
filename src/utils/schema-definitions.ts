@@ -1,3 +1,5 @@
+// Feature: Schema Definitions | Trace: src/utils/schema-definitions.ts
+export const OUTCOME_SCHEMA = APP_SCHEMAS.outcome;
 // Feature: Planning | Why: Raw schema definitions — data structures the LLM planner references
 // Separated from builder functions so each file stays under 100 lines
 
@@ -8,6 +10,10 @@ export const APP_SCHEMAS = {
         fields: {
             id: 'string',
             title: 'string — actionable task name',
+            goal: 'string — user-facing intent for this task',
+            action: 'string — action type (e.g. click, type, navigate)',
+            arguments: '{ [key: string]: any } — action arguments (e.g. selector, value)',
+            description: 'string — description of the action',
             status: "'pending' | 'in_progress' | 'completed' | 'failed' | 'blocked_on_user'" as string,
             missionId: 'string? — parent mission id',
             runId: 'string? — mission run identifier',
@@ -21,6 +27,9 @@ export const APP_SCHEMAS = {
             startTime: 'number? epoch ms',
             completedTime: 'number? epoch ms',
             estimatedDuration: 'number? ms',
+            priority: "'low' | 'medium' | 'high'",
+            tags: 'string[]',
+            metadata: '{ [key: string]: any } // significant contextual info, rationale, dynamic fields',
         },
     },
 
@@ -31,16 +40,10 @@ export const APP_SCHEMAS = {
             id: 'string',
             userId: 'string',
             goal: 'string',
-            status: "'active' | 'completed' | 'failed' | 'paused'",
-            progress: 'number 0-100',
-            runId: 'string — mission run identifier',
-            tabId: 'string — browser tab id',
-            taskCount: 'number',
-            lastAction: 'string',
-            startedAt: 'number epoch ms',
-            updatedAt: 'number epoch ms',
-            schemaVersion: 'number',
-        },
+            action: 'string — main mission action',
+            arguments: '{ [key: string]: any } — mission arguments',
+            description: 'string — description of the mission',
+            status: "'active' | 'completed' | 'failed' | 'paused'
     },
 
     /** SurveyData — parsed survey card on Swagbucks dashboard */
@@ -96,8 +99,12 @@ export const APP_SCHEMAS = {
         fields: {
             goal: 'string',
             action: 'string',
+            arguments: '{ [key: string]: any } — outcome arguments',
+            description: 'string — description of the outcome',
             result: "'success' | 'failure'",
             observation: 'string',
+            impact: 'number 0-100',
+            metadata: '{ [key: string]: any } // significant contextual info, rationale, dynamic fields',
         },
     },
 
@@ -107,5 +114,6 @@ export const APP_SCHEMAS = {
         'wait_for_user', 'ask_user',
         'record_knowledge', 'lookup_documentation',
         'scan_dom', 'navigate', 'open_url', 'verify', 'interact', 'extract_data',
+        // Add more actions dynamically as needed
     ],
 };

@@ -1,3 +1,4 @@
+// Feature: Admin Dashboard | Trace: src/features/admin/AdminDashboard.tsx
 /*
 AIDDE TRACE HEADER
 File: AdminDashboard.tsx

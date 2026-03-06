@@ -1,3 +1,11 @@
+/**
+ * Sentient File Header
+ * Why: Shared helpers for proxy routes and CORS in Sentient AI Browser
+ * Filepath: functions/src/proxy-route.utils.ts
+ * Description: Provides CORS header logic and user/session extraction for proxy server
+ * Trace: Used by all proxy route modules and orchestrator
+ * Wiring: Exported utility functions, consumed by proxy routes and orchestrator
+ */
 // Feature: Browser | Why: Shared helpers for proxy routes and CORS
 import { Response, Request } from 'express';
 import { getPersistentPage, activePages } from './proxy-page-handler';

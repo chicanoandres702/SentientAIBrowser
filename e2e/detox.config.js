@@ -1,3 +1,4 @@
+// Feature: E2E Detox Config | Trace: e2e/detox.config.js
 // Detox configuration for Android
 module.exports = {
   testRunner: 'jest',

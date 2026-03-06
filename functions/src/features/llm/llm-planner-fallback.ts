@@ -1,3 +1,11 @@
+/**
+ * Sentient File Header
+ * Why: LLM mission planner fallback for Sentient AI Browser
+ * Filepath: functions/src/features/llm/llm-planner-fallback.ts
+ * Description: Provides safe fallback plan when LLM is unavailable
+ * Trace: Used by proxy server, orchestrator, and browser sync modules
+ * Wiring: Exported buildFallbackMissionResponse function, consumed by mission planner
+ */
 // Feature: LLM | Why: Fallback response when LLM is unavailable — generic scan+interact+done plan
 import { MissionResponse } from './llm-mission-planner';
 

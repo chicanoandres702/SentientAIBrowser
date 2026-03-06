@@ -44,7 +44,7 @@ export const useMissionNodes = (
     }
 
     const sortedMissions = [...missions].sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
-    const nodes = sortedMissions.map(m => {
+    const nodes = (Array.isArray(sortedMissions) ? sortedMissions : []).map(m => {
         const allChildren = tasks.filter(t => !t.isMission && t.missionId === m.id);
         return {
             mission: m,

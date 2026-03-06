@@ -1,3 +1,11 @@
+/**
+ * Sentient File Header
+ * Why: Capture and sync service for Sentient AI Browser
+ * Filepath: functions/src/proxy-capture.service.ts
+ * Description: Captures tab screenshots, syncs with Firestore, and manages frame streaming
+ * Trace: Used by proxy server, orchestrator, and backend modules
+ * Wiring: Exported functions, consumed by backend and orchestrator
+ */
 // Feature: Capture Service | Trace: README.md
 import { Page, BrowserContext } from 'playwright';
 import { db } from './proxy-config';

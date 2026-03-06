@@ -76,7 +76,7 @@ export const WorkflowTaskRow: React.FC<Props> = React.memo(({ item, accentColor,
                 {/* SubAction timeline — visible when expanded */}
                 {canExpand && expanded && (
                     <View style={wp.actionsContainer}>
-                        {actions.map((a, i) => {
+                        {(Array.isArray(actions) ? actions : []).map((a, i) => {
                             // Map subtask status to color/label
                             const statusColor = a.status === 'finished' ? '#00ffaa'
                                 : a.status === 'running' ? accentColor

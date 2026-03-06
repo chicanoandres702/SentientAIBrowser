@@ -35,7 +35,7 @@ export const EdgeStrip: React.FC<Props> = ({ color, side }) => {
 
     return (
         <View style={[styles.strip, stripPosition(side, isHoriz)]}>
-            {Array.from({ length: BANDS }).map((_, i) => {
+            {(typeof BANDS === 'number' ? Array.from({ length: BANDS }) : []).map((_, i) => {
                 const opacity = 0.10 * (1 - i / BANDS);
                 const size = `${(100 / BANDS)}%`;
                 return (

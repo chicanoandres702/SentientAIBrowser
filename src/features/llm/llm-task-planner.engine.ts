@@ -7,11 +7,12 @@ import { MissionResponse } from "./llm-decision.engine";
  */
 export const planTacticalSteps = async (goal: string, runtimeGeminiApiKey?: string): Promise<MissionResponse | null> => {
     if (!runtimeGeminiApiKey) {
-        console.error('[TaskPlanner] Runtime Gemini API key required. Set key in Settings > LLM OVERRIDE.');
+        const sentientLogger = require('../../core/sentientLogger');
+        sentientLogger.error(__filename, '[TaskPlanner] Runtime Gemini API key required. Set key in Settings > LLM OVERRIDE.');
         return null;
     }
 
-    console.log(`[TaskPlanner] High-Fidelity Planning for: ${goal}`);
+    sentientLogger.trace(__filename, `[TaskPlanner] High-Fidelity Planning for: ${goal}`);
 
     const systemInstruction = `You are a high-level mission architect for an autonomous browser agent.
 Break down the User Objective into a multi-segment tactical plan.
@@ -52,7 +53,7 @@ Return ONLY raw JSON.`;
         const cleanedText = text.replace(/```json|```/g, '').trim();
         return JSON.parse(cleanedText) as MissionResponse;
     } catch (error) {
-        console.error('[TaskPlanner] High-fidelity planning failed:', error);
+        sentientLogger.error(__filename, '[TaskPlanner] High-fidelity planning failed:', error);
         return null;
     }
 };

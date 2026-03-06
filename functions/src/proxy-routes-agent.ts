@@ -1,3 +1,20 @@
+/**
+ * Sentient File Header
+ * Why: Core LLM decision route for DOM map analysis in Sentient AI Browser
+ * Filepath: functions/src/proxy-routes-agent.ts
+ * Description: Handles POST /agent/analyze, analyzes DOM map and returns next action chain
+ * Trace: Used by proxy server, orchestrator, and browser sync modules
+ * Wiring: Exported route setup function, consumed by Express app and orchestrator
+ */
+// Feature: Agent | Why: POST /agent/analyze — core LLM decision route for DOM map analysis
+/**
+ * Sentient File Header
+ * Why: Core LLM decision route for DOM map analysis in Sentient AI Browser
+ * Filepath: functions/src/proxy-routes-agent.ts
+ * Description: Handles POST /agent/analyze, analyzes DOM map and returns next action chain
+ * Trace: Used by proxy server, orchestrator, and browser sync modules
+ * Wiring: Exported route setup function, consumed by Express app and orchestrator
+ */
 // Feature: Agent | Why: POST /agent/analyze — core LLM decision route for DOM map analysis
 import { Express } from 'express';
 import { applyCorsHeaders } from './proxy-route.utils';

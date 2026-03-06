@@ -1,3 +1,11 @@
+/**
+ * Sentient File Header
+ * Why: Deep research pipeline endpoints for Sentient AI Browser
+ * Filepath: functions/src/proxy-routes-research.ts
+ * Description: Handles async research pipeline, polling, and reporting
+ * Trace: Used by proxy server, orchestrator, and browser sync modules
+ * Wiring: Exported setupDeepResearchRoutes function, consumed by Express app and orchestrator
+ */
 // Feature: Deep Research | Why: Isolated from browser proxy routes — clear feature boundary.
 // Async Plan→Execute→Synthesize research pipeline with SSE-style polling.
 import * as path from 'path';

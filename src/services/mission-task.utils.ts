@@ -1,3 +1,11 @@
+/**
+ * Sentient File Header
+ * Why: Mission task utilities for Sentient AI Browser
+ * Filepath: src/services/mission-task.utils.ts
+ * Description: Provides mission task interfaces and status update logic for Firestore
+ * Trace: Used by mission planner, workflow, and orchestrator modules
+ * Wiring: Exported functions, consumed by mission features and orchestrator
+ */
 // Feature: Missions | Trace: README.md
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../features/auth/firebase-config';

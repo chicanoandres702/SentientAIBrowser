@@ -1,3 +1,4 @@
+// Feature: GitHub Agent | Trace: .github/agent/github-agent.js
 // GitHub API Agent
 const { execSync } = require('child_process');
 // Use global fetch in Node.js v24+

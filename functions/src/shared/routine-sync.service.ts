@@ -1,3 +1,11 @@
+/**
+ * Sentient File Header
+ * Why: Routine sync service for Sentient AI Browser
+ * Filepath: functions/src/shared/routine-sync.service.ts
+ * Description: Syncs routines to Firestore and listens for updates
+ * Trace: Used by backend, orchestrator, and routine modules
+ * Wiring: Exported functions, consumed by backend and orchestrator
+ */
 // Feature: Routines | Trace: src/utils/browser-sync-service.ts
 import { db } from '../auth/firebase-config';
 import { sanitizeForCloud } from './safe-cloud.utils';

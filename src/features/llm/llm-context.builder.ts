@@ -62,7 +62,8 @@ export const buildGeminiPromptWithMemoryContext = async (
         return `SYSTEM INSTRUCTION - DOMAIN CONTEXT:\n${memoryContextString}\nCURRENT OBJECTIVE:\n${basePrompt}`;
 
     } catch (e) {
-        console.error("Failed to inject memory context:", e);
+        const sentientLogger = require('../../core/sentientLogger');
+        sentientLogger.error(__filename, "Failed to inject memory context:", e);
         return basePrompt;
     }
 };

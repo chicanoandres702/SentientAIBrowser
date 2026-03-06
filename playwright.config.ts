@@ -1,3 +1,4 @@
+// Feature: Playwright Config | Trace: playwright.config.ts
 import { defineConfig, devices } from '@playwright/test';
 
 export default defineConfig({

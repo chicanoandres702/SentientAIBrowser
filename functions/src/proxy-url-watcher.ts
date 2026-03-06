@@ -1,3 +1,11 @@
+/**
+ * Sentient File Header
+ * Why: Real-time URL watcher for Sentient AI Browser
+ * Filepath: functions/src/proxy-url-watcher.ts
+ * Description: Syncs address-bar changes to Firestore and broadcasts via WebSocket
+ * Trace: Used by backend, orchestrator, and browser sync modules
+ * Wiring: Exported function, consumed by backend and orchestrator
+ */
 // Feature: Navigation | Why: Real-time URL watcher — every address-bar change hits Firestore
 // immediately via Playwright's CDP WebSocket bridge, including SPA pushState/replaceState.
 /*

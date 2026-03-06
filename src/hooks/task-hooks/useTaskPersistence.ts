@@ -33,8 +33,8 @@ export const useTaskPersistence = (
                     // Why: guard — skip empty snapshots to prevent locally-added tasks
                     // (write not yet round-tripped) from being wiped by the echo
                     if (cloudTasks.length === 0) { console.debug('[TaskPersist] ⏸️  skip empty snapshot — keeping prev'); return prev; }
-                    const prevById = new Map(prev.map((t: TaskItem) => [t.id, t]));
-                    const cloudIds = new Set(cloudTasks.map((t: TaskItem) => t.id));
+                    const prevById = new Map((Array.isArray(prev) ? prev : []).map((t: TaskItem) => [t.id, t]));
+                    const cloudIds = new Set((Array.isArray(cloudTasks) ? cloudTasks : []).map((t: TaskItem) => t.id));
                     // Why: union merge — cloud is authoritative; also keep local-only tasks
                     // that haven't synced yet so they aren't dropped by a snapshot echo
                     const merged: TaskItem[] = [

@@ -1,3 +1,11 @@
+/**
+ * Sentient File Header
+ * Why: Deep research agent types for Sentient AI Browser
+ * Filepath: functions/src/features/deep-research/deep-research.types.ts
+ * Description: Type definitions for deep research agent, state, and pipeline
+ * Trace: Used by proxy server, orchestrator, and browser sync modules
+ * Wiring: Exported types/interfaces, consumed by deep-research-agent and backend routes
+ */
 // Feature: Deep Research Agent | Trace: deep-research-agent.ts
 export type TaskStatus = 'pending' | 'in_progress' | 'completed' | 'failed';
 

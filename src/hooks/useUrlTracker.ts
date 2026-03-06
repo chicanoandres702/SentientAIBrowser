@@ -24,23 +24,24 @@ export const useUrlTracker = (activeUrl: string, workflowIds: string[], sessionA
                 activeUrl.includes('not-a-fit');
 
             if (isSuccess) {
-                console.log(`[useUrlTracker] Success detected! Updating ${sessionAnswerIds.length} memory entries...`);
+                const traceGate = require('../core/traceGate');
+                traceGate(__filename, `[useUrlTracker] Success detected! Updating ${sessionAnswerIds.length} memory entries...`);
                 try {
                     await recordSuccessWeight(sessionAnswerIds);
                 } catch (e) {
-                    console.error("Failed to update success weight:", e);
+                    traceGate(__filename, "Failed to update success weight:", e);
                 }
             }
 
             if (isDisqualified) {
-                console.log(`[useUrlTracker] Disqualification detected. Penalizing ${sessionAnswerIds.length} memory entries...`);
+                traceGate(__filename, `[useUrlTracker] Disqualification detected. Penalizing ${sessionAnswerIds.length} memory entries...`);
                 try {
                     // Penalyze all answers in the session as they led to failure
                     for (const id of sessionAnswerIds) {
                         await recordDisqualificationPenalty(id);
                     }
                 } catch (e) {
-                    console.error("Failed to update penalty weight:", e);
+                    traceGate(__filename, "Failed to update penalty weight:", e);
                 }
             }
         };

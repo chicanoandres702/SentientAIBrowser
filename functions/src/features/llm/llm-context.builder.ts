@@ -1,6 +1,15 @@
+/**
+ * Sentient File Header
+ * Why: LLM context builder for Sentient AI Browser
+ * Filepath: functions/src/features/llm/llm-context.builder.ts
+ * Description: Injects historical memory and domain context into LLM system instructions
+ * Trace: Used by proxy server, orchestrator, and browser sync modules
+ * Wiring: Exported buildGeminiPromptWithMemoryContext function, consumed by decision engine and planner
+ */
 // Feature: LLM | Trace: README.md
 import { getHighlyRatedAnswers, SurveyAnswer } from '../../shared/survey-memory-db';
 import { getAcademicContext, AcademicMemory } from '../../shared/academic-memory.service';
+import { sentientLogger } from '../../core/sentientLogger';
 
 /**
  * Intercepts the raw user prompt and injects historical memory from the 
@@ -62,7 +71,7 @@ export const buildGeminiPromptWithMemoryContext = async (
         return `SYSTEM INSTRUCTION - DOMAIN CONTEXT:\n${memoryContextString}\nCURRENT OBJECTIVE:\n${basePrompt}`;
 
     } catch (e) {
-        console.error("Failed to inject memory context:", e);
+        sentientLogger.error("Failed to inject memory context:", e);
         return basePrompt;
     }
 };

@@ -1,3 +1,4 @@
+// Feature: Notification Service | Trace: src/features/common/notification.service.ts
 /*
 AIDDE TRACE HEADER
 File: notification.service.ts

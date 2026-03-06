@@ -1,6 +1,14 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.listenToRoutines = exports.syncRoutineToFirestore = void 0;
+/**
+ * Sentient File Header
+ * Why: Routine sync service for Sentient AI Browser
+ * Filepath: functions/src/shared/routine-sync.service.ts
+ * Description: Syncs routines to Firestore and listens for updates
+ * Trace: Used by backend, orchestrator, and routine modules
+ * Wiring: Exported functions, consumed by backend and orchestrator
+ */
 // Feature: Routines | Trace: src/utils/browser-sync-service.ts
 const firebase_config_1 = require("../auth/firebase-config");
 const safe_cloud_utils_1 = require("./safe-cloud.utils");

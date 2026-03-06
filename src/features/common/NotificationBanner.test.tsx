@@ -1,3 +1,4 @@
+// Feature: NotificationBanner Test | Trace: src/features/common/NotificationBanner.test.tsx
 /*
 AIDDE TRACE HEADER
 Test: NotificationBanner

@@ -2,12 +2,21 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.STEP_DELAY_MS = void 0;
 exports.runMissionLoop = runMissionLoop;
+/**
+ * Sentient File Header
+ * Why: Self-driving mission loop for Sentient AI Browser backend
+ * Filepath: functions/src/backend-mission-loop.ts
+ * Description: Runs mission loop, drives processMissionStep until terminal state
+ * Trace: Used by backend, orchestrator, and mission executor modules
+ * Wiring: Exported function, consumed by backend and orchestrator
+ */
 // Feature: Mission Executor | Trace: src/features/agent/trace.md
 // Why: Isolated self-driving loop so BackendAIOrchestrator stays < 100 lines (100-Line Law).
 // The loop is the critical mechanism that lets missions run to completion without
 // the user's browser being open — it drives processMissionStep repeatedly until
 // the mission reaches a terminal state or the Firestore document is no longer active.
 const proxy_config_1 = require("./proxy-config");
+const sentientLogger_1 = require("./core/sentientLogger");
 const backend_mission_executor_1 = require("./backend-mission.executor");
 const github_tracer_service_1 = require("./features/github/github-tracer.service");
 /** Pause between consecutive LLM cycles — short enough to feel live, long enough to avoid rate-limit.
@@ -27,11 +36,11 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 async function runMissionLoop(missionId, goal, processingMissions) {
     var _a, _b;
     if (processingMissions.has(missionId)) {
-        console.log(`[MissionLoop] ${missionId} already running — skipping duplicate trigger.`);
+        sentientLogger_1.sentientLogger.trace(`[MissionLoop] ${missionId} already running — skipping duplicate trigger.`);
         return;
     }
     processingMissions.add(missionId);
-    console.log(`[MissionLoop] Starting loop for: ${goal}`);
+    sentientLogger_1.sentientLogger.trace(`[MissionLoop] Starting loop for: ${goal}`);
     // Why: Epic issue is the root of the §6 Issue Hierarchy tree for this mission.
     // If GitHub env vars are absent the tracer is a no-op — missions run unchanged.
     const epicNum = await (0, github_tracer_service_1.openMissionIssue)(missionId, goal);
@@ -43,7 +52,7 @@ async function runMissionLoop(missionId, goal, processingMissions) {
             iterations++;
             const res = await (0, backend_mission_executor_1.processMissionStep)(missionId);
             if (res === 'done') {
-                console.log(`[MissionLoop] ✅ Mission ${missionId} completed after ${iterations} cycles.`);
+                sentientLogger_1.sentientLogger.trace(`[MissionLoop] ✅ Mission ${missionId} completed after ${iterations} cycles.`);
                 if (epicNum)
                     await (0, github_tracer_service_1.closeMissionIssue)(epicNum, 'completed');
                 break;
@@ -54,7 +63,7 @@ async function runMissionLoop(missionId, goal, processingMissions) {
             // Check if user manually stopped the mission between cycles
             const snap = await proxy_config_1.db.collection('missions').doc(missionId).get();
             if (!snap.exists || ((_a = snap.data()) === null || _a === void 0 ? void 0 : _a.status) !== 'active') {
-                console.log(`[MissionLoop] ⏹ Mission ${missionId} stopped by user (status: ${(_b = snap.data()) === null || _b === void 0 ? void 0 : _b.status}).`);
+                sentientLogger_1.sentientLogger.trace(`[MissionLoop] ⏹ Mission ${missionId} stopped by user (status: ${(_b = snap.data()) === null || _b === void 0 ? void 0 : _b.status}).`);
                 break;
             }
             await sleep(exports.STEP_DELAY_MS);

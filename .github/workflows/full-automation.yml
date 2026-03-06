@@ -1,15 +1,14 @@
-=======================================================
 # [Parent Feature/Milestone] CI/CD Pipeline
 # [Child Task/Issue] Deploy — Sentient AI Browser
 # [Subtask] Unified deploy: web + functions + hosting + Cloud Run
 # [Upstream] GitHub push (main) -> [Downstream] Firebase + GCP Cloud Run
 # [Law Check] Config file — exempt from 100-line law
-# ============================================================
-name: 🚀 Deploy — Sentient AI Browser
+name: "🚀 Deploy — Sentient AI Browser"
 
 on:
   push:
-    branches: [main]
+    branches:
+      - feature-proxy
   workflow_dispatch:
     inputs:
       target:
@@ -23,7 +22,6 @@ on:
           - functions
           - cloudrun
 
-# Cancel in-progress runs on the same branch
 concurrency:
   group: deploy-${{ github.ref }}
   cancel-in-progress: true
@@ -31,29 +29,24 @@ concurrency:
 env:
   NODE_VERSION: "20"
   PROJECT_ID: sentient-ai-browser
+  GCR_IMAGE: "gcr.io/sentient-ai-browser/sentient-proxy"
+  GHCR_IMAGE: "ghcr.io/chicanoandres702/sentient-proxy"
 
-# ─────────────────────────────────────────────
-# JOB 1 — Build Expo Web → upload artifact
-# ─────────────────────────────────────────────
 jobs:
+
+
+
   build-web:
-    name: 🏗️ Build Web
+    name: "🏗️ Build Web"
     runs-on: ubuntu-latest
-    if: >
-      github.event_name == 'push' ||
-      github.event.inputs.target == 'all' ||
-      github.event.inputs.target == 'hosting'
+    if: github.event_name == 'push' || github.event.inputs.target == 'all' || github.event.inputs.target == 'hosting'
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: npm
-
       - name: Install root dependencies
         run: npm ci --ignore-scripts
-
       - name: Export Expo web app
         run: npx expo export --platform web
         env:
@@ -64,7 +57,6 @@ jobs:
           EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID:  ${{ secrets.EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID }}
           EXPO_PUBLIC_FIREBASE_APP_ID:               ${{ secrets.EXPO_PUBLIC_FIREBASE_APP_ID }}
           EXPO_PUBLIC_FIREBASE_MEASUREMENT_ID:       ${{ secrets.EXPO_PUBLIC_FIREBASE_MEASUREMENT_ID }}
-
       - name: Upload dist artifact
         uses: actions/upload-artifact@v4
         with:
@@ -148,7 +140,6 @@ jobs:
     name: 🔥 Deploy Firestore Rules
     runs-on: ubuntu-latest
     if: >
-      github.event_name == 'push' ||
       github.event.inputs.target == 'all' ||
       github.event.inputs.target == 'functions'
     steps:

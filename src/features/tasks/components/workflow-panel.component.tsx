@@ -8,16 +8,18 @@
  */
 
 import React, { useState, useRef, useEffect } from 'react';
-import { ScrollView, View, Text, TouchableOpacity } from 'react-native';
+import { ScrollView } from 'react-native';
 import type { TaskItem } from '@features/tasks';
 import type { AppTheme } from '../../../../App';
 import { uiColors } from '@features/ui/theme/ui.theme';
-import { SaveRoutineModal } from '../../../components/tasks/SaveRoutineModal';
-import { WorkflowTaskRow } from '../../../components/tasks/WorkflowTaskRow';
-import { ActiveMissionCard } from '@features/ui/components';
 import { TaskInputRow } from '@features/tasks';
 import { wp } from '../../../components/tasks/WorkflowPanel.styles';
 import { useWorkflowPanel } from '../../../components/tasks/workflow-panel.hook';
+import { WorkflowPanelHeader } from './WorkflowPanelHeader';
+import { WorkflowMissionSection } from './WorkflowMissionSection';
+import { WorkflowTaskListSection } from './WorkflowTaskListSection';
+import { WorkflowEmptyState } from './WorkflowEmptyState';
+import { WorkflowSaveRoutineModal } from './WorkflowSaveRoutineModal';
 
 interface Props {
   tasks: TaskItem[];
@@ -66,59 +68,41 @@ export const WorkflowPanel: React.FC<Props> = ({
 
   return (
     <ScrollView ref={scrollRef} contentContainerStyle={wp.scrollContent} showsVerticalScrollIndicator={false}>
-      <View style={wp.headerRow}>
-        <View>
-          <Text style={[wp.headerTitle, { color: accent }]}>TASKS</Text>
-          <Text style={wp.headerSub}>{isActive ? 'WORKFLOW ACTIVE' : 'STANDBY'}</Text>
-        </View>
-        {tasks.length > 0 && (
-          <TouchableOpacity onPress={clearTasks} style={wp.purgeBtn}>
-            <Text style={wp.purgeText}>PURGE</Text>
-          </TouchableOpacity>
-        )}
-      </View>
+      <WorkflowPanelHeader
+        accent={accent}
+        isActive={isActive}
+        clearTasks={clearTasks}
+        tasksLength={tasks.length}
+      />
       <TaskInputRow onAddTask={addTask} accent={accent} />
-      {mission && (
-        <ActiveMissionCard
-          mission={mission}
-          completedCount={completedCount}
-          total={total}
-          isActive={isActive}
-          isPaused={isPaused}
-          accent={accent}
-          barColor={barColor}
-          onCloseMission={onCloseMission}
-          onPause={onPause}
-          onResume={onResume}
-          onSave={() => setSaveModal({ goal: mission.title, tasks: taskList })}
-        />
-      )}
-      {taskList.length > 0 && (
-        <>
-          <Text style={wp.sectionLabel}>TASKS</Text>
-          {taskList.map((t) => (
-            <View key={t.id} onLayout={e => { yOffsets.current[t.id] = e.nativeEvent.layout.y; }}>
-              <WorkflowTaskRow item={t} accentColor={accent} removeTask={removeTask} />
-            </View>
-          ))}
-        </>
-      )}
-      {taskList.length === 0 && (
-        <View style={wp.emptyWrap}>
-          <Text style={wp.emptyIcon}>⚡</Text>
-          <Text style={wp.emptyText}>No tasks yet — add one above</Text>
-        </View>
-      )}
-      {saveModal && (
-        <SaveRoutineModal
-          visible
-          goal={saveModal.goal}
-          tasks={saveModal.tasks}
-          proxyBaseUrl={proxyBaseUrl}
-          accentColor={accent}
-          onClose={() => setSaveModal(null)}
-        />
-      )}
+      <WorkflowMissionSection
+        mission={mission}
+        completedCount={completedCount}
+        total={total}
+        isActive={isActive}
+        isPaused={isPaused}
+        accent={accent}
+        barColor={barColor}
+        onCloseMission={onCloseMission}
+        onPause={onPause}
+        onResume={onResume}
+        setSaveModal={setSaveModal}
+        taskList={taskList}
+      />
+      <WorkflowTaskListSection
+        taskList={taskList}
+        accent={accent}
+        removeTask={removeTask}
+        yOffsets={yOffsets}
+        activeTaskId={activeTaskId}
+      />
+      {taskList.length === 0 && <WorkflowEmptyState />}
+      <WorkflowSaveRoutineModal
+        saveModal={saveModal}
+        setSaveModal={setSaveModal}
+        proxyBaseUrl={proxyBaseUrl}
+        accent={accent}
+      />
     </ScrollView>
   );
 };

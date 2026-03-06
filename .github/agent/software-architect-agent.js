@@ -1,3 +1,4 @@
+// Feature: Software Architect Agent | Trace: .github/agent/software-architect-agent.js
 // Software Development Systems Architect Agent
 class SoftwareArchitectAgent {
   static designProjectStructure() {

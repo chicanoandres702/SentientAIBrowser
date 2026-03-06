@@ -1,9 +1,18 @@
+/**
+ * Sentient File Header
+ * Why: Self-driving mission loop for Sentient AI Browser backend
+ * Filepath: functions/src/backend-mission-loop.ts
+ * Description: Runs mission loop, drives processMissionStep until terminal state
+ * Trace: Used by backend, orchestrator, and mission executor modules
+ * Wiring: Exported function, consumed by backend and orchestrator
+ */
 // Feature: Mission Executor | Trace: src/features/agent/trace.md
 // Why: Isolated self-driving loop so BackendAIOrchestrator stays < 100 lines (100-Line Law).
 // The loop is the critical mechanism that lets missions run to completion without
 // the user's browser being open — it drives processMissionStep repeatedly until
 // the mission reaches a terminal state or the Firestore document is no longer active.
 import { db } from './proxy-config';
+import { sentientLogger } from './core/sentientLogger';
 import { processMissionStep } from './backend-mission.executor';
 import { openMissionIssue, openStepIssue, closeMissionIssue } from './features/github/github-tracer.service';
 
@@ -30,11 +39,11 @@ export async function runMissionLoop(
     processingMissions: Set<string>,
 ): Promise<void> {
     if (processingMissions.has(missionId)) {
-        console.log(`[MissionLoop] ${missionId} already running — skipping duplicate trigger.`);
+        sentientLogger.trace(`[MissionLoop] ${missionId} already running — skipping duplicate trigger.`);
         return;
     }
     processingMissions.add(missionId);
-    console.log(`[MissionLoop] Starting loop for: ${goal}`);
+    sentientLogger.trace(`[MissionLoop] Starting loop for: ${goal}`);
 
     // Why: Epic issue is the root of the §6 Issue Hierarchy tree for this mission.
     // If GitHub env vars are absent the tracer is a no-op — missions run unchanged.
@@ -49,7 +58,7 @@ export async function runMissionLoop(
             const res = await processMissionStep(missionId);
 
             if (res === 'done') {
-                console.log(`[MissionLoop] ✅ Mission ${missionId} completed after ${iterations} cycles.`);
+                sentientLogger.trace(`[MissionLoop] ✅ Mission ${missionId} completed after ${iterations} cycles.`);
                 if (epicNum) await closeMissionIssue(epicNum, 'completed');
                 break;
             }
@@ -60,7 +69,7 @@ export async function runMissionLoop(
             // Check if user manually stopped the mission between cycles
             const snap = await db.collection('missions').doc(missionId).get();
             if (!snap.exists || snap.data()?.status !== 'active') {
-                console.log(`[MissionLoop] ⏹ Mission ${missionId} stopped by user (status: ${snap.data()?.status}).`);
+                sentientLogger.trace(`[MissionLoop] ⏹ Mission ${missionId} stopped by user (status: ${snap.data()?.status}).`);
                 break;
             }
 

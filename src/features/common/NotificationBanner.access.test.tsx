@@ -1,3 +1,4 @@
+// Feature: NotificationBanner Access Test | Trace: src/features/common/NotificationBanner.access.test.tsx
 /*
 AIDDE TRACE HEADER
 Test: NotificationBanner accessibility and mobile

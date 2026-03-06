@@ -7,7 +7,7 @@ type AppTheme = 'red' | 'blue';
 export const ThemeSelector = ({ current, onSelect }: { current: AppTheme; onSelect: (t: AppTheme) => void }) => {
     return (
         <View style={ts.themeRow}>
-            {(['red', 'blue'] as AppTheme[]).map(t => {
+            {(Array.isArray(themes) ? themes : ['red', 'blue']).map(t => {
                 const color = t === 'red' ? '#ff5c8a' : '#5aa8ff';
                 const active = current === t;
                 return (

@@ -45,7 +45,7 @@ export const BrowserTabs: React.FC<Props> = React.memo(({
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
 
                 {/* Per-tab pill */}
-                {tabs.map((tab) => (
+                {(Array.isArray(tabs) ? tabs : []).map((tab) => (
                     <TouchableOpacity
                         key={tab.id}
                         onPress={() => onSelectTab(tab.id)}

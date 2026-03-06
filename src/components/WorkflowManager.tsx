@@ -16,10 +16,11 @@ export const WorkflowManager: React.FC<Props> = ({ onSelectWorkflow, theme }) =>
         { id: '2', name: 'Google: Login Template', description: 'Handles 2FA intervention.' },
     ];
 
+    const workflowsToRender = Array.isArray(savedWorkflows) ? savedWorkflows : [];
     return (
         <View style={styles.container}>
             <Text style={styles.header}>Saved Workflows</Text>
-            {savedWorkflows.map(wf => (
+            {(Array.isArray(workflowsToRender) ? workflowsToRender : []).map(wf => (
                 <TouchableOpacity
                     key={wf.id}
                     style={[

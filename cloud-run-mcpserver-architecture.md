@@ -1,19 +1,13 @@
 # Cloud Run MCPServer Architectural Rundown
 
-## Overview
-MCPServer is a Node.js-based Playwright proxy deployed on Google Cloud Run. It exposes WebSocket and HTTP endpoints for browser automation, workflow orchestration, and Chrome DevTools Protocol (CDP) tunneling.
-
 ---
 
 ## Service URLs
-- **Base URL:** `https://mcpserver-184717935920.us-central1.run.app`
-- **WebSocket Endpoint:** `wss://mcpserver-184717935920.us-central1.run.app/proxy/ws/<tabId>`
-- **CDP Proxy Endpoint:** `wss://mcpserver-184717935920.us-central1.run.app/cdp-proxy/<path>`
-- **REST API Endpoint:** `https://mcpserver-184717935920.us-central1.run.app/`
-
+- **Service Name:** `sentient-proxy`
+- **Region:** `us-central1`
+- **Base URL:** `https://sentient-proxy-184717935920.us-central1.run.app`
+- **WebSocket Endpoint:** `wss://sentient-proxy-184717935920.us-central1.run.app/proxy/ws/<tabId>`
 ---
-
-## API Endpoints
 
 ### 1. WebSocket: `/proxy/ws/<tabId>`
 - **Purpose:** Real-time browser automation, tab sync, workflow control.
@@ -50,66 +44,115 @@ MCPServer is a Node.js-based Playwright proxy deployed on Google Cloud Run. It e
   - `POST /workflow/run` → `{ workflowId, params }`
   - `GET /cdp/info` → `{ devtoolsUrl }`
 
----
-
-## Authentication
 - **Current:** `--allow-unauthenticated` (public access)
 - **Options:**
-  - Google IAM
-  - API keys
-  - OAuth2 tokens
 
 ---
 
-## Deployment & Scaling
-- **Platform:** Google Cloud Run (managed)
-- **Region:** `us-central1`
-- **Container Image:** `gcr.io/sentient-ai-browser/mcpserver`
-- **Dockerfile:** Located in `functions/Dockerfile`
-- **Entrypoint:** `node lib/proxy-server.js`
-- **Auto-scaling:** Cloud Run scales instances based on traffic.
 
----
+## FFmpeg Video Streaming (Comprehensive)
+MCPServer enables real-time video streaming of browser sessions using Playwright and FFmpeg. This feature supports live preview, recording, and remote monitoring for automation workflows.
 
-## Internal Architecture
-- **Express.js**: Handles HTTP routes and middleware (CORS, JSON parsing).
-- **WebSocket Server**: Handles `/proxy/ws/<tabId>` for tab sync and workflow control.
-- **CDP Proxy**: Tunnels WebSocket frames to Chrome DevTools running inside the container.
-- **Playwright**: Automates browser sessions, runs workflows, streams results.
-- **Orchestrator**: Manages workflow execution, status, and result reporting.
-- **Tab Sync Broker**: Pushes browser state (screenshots, URL, title) to clients.
-- **Notification Service**: Sends workflow status and AI decisions to UI clients.
+### How It Works
+- **Playwright** launches a browser session with video recording enabled.
+- **FFmpeg** processes the recorded video file and streams it as MPEG-TS over WebSocket.
+- **WebSocket endpoint** (`/proxy/ws/<tabId>`) delivers binary video frames to the client.
+- **REST API** can be used to initiate, control, or stop the stream.
 
----
+### Server-Side Implementation (TypeScript)
+Key logic from `shared/screenshotStream.service.ts`:
+```typescript
+import { Page } from 'playwright';
+import WebSocket from 'ws';
 
-## Example Node.js Client
+export class ScreenshotStreamService {
+  private ws: WebSocket;
+  constructor(wsUrl: string) {
+    this.ws = new WebSocket(wsUrl);
+  }
+  async streamVideo(page: Page, durationMs = 10000) {
+    const { spawn } = require('child_process');
+    let videoPath = '';
+    if (page.video) {
+      const video = page.video();
+      if (video && typeof video.path === 'function') {
+        videoPath = await video.path();
+      }
+    }
+    if (!videoPath) throw new Error('Video path not available.');
+    const ffmpeg = spawn('ffmpeg', [
+      '-re', '-i', videoPath,
+      '-f', 'mpegts', '-codec:v', 'mpeg1video', '-b:v', '800k', '-r', '30', '-'
+    ], { stdio: ['ignore', 'pipe', 'ignore'] });
+    ffmpeg.stdout.on('data', (chunk: Buffer) => {
+      if (this.ws.readyState === WebSocket.OPEN) {
+        this.ws.send(chunk);
+      }
+    });
+  }
+}
+```
+
+### Client-Side Example (Node.js)
+Connect and receive video frames:
 ```js
 const WebSocket = require('ws');
-const wsUrl = 'wss://mcpserver-184717935920.us-central1.run.app/proxy/ws/myTabId';
-const ws = new WebSocket(wsUrl);
+const ws = new WebSocket('wss://sentient-proxy-184717935920.us-central1.run.app/proxy/ws/myTabId');
 ws.on('open', () => {
   ws.send(JSON.stringify({
-    action: 'runWorkflow',
-    workflowId: '123',
-    params: { url: 'https://example.com' }
+    action: 'startVideoStream',
+    tabId: 'myTabId',
+    options: { format: 'mpegts', resolution: '1280x720' }
   }));
 });
 ws.on('message', (data) => {
-  const msg = JSON.parse(data);
-  console.log('Received:', msg);
+  if (Buffer.isBuffer(data)) {
+    // Save, decode, or forward MPEG-TS video frames
+  } else {
+    // Handle JSON status messages
+    console.log('Status:', data.toString());
+  }
 });
 ```
 
----
+### WebSocket Message Format
+- **Start streaming:**
+  ```json
+  {
+    "action": "startVideoStream",
+    "tabId": "myTabId",
+    "options": {
+      "format": "mpegts",
+      "resolution": "1280x720"
+    }
+  }
+  ```
+- **Status/Errors:**
+  ```json
+  { "status": "starting video stream", "info": "Preparing video recording..." }
+  { "status": "ffmpeg started", "info": "Streaming video..." }
+  { "status": "video stream ended", "code": 0 }
+  { "status": "error", "info": "Video path not available." }
+  ```
 
-## Security & Monitoring
-- **IAM & API keys**: Recommended for production.
-- **Logs & Metrics**: Available in Google Cloud Console.
-- **Health Checks**: Use `/health` endpoint for status.
+### Integration Steps
+1. Launch Playwright browser with video recording enabled (`recordVideo` context option).
+2. Connect to the WebSocket endpoint with your tab/session ID.
+3. Send a `startVideoStream` action message.
+4. Receive binary MPEG-TS frames and process them (save, decode, or forward to a player).
+5. Monitor status/error messages for stream lifecycle events.
+6. Optionally, use REST API to stop or manage the stream.
 
----
+### Advanced Usage
+- For browser playback, use a `<video>` element with a MediaSource extension or a player supporting MPEG-TS.
+- For saving, write binary frames to a `.ts` file and play with VLC or ffplay.
+- For custom workflows, see `shared/screenshotStream.service.ts` for more streaming options.
 
-## Integration Notes
+### Notes
+- FFmpeg must be installed and available in the container (see Dockerfile).
+- Video streaming requires sufficient bandwidth and client-side decoding.
+- Error/status messages are sent as JSON; video frames as binary.
+
 - Use the WebSocket endpoint for real-time automation and tab sync.
 - Use REST endpoints for workflow management and health checks.
 - Use CDP proxy for remote browser inspection and debugging.

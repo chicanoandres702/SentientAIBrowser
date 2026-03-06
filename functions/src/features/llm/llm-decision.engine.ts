@@ -1,9 +1,18 @@
+/**
+ * Sentient File Header
+ * Why: LLM decision engine for Sentient AI Browser
+ * Filepath: functions/src/features/llm/llm-decision.engine.ts
+ * Description: Sends ARIA snapshot and prompt to Gemini, returns next atomic action chain
+ * Trace: Used by proxy server, orchestrator, and browser sync modules
+ * Wiring: Exported determineNextAction function, consumed by mission planner and backend routes
+ */
 // Feature: LLM | Why: Sends ARIA snapshot + prompt to Gemini and returns the next atomic action chain
 import { buildGeminiPromptWithMemoryContext } from './llm-context.builder';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { getLessonsLearned } from './llm-memory-service';
 import { getRelevantContext, KnowledgeContext } from './knowledge-hierarchy.service';
 import { DECISION_SYSTEM_INSTRUCTION } from './llm-decision-prompt';
+import { sentientLogger } from '../../core/sentientLogger';
 
 export interface MissionStep {
   action: 'click' | 'type' | 'navigate' | 'wait' | 'done' | 'wait_for_user' | 'ask_user' | 'record_knowledge' | 'lookup_documentation' | 'upload_file';
@@ -33,11 +42,11 @@ export const determineNextAction = async (
   apiKeyOverride?: string,
 ): Promise<MissionResponse | null> => {
   if (!apiKeyOverride) {
-    console.error('[LLM] ❌ STAGE 3 FAIL — Runtime Gemini API key required. Must be provided in request header (x-gemini-api-key). Set key in Settings > LLM OVERRIDE.');
+    sentientLogger.error('[LLM] ❌ STAGE 3 FAIL — Runtime Gemini API key required. Must be provided in request header (x-gemini-api-key). Set key in Settings > LLM OVERRIDE.');
     return null;
   }
 
-  console.log('Sending page state to LLM. Domain:', domain, 'Scholar:', isScholarMode, 'ARIA:', !!ariaSnapshot, 'DOM:', domMap.length);
+  sentientLogger.trace('Sending page state to LLM. Domain:', domain, 'Scholar:', isScholarMode, 'ARIA:', !!ariaSnapshot, 'DOM:', domMap.length);
 
   const lessons = await getLessonsLearned(userId || 'anonymous', prompt);
   const relevantContext = context ? await getRelevantContext(userId || 'anonymous', context) : '';
@@ -58,7 +67,7 @@ ${pageContext}
 `;
 
   try {
-    console.log(`[LLM] ✅ STAGE 3 — using runtime key (${apiKeyOverride.substring(0, 8)}...), calling gemini-2.5-flash`);
+    sentientLogger.trace(`[LLM] ✅ STAGE 3 — using runtime key (${apiKeyOverride.substring(0, 8)}...), calling gemini-2.5-flash`);
     const genAI = new GoogleGenerativeAI(apiKeyOverride);
     const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
     const parts: any[] = [{ text: DECISION_SYSTEM_INSTRUCTION + '\n\n' + userPayload }];
@@ -70,7 +79,7 @@ ${pageContext}
 
     const result = await model.generateContent(parts);
     const llmResponseText = result.response.text();
-    if (!llmResponseText) { console.error('[LLM] ❌ STAGE 3 FAIL — empty response from Gemini'); return null; }
+    if (!llmResponseText) { sentientLogger.error('[LLM] ❌ STAGE 3 FAIL — empty response from Gemini'); return null; }
 
     const cleanedText = llmResponseText.replace(/```json|```/g, '').trim();
     const parsed: MissionResponse = JSON.parse(cleanedText);
@@ -78,10 +87,10 @@ ${pageContext}
     parsed.meta.memoryUsed = cleanedText.toLowerCase().includes('memory') || cleanedText.toLowerCase().includes('historical');
     parsed.meta.intelligenceRating = parsed.meta.memoryUsed ? 95 : 65;
 
-    console.log(`[LLM] ✅ STAGE 3 DONE — plan: "${parsed.execution.plan}" | steps: ${parsed.execution.segments.flatMap(s=>s.steps).length}`);
+    sentientLogger.trace(`[LLM] ✅ STAGE 3 DONE — plan: "${parsed.execution.plan}" | steps: ${parsed.execution.segments.flatMap(s=>s.steps).length}`);
     return parsed;
   } catch (error: any) {
-    console.error(`[LLM] ❌ STAGE 3 FAIL — Gemini error: ${error?.status ?? ''} ${error?.message ?? error}`);
+    sentientLogger.error(`[LLM] ❌ STAGE 3 FAIL — Gemini error: ${error?.status ?? ''} ${error?.message ?? error}`);
     return null;
   }
 };

@@ -2,6 +2,7 @@
 import { DeepResearchState, NextNode } from './deep-research.types';
 import { savePlanToMarkdown, saveResultsToJson } from './deep-research.persistence';
 import { searchWithLLM } from './deep-research.llm';
+import { sentientLogger } from '../../core/sentientLogger';
 
 class Semaphore {
     private queue: Array<() => void> = [];
@@ -31,7 +32,7 @@ export const shouldContinue = (state: DeepResearchState): NextNode => {
 export const researchExecutionNode = async (state: DeepResearchState): Promise<DeepResearchState> => {
     const cat = state.research_plan[state.current_category_index], task = cat?.tasks[state.current_task_index];
     if (!task) return advanceIndices(state);
-    console.log(`[DeepResearch] Executing: [${cat.category_name}] ${task.task_description}`);
+    sentientLogger.trace(`[DeepResearch] Executing: [${cat.category_name}] ${task.task_description}`);
     task.status = 'in_progress';
 
     const sem = new Semaphore(state.max_parallel_searches);

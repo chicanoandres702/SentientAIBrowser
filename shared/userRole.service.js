@@ -1,3 +1,4 @@
+// Feature: User Role Service | Trace: shared/userRole.service.js
 /*
 AIDDE TRACE HEADER
 File: userRole.service.js

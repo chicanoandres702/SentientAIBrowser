@@ -1,3 +1,11 @@
+/**
+ * Sentient File Header
+ * Why: LLM mission planning endpoint for Sentient AI Browser
+ * Filepath: functions/src/proxy-routes-plan.ts
+ * Description: Handles POST /agent/plan, aligns UI and backend mission planning
+ * Trace: Used by proxy server, orchestrator, and browser sync modules
+ * Wiring: Exported setupPlanRoute function, consumed by Express app and orchestrator
+ */
 // Feature: LLM Plan Route | Trace: README.md
 import { Express } from 'express';
 import { getPersistentPage } from './proxy-page-handler';

@@ -4,6 +4,14 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.sentientProxy = void 0;
+/**
+ * Sentient File Header
+ * Why: Functions entrypoint for Sentient AI Browser
+ * Filepath: functions/src/index-app.ts
+ * Description: Firebase Functions entrypoint, sets up sentientProxy HTTP handler
+ * Trace: Used by backend, orchestrator, and CI/CD gates
+ * Wiring: Entrypoint, consumed by Firebase Functions and orchestrator
+ */
 // Feature: Functions Entry | Trace: README.md
 const https_1 = require("firebase-functions/v2/https");
 const express_1 = __importDefault(require("express"));

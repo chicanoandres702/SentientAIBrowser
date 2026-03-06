@@ -27,11 +27,12 @@ export const determineNextAction = async (
   domain?: string, lookedUpDocs: any[] = [], isScholarMode: boolean = false, context?: KnowledgeContext, runtimeGeminiApiKey?: string,
 ): Promise<MissionResponse | null> => {
   if (!runtimeGeminiApiKey) {
-    console.error('[LLM] Runtime Gemini API key required. Set key in Settings > LLM OVERRIDE.');
+    const sentientLogger = require('../../core/sentientLogger');
+    sentientLogger.error(__filename, '[LLM] Runtime Gemini API key required. Set key in Settings > LLM OVERRIDE.');
     return null;
   }
 
-  console.log('Sending DOM map to LLM. Domain:', domain, 'Scholar:', isScholarMode, 'Nodes:', domMap.length);
+  sentientLogger.trace(__filename, 'Sending DOM map to LLM. Domain:', domain, 'Scholar:', isScholarMode, 'Nodes:', domMap.length);
 
   const lessons = await getLessonsLearned(auth.currentUser?.uid || 'anonymous', prompt);
   const relevantContext = context ? await getRelevantContext(auth.currentUser?.uid || 'anonymous', context) : '';
@@ -66,10 +67,10 @@ ${JSON.stringify(domMap, null, 2)}
     parsed.meta.memoryUsed = cleanedText.toLowerCase().includes('memory') || cleanedText.toLowerCase().includes('historical');
     parsed.meta.intelligenceRating = parsed.meta.memoryUsed ? 95 : 65;
 
-    console.log('Atomic Chain Received:', parsed.execution.plan);
+    sentientLogger.trace(__filename, 'Atomic Chain Received:', parsed.execution.plan);
     return parsed;
   } catch (error) {
-    console.error('Failed to communicate with LLM:', error);
+    sentientLogger.error(__filename, 'Failed to communicate with LLM:', error);
     return null;
   }
 };

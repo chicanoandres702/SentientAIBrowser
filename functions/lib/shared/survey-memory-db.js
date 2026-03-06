@@ -1,6 +1,14 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.initSurveyDB = exports.recordDisqualificationPenalty = exports.recordSuccessWeight = exports.getHighlyRatedAnswers = exports.recordAnswer = void 0;
+/**
+ * Sentient File Header
+ * Why: Survey memory database for Sentient AI Browser
+ * Filepath: functions/src/shared/survey-memory-db.ts
+ * Description: Records and retrieves survey answers and success weights from Firestore
+ * Trace: Used by backend, orchestrator, and survey modules
+ * Wiring: Exported functions, consumed by backend and orchestrator
+ */
 // Feature: Survey Memory | Trace: README.md
 const firebase_utils_1 = require("./firebase.utils");
 const COLLECTION_NAME = 'survey_memory';

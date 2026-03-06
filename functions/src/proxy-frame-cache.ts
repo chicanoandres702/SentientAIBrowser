@@ -1,3 +1,11 @@
+/**
+ * Sentient File Header
+ * Why: Frame cache for Sentient AI Browser
+ * Filepath: functions/src/proxy-frame-cache.ts
+ * Description: Shared cache for tab screenshot frames, prevents concurrent calls
+ * Trace: Used by broker, capture service, and SSE stream
+ * Wiring: Exported cache and helpers, consumed by broker and capture modules
+ */
 // Feature: Frame Cache | Trace: README.md
 // Why: shared frame cache prevents concurrent page.screenshot() calls from stacking and hanging.
 // getCachedFrame / setCachedFrame are the single-writer, multi-reader API consumed by the broker

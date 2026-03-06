@@ -10,8 +10,15 @@ const OWNER_REPO = 'chicanoandres702/SentientAIBrowser';
 function loadTasks() {
     const source = fs.existsSync(TASKS_FILE) ? TASKS_FILE : VSCODE_TASKS_FILE;
     if (!fs.existsSync(source)) return [];
-    const raw = JSON.parse(fs.readFileSync(source, 'utf8'));
+    let raw;
+    try {
+        raw = JSON.parse(fs.readFileSync(source, 'utf8'));
+    } catch (e) {
+        console.warn(`[GH-Sync] Could not parse tasks file: ${e.message}`);
+        return [];
+    }
     const items = Array.isArray(raw) ? raw : (Array.isArray(raw?.tasks) ? raw.tasks : []);
+    if (!Array.isArray(items)) return [];
     return items.map((t, idx) => ({
         id: t.id || `${idx + 1}`,
         title: t.title || t.label || `Task ${idx + 1}`,

@@ -1,3 +1,11 @@
+/**
+ * Sentient File Header
+ * Why: Direct navigation endpoint for Sentient AI Browser
+ * Filepath: functions/src/proxy-routes-nav.ts
+ * Description: Handles POST /proxy/navigate, returns resolved URL after redirects
+ * Trace: Used by proxy server, orchestrator, and browser sync modules
+ * Wiring: Exported setupNavRoute function, consumed by Express app and orchestrator
+ */
 // Feature: Navigation | Why: Direct navigate endpoint — gives frontend redirect-aware results
 import { Express } from 'express';
 import { applyCorsHeaders, getUserIdFromReq } from './proxy-route.utils';

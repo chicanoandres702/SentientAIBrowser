@@ -1,3 +1,11 @@
+/**
+ * Sentient File Header
+ * Why: Navigation controller for Sentient AI Browser
+ * Filepath: functions/src/proxy-nav-controller.ts
+ * Description: Central navigation guard, mutex, and redirect tracking
+ * Trace: Used by backend, orchestrator, and page lifecycle modules
+ * Wiring: Exported helpers, consumed by backend and page handler
+ */
 // Feature: Navigation | Why: Central nav guard — mutex + redirect tracking prevents loop storms
 import { Page } from 'playwright';
 import { db } from './proxy-config';

@@ -46,7 +46,8 @@ export const loadUserSettings = async (userId: string): Promise<Partial<UserSett
       };
     }
   } catch (error) {
-    console.error('[Settings] Failed to load from Firestore:', error);
+    const traceGate = require('../../core/traceGate');
+    traceGate(__filename, '[Settings] Failed to load from Firestore:', error);
   }
 
   return {};
@@ -68,7 +69,7 @@ export const saveUserSetting = async (userId: string, key: keyof UserSettings, v
       await setDoc(docRef, updateData, { merge: true });
     }
   } catch (error) {
-    console.error('[Settings] Failed to save setting to Firestore:', error);
+    traceGate(__filename, '[Settings] Failed to save setting to Firestore:', error);
   }
 };
 
@@ -81,7 +82,7 @@ export const saveAllUserSettings = async (userId: string, settings: Partial<User
     const updateData = { ...settings, updated_at: Date.now() };
     await setDoc(docRef, updateData, { merge: true });
   } catch (error) {
-    console.error('[Settings] Failed to save all settings to Firestore:', error);
+    traceGate(__filename, '[Settings] Failed to save all settings to Firestore:', error);
   }
 };
 
@@ -106,7 +107,7 @@ export const subscribeToUserSettings = (userId: string, callback: (settings: Par
       }
     });
   } catch (error) {
-    console.error('[Settings] Failed to subscribe to settings:', error);
+    traceGate(__filename, '[Settings] Failed to subscribe to settings:', error);
     return () => {};
   }
 };

@@ -1,3 +1,4 @@
+// Feature: Workflow Step Navigator | Trace: src/features/workflow/WorkflowStepNavigator.tsx
 /*
 AIDDE TRACE HEADER
 File: WorkflowStepNavigator.tsx
@@ -20,7 +21,7 @@ interface WorkflowStepNavigatorProps {
 }
 
 export const WorkflowStepNavigator: React.FC<WorkflowStepNavigatorProps> = ({
-  steps,
+  steps = [],
   onStepChange,
   onStepModify,
   onReplan,
@@ -33,7 +34,7 @@ export const WorkflowStepNavigator: React.FC<WorkflowStepNavigatorProps> = ({
     <div style={{ padding: 24, background: '#f9f9f9', borderRadius: 8, boxShadow: '0 2px 12px rgba(0,0,0,0.07)', maxWidth: 480 }}>
       <h3>Workflow Steps</h3>
       <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
-        {steps.map(step => (
+        {(Array.isArray(steps) ? steps : []).map(step => (
           <button
             key={step.id}
             style={{

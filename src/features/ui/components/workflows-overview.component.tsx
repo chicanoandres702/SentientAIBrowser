@@ -40,7 +40,7 @@ export const WorkflowsOverview: React.FC<Props> = ({ tabs, onSelectTab, onCloseT
         <Text style={[s.headerCount, { color: accent }]}>{tabs.length} OPEN</Text>
       </View>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.grid}>
-        {tabs.filter(t => t.isActive).map((tab) => (
+        {(Array.isArray(tabs) ? tabs : []).filter(t => t.isActive).map((tab) => (
           <TouchableOpacity
             key={tab.id}
             style={[s.card, tab.isActive && s.activeCard, tab.isActive && { borderColor: accent + '50' }]}

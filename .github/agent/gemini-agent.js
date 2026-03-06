@@ -1,3 +1,4 @@
+// Feature: Gemini Agent | Trace: .github/agent/gemini-agent.js
 // Gemini Agent (Google Gemini LLM)
 class GeminiAgent {
   static async generateCode(prompt) {

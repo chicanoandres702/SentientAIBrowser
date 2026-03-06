@@ -77,7 +77,7 @@ export const getAIDomScannerScript = () => `
       // Debounce the scan to avoid spamming during heavy page loads
       if (window._scanTimeout) clearTimeout(window._scanTimeout);
       window._scanTimeout = setTimeout(() => {
-        console.log('DOM Watcher: Change detected, re-scanning...');
+        sentientLogger.trace('DOM Watcher: Change detected, re-scanning...');
         scanDOM();
       }, 1000); 
     });

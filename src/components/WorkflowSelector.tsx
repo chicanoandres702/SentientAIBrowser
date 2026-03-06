@@ -58,11 +58,12 @@ const styles = StyleSheet.create({
 
 export const WorkflowSelector: React.FC<Props> = ({ tabs, onSelectTab, onCloseTab, onNewTab, theme }) => {
   const colors = uiColors(theme);
+  const tabsToRender = Array.isArray(tabs) ? tabs : [];
   return (
-    <View style={[styles.container, { borderBottomColor: colors.border }]}>
+    <View style={[styles.container, { borderBottomColor: colors.border }]}> 
         <Text style={[styles.header, { color: colors.textDim }]}>WORKFLOW</Text>
       <ScrollView scrollEnabled showsVerticalScrollIndicator={false} contentContainerStyle={styles.workflowList}>
-        {tabs.map((tab) => (
+        {(Array.isArray(tabsToRender) ? tabsToRender : []).map((tab) => (
           <TouchableOpacity key={tab.id} style={[styles.workflowButton, tab.isActive && styles.workflowButtonActive, tab.isActive && { borderColor: colors.accent }]} onPress={() => onSelectTab(tab.id)} activeOpacity={0.7}>
             <View style={[styles.favicon, { backgroundColor: colors.accent + '15' }]}>
               <Text style={[styles.faviconText, { color: colors.accent }]}>{getInitial(tab.title, tab.url)}</Text>

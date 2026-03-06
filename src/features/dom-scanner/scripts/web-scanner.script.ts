@@ -95,7 +95,7 @@ export const getWebScannerScript = (): string => `
   var observer = new MutationObserver(function() {
     if (window._scanTimeout) clearTimeout(window._scanTimeout);
     window._scanTimeout = setTimeout(function() {
-      console.log('DOM Watcher: Change detected, re-scanning...');
+      sentientLogger.trace('DOM Watcher: Change detected, re-scanning...');
       scanDOM();
     }, 1000);
   });

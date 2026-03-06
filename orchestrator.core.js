@@ -51,11 +51,13 @@ function migrateFromMain(tasks) {
 }
 
 async function runOrchestration(tasks) {
-  ensureBranches(tasks);
-  migrateFromMain(tasks);
-  syncActiveTask(tasks);
-  try { require('./sync-gh-tree').sync(); }
+  await ensureBranches(tasks);
+  await migrateFromMain(tasks);
+  await syncActiveTask(tasks);
+  try { await require('./sync-gh-tree').sync(); }
   catch (e) { console.warn(`[Orchestrator] GH Tree Sync failed: ${e.message}`); }
 }
+
+module.exports = { runOrchestration };
 
 module.exports = { runOrchestration };

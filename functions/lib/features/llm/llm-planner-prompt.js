@@ -1,6 +1,14 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.buildMissionPlannerPrompt = void 0;
+/**
+ * Sentient File Header
+ * Why: LLM mission planner system prompt for Sentient AI Browser
+ * Filepath: functions/src/features/llm/llm-planner-prompt.ts
+ * Description: System prompt template for mission planning
+ * Trace: Used by proxy server, orchestrator, and browser sync modules
+ * Wiring: Exported buildMissionPlannerPrompt function, consumed by mission planner
+ */
 // Feature: LLM | Why: System prompt template for mission planning — keeps planner file focused
 const buildMissionPlannerPrompt = (schemaPrompt) => `You are an AI mission planner that decomposes user goals into clear, actionable tasks.
 ${schemaPrompt ? `\n${schemaPrompt}\n` : ''}

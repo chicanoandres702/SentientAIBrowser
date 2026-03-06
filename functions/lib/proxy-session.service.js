@@ -36,6 +36,14 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.sessionFilePath = sessionFilePath;
 exports.loadSession = loadSession;
 exports.saveSession = saveSession;
+/**
+ * Sentient File Header
+ * Why: Session service for Sentient AI Browser
+ * Filepath: functions/src/proxy-session.service.ts
+ * Description: 3-tier session persistence (memory, disk, Firestore)
+ * Trace: Used by backend, orchestrator, and page lifecycle modules
+ * Wiring: Exported helpers, consumed by backend and page handler
+ */
 // Feature: System Utilities | Trace: proxy-page-handler.ts
 // Why: 3-tier session persistence —
 //   Tier 1: in-memory Map  (zero I/O, per-container-instance request)

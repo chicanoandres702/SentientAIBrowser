@@ -12,12 +12,15 @@ import { ScrollView, View, Text, TouchableOpacity } from 'react-native';
 import type { TaskItem } from '../features/tasks';
 import type { AppTheme } from '../../App';
 import { uiColors } from '../features/ui/theme/ui.theme';
-import { SaveRoutineModal } from './tasks/SaveRoutineModal';
-import { WorkflowTaskRow } from './tasks/WorkflowTaskRow';
+import { WorkflowSaveRoutineModal } from './WorkflowSaveRoutineModal';
 import { ActiveMissionCard } from './ActiveMissionCard';
 import { TaskInputRow } from '@features/tasks';
 import { wp } from './tasks/WorkflowPanel.styles';
 import { useWorkflowPanel } from './tasks/workflow-panel.hook';
+import { WorkflowPanelHeader } from './WorkflowPanelHeader';
+import { WorkflowTaskList } from './WorkflowTaskList';
+import { WorkflowPanelEmpty } from './WorkflowPanelEmpty';
+import { taskOp, getExtendPlan } from './WorkflowPanelOps';
 
 interface Props {
   tasks: TaskItem[];
@@ -64,26 +67,12 @@ export const WorkflowPanel: React.FC<Props> = ({
     }
   }, [activeTaskId]);
 
-  // Why: fire-and-forget REST calls — status is immediately reflected via WS task_status events
-  const taskOp = (taskId: string, op: 'retry' | 'skip' | 'block-user') =>
-    proxyBaseUrl ? fetch(`${proxyBaseUrl}/proxy/tasks/${taskId}/${op}`, { method: 'POST' }).catch(() => {}) : undefined;
-  const onExtendPlan = mission && proxyBaseUrl
-    ? () => fetch(`${proxyBaseUrl}/proxy/replan`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ missionId: mission.id, tabId: activeTabId || 'default' }) }).catch(() => {})
-    : undefined;
+  // Use extracted ops
+  const onExtendPlan = getExtendPlan(mission, proxyBaseUrl, activeTabId);
 
   return (
     <ScrollView ref={scrollRef} contentContainerStyle={wp.scrollContent} showsVerticalScrollIndicator={false}>
-      <View style={wp.headerRow}>
-        <View>
-          <Text style={[wp.headerTitle, { color: accent }]}>TASKS</Text>
-          <Text style={wp.headerSub}>{isActive ? 'WORKFLOW ACTIVE' : 'STANDBY'}</Text>
-        </View>
-        {tasks.length > 0 && (
-          <TouchableOpacity onPress={clearTasks} style={wp.purgeBtn}>
-            <Text style={wp.purgeText}>PURGE</Text>
-          </TouchableOpacity>
-        )}
-      </View>
+      <WorkflowPanelHeader accent={accent} isActive={isActive} hasTasks={tasks.length > 0} clearTasks={clearTasks} />
       <TaskInputRow onAddTask={addTask} accent={accent} />
       {mission && (
         <ActiveMissionCard
@@ -102,36 +91,22 @@ export const WorkflowPanel: React.FC<Props> = ({
         />
       )}
       {taskList.length > 0 && (
-        <>
-          <Text style={wp.sectionLabel}>TASKS</Text>
-          {taskList.map((t) => (
-            <View key={t.id} onLayout={e => { yOffsets.current[t.id] = e.nativeEvent.layout.y; }}>
-              <WorkflowTaskRow
-                item={t} accentColor={accent} removeTask={removeTask}
-                onPlay={proxyBaseUrl ? (id) => taskOp(id, 'retry') : undefined}
-                onRetry={proxyBaseUrl ? (id) => taskOp(id, 'retry') : undefined}
-                onAllowMe={proxyBaseUrl ? (id) => taskOp(id, 'block-user') : undefined}
-              />
-            </View>
-          ))}
-        </>
-      )}
-      {taskList.length === 0 && (
-        <View style={wp.emptyWrap}>
-          <Text style={wp.emptyIcon}>⚡</Text>
-          <Text style={wp.emptyText}>No tasks yet — add one above</Text>
-        </View>
-      )}
-      {saveModal && (
-        <SaveRoutineModal
-          visible
-          goal={saveModal.goal}
-          tasks={saveModal.tasks}
+        <WorkflowTaskList
+          taskList={taskList}
+          accent={accent}
+          removeTask={removeTask}
           proxyBaseUrl={proxyBaseUrl}
-          accentColor={accent}
-          onClose={() => setSaveModal(null)}
+          yOffsets={yOffsets}
+          taskOp={taskOp}
         />
       )}
+      {taskList.length === 0 && <WorkflowPanelEmpty />}
+      <WorkflowSaveRoutineModal
+        saveModal={saveModal}
+        setSaveModal={setSaveModal}
+        proxyBaseUrl={proxyBaseUrl}
+        accent={accent}
+      />
     </ScrollView>
   );
 };

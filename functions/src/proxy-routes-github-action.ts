@@ -1,3 +1,11 @@
+/**
+ * Sentient File Header
+ * Why: GitHub Actions trigger endpoint for Sentient AI Browser
+ * Filepath: functions/src/proxy-routes-github-action.ts
+ * Description: Dispatches Playwright scrape workflow via GitHub repository_dispatch API
+ * Trace: Used by proxy server, orchestrator, and browser sync modules
+ * Wiring: Exported setupGithubActionRoute function, consumed by Express app and orchestrator
+ */
 // Feature: GitHub Actions Trigger | Trace: .github/workflows/playwright-scrape.yml
 // Why: Cloud Run endpoint that dispatches the on-demand Playwright scrape workflow.
 //      Android app POSTs here; this calls the GitHub repository_dispatch API and returns

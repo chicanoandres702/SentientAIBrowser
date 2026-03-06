@@ -60,7 +60,7 @@ export const FocusCardBody: React.FC<Props> = ({
         {subActions && subActions.length > 0 && (
             <View style={sx.subSection}>
                 <Text style={[m.caption, { color: accent, marginBottom: 8 }]}>SUB-ACTIONS</Text>
-                {subActions.map((sa: SubAction, idx: number) => (
+                {(Array.isArray(subActions) ? subActions : []).map((sa: SubAction, idx: number) => (
                     <View key={idx} style={sx.subRow}>
                         <View style={[sx.subDot, {
                             backgroundColor: sa.status === 'completed' ? BASE.success

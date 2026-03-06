@@ -1,4 +1,12 @@
 "use strict";
+/**
+ * Sentient File Header
+ * Why: Safe cloud utility for Sentient AI Browser
+ * Filepath: functions/src/shared/safe-cloud.utils.ts
+ * Description: Sanitizes data before sending to cloud database, redacts sensitive info
+ * Trace: Used by backend, orchestrator, and cloud modules
+ * Wiring: Exported function, consumed by backend and orchestrator
+ */
 // Feature: Core | Trace: README.md
 /**
  * Sanitizes data before it is sent to a cloud database (e.g., Firestore).

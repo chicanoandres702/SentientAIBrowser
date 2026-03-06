@@ -12,6 +12,7 @@ const GITHUB_API = 'https://api.github.com';
 const TOKEN = process.env.GITHUB_TOKEN;
 const OWNER = process.env.GITHUB_OWNER;
 const REPO = process.env.GITHUB_REPO;
+const sentientLogger_1 = require("../../core/sentientLogger");
 /** Why: All requests share the same auth headers and JSON handling. */
 async function gh(method, path, body) {
     if (!TOKEN || !OWNER || !REPO)
@@ -26,7 +27,7 @@ async function gh(method, path, body) {
         body: body ? JSON.stringify(body) : undefined,
     });
     if (!res.ok) {
-        console.warn(`[GitHubTracer] ${method} ${path} → ${res.status} ${res.statusText}`);
+        sentientLogger_1.sentientLogger.error(`[GitHubTracer] ${method} ${path} → ${res.status} ${res.statusText}`);
         return null;
     }
     return res.json();
@@ -49,7 +50,7 @@ async function openMissionIssue(missionId, goal) {
     });
     if (!(issue === null || issue === void 0 ? void 0 : issue.number))
         return null;
-    console.log(`[GitHubTracer] Epic issue #${issue.number} opened for mission ${missionId}`);
+    sentientLogger_1.sentientLogger.trace(`[GitHubTracer] Epic issue #${issue.number} opened for mission ${missionId}`);
     return issue.number;
 }
 /**
@@ -70,7 +71,7 @@ async function openStepIssue(missionId, stepNum, description, parentIssueNum) {
     // Branch: mission/<missionId>/step-<N>-<slug>-#<issueNum> (§8 Path Law)
     const branch = `mission/${missionId}/step-${stepNum}-${slugify(description)}-#${issue.number}`;
     await createBranch(branch);
-    console.log(`[GitHubTracer] Step #${issue.number} → branch: ${branch}`);
+    sentientLogger_1.sentientLogger.trace(`[GitHubTracer] Step #${issue.number} → branch: ${branch}`);
     return issue.number;
 }
 /**
@@ -82,7 +83,7 @@ async function closeMissionIssue(issueNum, status) {
         state: 'closed',
         state_reason: status === 'completed' ? 'completed' : 'not_planned',
     });
-    console.log(`[GitHubTracer] Closed Epic issue #${issueNum} as ${status}`);
+    sentientLogger_1.sentientLogger.trace(`[GitHubTracer] Closed Epic issue #${issueNum} as ${status}`);
 }
 /** createBranch: Branches off HEAD of main per §8 Parent Integrity rule.
  *  Why: 409 conflict means the branch already exists — log and continue rather than fail. */
@@ -91,11 +92,11 @@ async function createBranch(name) {
     const ref = await gh('GET', `/repos/${OWNER}/${REPO}/git/ref/heads/main`);
     const sha = (_a = ref === null || ref === void 0 ? void 0 : ref.object) === null || _a === void 0 ? void 0 : _a.sha;
     if (!sha) {
-        console.warn('[GitHubTracer] Could not resolve main branch SHA — skipping branch creation.');
+        sentientLogger_1.sentientLogger.error('[GitHubTracer] Could not resolve main branch SHA — skipping branch creation.');
         return;
     }
     const result = await gh('POST', `/repos/${OWNER}/${REPO}/git/refs`, { ref: `refs/heads/${name}`, sha });
     if (!result)
-        console.warn(`[GitHubTracer] Branch "${name}" may already exist or could not be created.`);
+        sentientLogger_1.sentientLogger.error(`[GitHubTracer] Branch "${name}" may already exist or could not be created.`);
 }
 //# sourceMappingURL=github-tracer.service.js.map

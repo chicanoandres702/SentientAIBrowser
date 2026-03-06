@@ -1,4 +1,12 @@
 "use strict";
+/**
+ * Sentient File Header
+ * Why: Environment utility for Sentient AI Browser
+ * Filepath: functions/src/shared/env.utils.ts
+ * Description: Identifies current environment and provides config for backend
+ * Trace: Used by backend, orchestrator, and core modules
+ * Wiring: Exported getEnvConfig function, consumed by backend and orchestrator
+ */
 // Feature: Core | Trace: README.md
 // Backend-compatible env utils (no react-native dependency)
 Object.defineProperty(exports, "__esModule", { value: true });

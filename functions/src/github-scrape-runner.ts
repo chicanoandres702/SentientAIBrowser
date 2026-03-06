@@ -1,3 +1,11 @@
+/**
+ * Sentient File Header
+ * Why: GitHub Actions scrape runner for Sentient AI Browser
+ * Filepath: functions/src/github-scrape-runner.ts
+ * Description: Standalone script for Playwright scraping, writes results to Firestore
+ * Trace: Used by CI/CD, Android app, and orchestrator
+ * Wiring: Standalone script, executed by GitHub Actions runner
+ */
 // Feature: GitHub Actions Scrape Runner | Trace: .github/workflows/playwright-scrape.yml
 // Why: Standalone script executed by the GitHub Actions runner. Reads SCRAPE_* env vars,
 //      launches Playwright headless Chromium, captures screenshot + title, and writes

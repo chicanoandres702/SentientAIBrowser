@@ -1,3 +1,11 @@
+/**
+ * Sentient File Header
+ * Why: Mission outcome sync service for Sentient AI Browser
+ * Filepath: functions/src/shared/outcome-sync.service.ts
+ * Description: Records and retrieves mission outcomes from Firestore
+ * Trace: Used by backend, orchestrator, and mission modules
+ * Wiring: Exported functions, consumed by backend and orchestrator
+ */
 // Feature: Outcomes | Trace: src/utils/browser-sync-service.ts
 import { db } from '../auth/firebase-config';
 import { sanitizeForCloud } from './safe-cloud.utils';

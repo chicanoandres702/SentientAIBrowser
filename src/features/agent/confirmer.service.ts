@@ -67,7 +67,7 @@ export const confirmAction = async (
         };
     } catch (e) {
         // On confirmer failure, allow the action — don't block on validation errors
-        console.warn('[Confirmer] Validation failed, allowing action:', e);
+        sentientLogger.error('[Confirmer] Validation failed, allowing action:', e);
         return { confirmed: true, reason: 'Confirmer unavailable — auto-approved' };
     }
 };

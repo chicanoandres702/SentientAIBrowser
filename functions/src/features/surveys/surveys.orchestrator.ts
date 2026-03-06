@@ -1,3 +1,4 @@
+import { sentientLogger } from '../../core/sentientLogger';
 // Feature: Surveys | Trace: src/features/surveys/trace.md
 import { SurveyData } from './types';
 import { parseSurveyNodes } from './surveys.utils';
@@ -8,13 +9,13 @@ export class SurveyOrchestrator {
      * rank them, and return the best option to click.
      */
     public static evaluateDashboard(domMap: any[]): SurveyData | null {
-        console.log("[SurveyOrchestrator] Evaluating Dashboard DOM...");
+        sentientLogger.trace("[SurveyOrchestrator] Evaluating Dashboard DOM...");
 
         // 1. Map raw nodes to typed SurveyData objects
         const availableSurveys = parseSurveyNodes(domMap);
 
         if (availableSurveys.length === 0) {
-            console.log("[SurveyOrchestrator] No valid surveys found on page.");
+            sentientLogger.trace("[SurveyOrchestrator] No valid surveys found on page.");
             return null;
         }
 
@@ -22,7 +23,7 @@ export class SurveyOrchestrator {
         availableSurveys.sort((a, b) => b.yieldRatio - a.yieldRatio);
 
         const bestSurvey = availableSurveys[0];
-        console.log(`[SurveyOrchestrator] Best Survey Found: ID ${bestSurvey.id} (${bestSurvey.rewardSB} SB / ${bestSurvey.timeMinutes} Min = ${bestSurvey.yieldRatio.toFixed(2)} Yield)`);
+        sentientLogger.trace(`[SurveyOrchestrator] Best Survey Found: ID ${bestSurvey.id} (${bestSurvey.rewardSB} SB / ${bestSurvey.timeMinutes} Min = ${bestSurvey.yieldRatio.toFixed(2)} Yield)`);
 
         return bestSurvey;
     }

@@ -1,3 +1,11 @@
+/**
+ * Sentient File Header
+ * Why: Injects a synthetic cursor dot for Playwright screenshots in Sentient AI Browser
+ * Filepath: functions/src/proxy-cursor.ts
+ * Description: Adds/moves a red cursor dot in the DOM for screenshot visibility
+ * Trace: Used by proxy server, orchestrator, and browser sync modules
+ * Wiring: Exported injectCursorAt function, consumed by proxy routes and orchestrator
+ */
 // Feature: Browser Proxy | Trace: functions/src/proxy-cursor.ts
 /*
  * [Parent Feature/Milestone] Browser Proxy

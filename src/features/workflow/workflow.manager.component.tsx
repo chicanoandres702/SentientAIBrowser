@@ -21,11 +21,13 @@ export const WorkflowManager: React.FC<Props> = ({ onSelectWorkflow, theme }) =>
     { id: '1', name: 'Swagbucks: Survey Sweeper', description: 'Background 24/7 survey hunter.' },
     { id: '2', name: 'Google: Login Template', description: 'Handles 2FA intervention.' },
   ];
+  // Guard for map
+  const workflowsToRender = Array.isArray(savedWorkflows) ? savedWorkflows : [];
 
   return (
     <View style={styles.container}>
       <Text style={styles.header}>Saved Workflows</Text>
-      {savedWorkflows.map((wf) => (
+        {(Array.isArray(workflowsToRender) ? workflowsToRender : []).map((wf) => (
         <TouchableOpacity
           key={wf.id}
           style={[

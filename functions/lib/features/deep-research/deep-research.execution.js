@@ -3,6 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.researchExecutionNode = exports.shouldContinue = exports.advanceIndices = void 0;
 const deep_research_persistence_1 = require("./deep-research.persistence");
 const deep_research_llm_1 = require("./deep-research.llm");
+const sentientLogger_1 = require("../../core/sentientLogger");
 class Semaphore {
     constructor(max) {
         this.max = max;
@@ -47,7 +48,7 @@ const researchExecutionNode = async (state) => {
     const cat = state.research_plan[state.current_category_index], task = cat === null || cat === void 0 ? void 0 : cat.tasks[state.current_task_index];
     if (!task)
         return (0, exports.advanceIndices)(state);
-    console.log(`[DeepResearch] Executing: [${cat.category_name}] ${task.task_description}`);
+    sentientLogger_1.sentientLogger.trace(`[DeepResearch] Executing: [${cat.category_name}] ${task.task_description}`);
     task.status = 'in_progress';
     const sem = new Semaphore(state.max_parallel_searches);
     const queries = task.queries.length ? task.queries : [task.task_description];

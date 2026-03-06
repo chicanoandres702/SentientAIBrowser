@@ -2,11 +2,12 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { View, Text, TextInput, TouchableOpacity } from 'react-native';
 import * as Animatable from 'react-native-animatable';
-import { TaskItem, TaskStatus, SubAction } from '../../features/tasks/types';
+import { TaskItem, TaskStatus } from '../../features/tasks/types';
 import { styles } from './TaskQueueUI.styles';
 import { TaskProgressBar } from '@features/tasks';
 import { getElapsedTime, getStatusBadge, taskItemLocalStyles as ls, subStyles } from './TaskItemView.styles';
 import { TaskActionRow } from './TaskActionRow';
+import { TaskSubActions } from './TaskSubActions';
 
 interface Props {
   item: TaskItem;
@@ -18,7 +19,6 @@ interface Props {
   onAllowMe?: (id: string) => void;
 }
 
-const SubActionIcon = ({ action }: { action: string }) => (<Text style={subStyles.actionIcon}>{{click:'🖱',type:'⌨',wait:'⏳',navigate:'🧭',scan_dom:'🔍',verify:'✅',interact:'👆',done:'🏁'}[action]||'▸'}</Text>);
 
 export const TaskItemView = React.memo(({ item, accentColor, removeTask, editTask, onPlay, onRetry, onAllowMe }: Props) => {
   const [isEditing, setIsEditing] = useState(false); const [editValue, setEditValue] = useState(item.title); const [expanded, setExpanded] = useState(false);
@@ -84,20 +84,7 @@ export const TaskItemView = React.memo(({ item, accentColor, removeTask, editTas
           </View>
         )}
         {expanded && hasSubActions && (
-          <View style={subStyles.subActionsContainer}>
-            {item.subActions!.map((sa: SubAction, idx: number) => {
-              const saDone = sa.status === 'completed';
-              return (
-                <View key={idx} style={[subStyles.subActionRow, saDone && subStyles.subActionDoneRow]}>
-                  <SubActionIcon action={sa.action} />
-                  <Text style={[subStyles.subActionText, saDone && subStyles.subActionDone]} numberOfLines={1}>
-                    {sa.explanation}
-                  </Text>
-                  {saDone && <Text style={{ fontSize: 8, color: '#00ffaa', marginLeft: 4 }}>✓</Text>}
-                </View>
-              );
-            })}
-          </View>
+          <TaskSubActions subActions={item.subActions!} />
         )}
         <TaskActionRow taskId={item.id} status={item.status} onPlay={onPlay} onRetry={onRetry} onAllowMe={onAllowMe} />
       </View>

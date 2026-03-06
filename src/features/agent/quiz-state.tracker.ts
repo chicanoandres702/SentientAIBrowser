@@ -91,7 +91,7 @@ export const saveQuizState = async (state: QuizState): Promise<void> => {
     try {
         await kvStore.setItem(STORAGE_KEY + state.formId, JSON.stringify(state));
     } catch (e) {
-        console.warn('[QuizState] Save failed:', e);
+        sentientLogger.error('[QuizState] Save failed:', e);
     }
 };
 

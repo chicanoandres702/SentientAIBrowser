@@ -1,3 +1,4 @@
+// Feature: E2E First Test | Trace: e2e/firstTest.e2e.js
 // e2e/firstTest.e2e.js
 
 describe('App Launch', () => {

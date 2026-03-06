@@ -28,14 +28,16 @@ export const WorkflowBar: React.FC<Props> = React.memo(({ workflows, onSelectWor
   const [editName, setEditName] = useState('');
   const startRename = (wf: Workflow) => { setEditingId(wf.id); setEditName(wf.name); };
   const commitRename = () => { if (editingId) onRenameWorkflow(editingId, editName); setEditingId(null); };
+  // Guard for workflows array
+  const workflowsToRender = Array.isArray(workflows) ? workflows : [];
   return (
-    <View style={[wbs.bar, { borderBottomColor: colors.border, backgroundColor: colors.bgSurface ?? colors.bg }]}>
+    <View style={[wbs.bar, { borderBottomColor: colors.border, backgroundColor: colors.bgSurface ?? colors.bg }]}> 
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={wbs.scroll}
       >
-        {workflows.map((wf) => (
+        {(Array.isArray(workflowsToRender) ? workflowsToRender : []).map((wf) => (
           <TouchableOpacity
             key={wf.id}
             style={[

@@ -1,3 +1,11 @@
+/**
+ * Sentient File Header
+ * Why: Firebase Admin config for Sentient AI Browser backend
+ * Filepath: functions/src/auth/firebase-config.ts
+ * Description: Initializes Firebase Admin SDK for backend functions and proxy logic
+ * Trace: Used by backend, orchestrator, and proxy modules
+ * Wiring: Exported db, auth, FieldValue for backend and orchestrator
+ */
 // Feature: Auth Config | Trace: README.md
 import * as admin from 'firebase-admin';
 

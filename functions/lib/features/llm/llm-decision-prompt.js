@@ -1,6 +1,14 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.DECISION_SYSTEM_INSTRUCTION = void 0;
+/**
+ * Sentient File Header
+ * Why: LLM decision system instruction for Sentient AI Browser
+ * Filepath: functions/src/features/llm/llm-decision-prompt.ts
+ * Description: System instruction template for decision engine
+ * Trace: Used by proxy server, orchestrator, and browser sync modules
+ * Wiring: Exported DECISION_SYSTEM_INSTRUCTION constant, consumed by decision engine
+ */
 // Feature: LLM | Why: System instruction for the decision engine — keeps engine file focused on API call
 exports.DECISION_SYSTEM_INSTRUCTION = `You are an advanced autonomous AI web browser agent.
 Your objective is to help the user complete tasks on the web efficiently and safely using ATOMIC CHAINS.

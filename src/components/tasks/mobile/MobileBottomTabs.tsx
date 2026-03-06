@@ -25,7 +25,7 @@ export const MobileBottomTabs: React.FC<Props> = ({
     activePage, setActivePage, accentColor, activeCount, completedCount,
 }) => (
     <View style={[s.container, m.shadow]}>
-        {TABS.map(tab => {
+        {(Array.isArray(TABS) ? TABS : []).map(tab => {
             const isActive = activePage === tab.page;
             const badge = tab.page === 'active' ? activeCount : tab.page === 'stats' ? completedCount : 0;
             return (

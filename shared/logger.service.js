@@ -1,3 +1,4 @@
+// Feature: Logger Service | Trace: shared/logger.service.js
 /*
 AIDDE TRACE HEADER
 File: logger.service.js

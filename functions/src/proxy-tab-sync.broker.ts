@@ -1,3 +1,11 @@
+/**
+ * Sentient File Header
+ * Why: Tab sync broker for Sentient AI Browser
+ * Filepath: functions/src/proxy-tab-sync.broker.ts
+ * Description: WebSocket hub, broadcast, and frame streaming for tab sync
+ * Trace: Used by backend, orchestrator, and browser sync modules
+ * Wiring: Exported functions/types, consumed by backend and orchestrator
+ */
 // Feature: Navigation + Remote Input | Trace: README.md
 /*
  * [Parent Feature/Milestone] Navigation + Remote Input

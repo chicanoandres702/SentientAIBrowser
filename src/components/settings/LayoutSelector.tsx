@@ -19,7 +19,7 @@ const OPTIONS: Array<{ mode: LayoutMode; label: string; sub: string; icon: strin
 
 export const LayoutSelector: React.FC<Props> = ({ current, onSelect, accent }) => (
     <View style={ls.group}>
-        {OPTIONS.map((o) => {
+        {(Array.isArray(OPTIONS) ? OPTIONS : []).map((o) => {
             const active = o.mode === current;
             return (
                 <TouchableOpacity key={o.mode} onPress={() => onSelect(o.mode)} style={[ls.option, active && { borderColor: `${accent}55`, backgroundColor: `${accent}14` }]}>

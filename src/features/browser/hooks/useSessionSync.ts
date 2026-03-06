@@ -15,7 +15,7 @@ export const useSessionSync = () => {
         // Hydrate on mount
         getSession(auth.currentUser.uid)
             .then(s => { if (s) setSession(s); })
-            .catch(e => console.error('Session hydration failed:', e));
+            .catch(e => sentientLogger.error('Session hydration failed:', e));
 
         // Real-time listener for cross-device updates
         const unsubscribe = listenToSession(auth.currentUser.uid, setSession);
@@ -28,7 +28,7 @@ export const useSessionSync = () => {
         if (!auth.currentUser) return;
         try {
             await syncSession(auth.currentUser.uid, data);
-        } catch (e) { console.error('Session persist failed:', e); }
+        } catch (e) { sentientLogger.error('Session persist failed:', e); }
     }, []);
 
     return { session, persistSession };

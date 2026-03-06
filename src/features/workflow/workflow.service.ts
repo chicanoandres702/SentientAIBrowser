@@ -13,7 +13,8 @@ export const syncNewTab = async (userId: string, tabs: TabItem[], newTab: TabIte
     try {
         await setDoc(doc(db, 'users', userId, 'tabs', newTab.id), newTab);
     } catch (err) {
-        console.error('[WorkflowService] syncNewTab failed:', err);
+        const traceGate = require('../../core/traceGate');
+        traceGate(__filename, '[WorkflowService] syncNewTab failed:', err);
     }
 };
 
@@ -21,7 +22,7 @@ export const syncCloseTab = async (userId: string, tabId: string): Promise<void>
     try {
         await deleteDoc(doc(db, 'users', userId, 'tabs', tabId));
     } catch (err) {
-        console.error('[WorkflowService] syncCloseTab failed:', err);
+        traceGate(__filename, '[WorkflowService] syncCloseTab failed:', err);
     }
 };
 
@@ -31,7 +32,7 @@ export const syncSelectTab = async (userId: string, tabs: TabItem[]): Promise<vo
             await updateDoc(doc(db, 'users', userId, 'tabs', tab.id), { isActive: tab.isActive });
         }
     } catch (err) {
-        console.error('[WorkflowService] syncSelectTab failed:', err);
+        traceGate(__filename, '[WorkflowService] syncSelectTab failed:', err);
     }
 };
 

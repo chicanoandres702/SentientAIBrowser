@@ -1,3 +1,12 @@
+import { sentientLogger } from '../../core/sentientLogger';
+/**
+ * Sentient File Header
+ * Why: LLM mission planner for Sentient AI Browser
+ * Filepath: functions/src/features/llm/llm-mission-planner.ts
+ * Description: Decomposes user prompts into actionable mission tasks via Gemini
+ * Trace: Used by proxy server, orchestrator, and browser sync modules
+ * Wiring: Exported planMissionWithLLM and generateLLMPlanResponse functions, consumed by backend routes
+ */
 // Feature: LLM Mission Planner | Why: Decomposes user prompts into actionable mission tasks via Gemini
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { buildMissionPlannerPrompt } from './llm-planner-prompt';
@@ -44,7 +53,7 @@ export const planMissionWithLLM = async (prompt: string, schemaPrompt?: string):
 
         return missionResponse;
     } catch (error) {
-        console.error('LLM Mission Planning failed:', error);
+        sentientLogger.error('LLM Mission Planning failed:', error);
         return buildFallbackMissionResponse();
     }
 };

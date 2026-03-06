@@ -49,7 +49,7 @@ export const transition = (
 ): boolean => {
     const allowed = TRANSITIONS[state.phase];
     if (!allowed.includes(to)) {
-        console.warn(`[StateMachine] Invalid transition: ${state.phase} → ${to}`);
+        sentientLogger.error(`[StateMachine] Invalid transition: ${state.phase} → ${to}`);
         return false;
     }
     state.previousPhase = state.phase;

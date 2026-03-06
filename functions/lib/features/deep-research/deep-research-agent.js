@@ -34,11 +34,20 @@ var __importStar = (this && this.__importStar) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.DeepResearchAgent = void 0;
+/**
+ * Sentient File Header
+ * Why: Deep research agent for Sentient AI Browser
+ * Filepath: functions/src/features/deep-research/deep-research-agent.ts
+ * Description: Orchestrates async research pipeline, planning, execution, and synthesis
+ * Trace: Used by proxy server, orchestrator, and browser sync modules
+ * Wiring: Exported DeepResearchAgent class, consumed by backend routes and research pipeline
+ */
 // Feature: Deep Research Agent | Trace: README.md
 const fs = __importStar(require("fs"));
 const deep_research_persistence_1 = require("./deep-research.persistence");
 const deep_research_planning_synthesis_1 = require("./deep-research.planning-synthesis");
 const deep_research_execution_1 = require("./deep-research.execution");
+const sentientLogger_1 = require("../../core/sentientLogger");
 class DeepResearchAgent {
     constructor(maxParallelSearches = 3) {
         this.maxParallelSearches = maxParallelSearches;
@@ -62,7 +71,7 @@ class DeepResearchAgent {
             max_parallel_searches: this.maxParallelSearches,
         };
         if (previous) {
-            console.log(`[DeepResearch] Resuming task ${taskId} from cat=${state.current_category_index} task=${state.current_task_index}`);
+            sentientLogger_1.sentientLogger.trace(`[DeepResearch] Resuming task ${taskId} from cat=${state.current_category_index} task=${state.current_task_index}`);
         }
         try {
             if (!state.research_plan.length)
@@ -83,7 +92,7 @@ class DeepResearchAgent {
             return { status: 'completed', report: state.final_report, outputDir, taskId };
         }
         catch (e) {
-            console.error(`[DeepResearch] Fatal error in task ${taskId}:`, e.message);
+            sentientLogger_1.sentientLogger.error(`[DeepResearch] Fatal error in task ${taskId}:`, e.message);
             return { status: 'failed', outputDir, taskId };
         }
     }

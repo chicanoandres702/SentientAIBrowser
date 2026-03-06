@@ -37,7 +37,7 @@ export const RoutineManager: React.FC<Props> = ({ theme, onLaunchRoutine, curren
                 steps: [currentGoal], createdAt: Date.now()
             });
             setNewName('');
-        } catch (e) { console.error("Failed to save routine", e); }
+        } catch (e) { sentientLogger.error("Failed to save routine", e); }
         finally { setSaving(false); }
     };
 

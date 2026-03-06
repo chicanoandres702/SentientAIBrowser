@@ -74,7 +74,7 @@ export class MissionTaskExecutor {
         this.currentlyExecuting = null;
       }
     } catch (e) {
-      console.error('[MissionTaskExecutor] Task execution failed:', e);
+      sentientLogger.error('[MissionTaskExecutor] Task execution failed:', e);
       await handleTaskError(missionId, task);
     } finally {
       this.currentlyExecuting = null;

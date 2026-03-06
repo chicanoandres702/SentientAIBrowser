@@ -1,5 +1,14 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+/**
+ * Sentient File Header
+ * Why: Backend orchestrator for Sentient AI Browser
+ * Filepath: functions/src/backend-ai-orchestrator.ts
+ * Description: Orchestrates backend mission execution, guards against parallel chaos
+ * Trace: Used by backend, orchestrator, and CI/CD gates
+ * Wiring: Exported class, consumed by backend and orchestrator
+ */
+// Feature: Backend Execution | Trace: functions/src/backend-ai-orchestrator.ts
 /*
  * [Parent Feature/Milestone] Backend Execution
  * [Child Task/Issue] fix: one active mission per user — no parallel executor chaos
@@ -8,6 +17,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
  */
 // Feature: Backend Orchestrator | Trace: README.md
 const proxy_config_1 = require("./proxy-config");
+const sentientLogger_1 = require("./core/sentientLogger");
 const backend_mission_loop_1 = require("./backend-mission-loop");
 class BackendAIOrchestrator {
     constructor() {
@@ -28,7 +38,7 @@ class BackendAIOrchestrator {
         if (this.isListening)
             return;
         this.isListening = true;
-        console.log('[Orchestrator] Starting Local AI Listener (Admin SDK Mode)...');
+        sentientLogger_1.sentientLogger.trace('[Orchestrator] Starting Local AI Listener (Admin SDK Mode)...');
         try {
             proxy_config_1.db.collection('missions').where('status', '==', 'active').onSnapshot((snapshot) => {
                 snapshot.docChanges().forEach((change) => {
@@ -40,7 +50,7 @@ class BackendAIOrchestrator {
                         const prev = this.latestMissionPerUser.get(userId);
                         if (prev && BackendAIOrchestrator.tsOf(prev) > BackendAIOrchestrator.tsOf(missionId)) {
                             // This 'added' is an OLDER stale mission; auto-abandon it
-                            console.log(`[Orchestrator] 🗑 Abandoning stale mission ${missionId} (newer: ${prev})`);
+                            sentientLogger_1.sentientLogger.trace(`[Orchestrator] 🗑 Abandoning stale mission ${missionId} (newer: ${prev})`);
                             proxy_config_1.db.collection('missions').doc(missionId)
                                 .update({ status: 'completed', lastAction: '⏹ Abandoned — superseded by newer mission' })
                                 .catch(() => { });
@@ -58,16 +68,16 @@ class BackendAIOrchestrator {
                     }
                 });
             }, (error) => {
-                console.warn('[Orchestrator] Firestore listener error (degrading gracefully):', error.message);
+                sentientLogger_1.sentientLogger.error('[Orchestrator] Firestore listener error (degrading gracefully):', error.message);
             });
         }
         catch (e) {
-            console.warn('[Orchestrator] Could not start Firestore listener:', e.message);
+            sentientLogger_1.sentientLogger.error('[Orchestrator] Could not start Firestore listener:', e.message);
         }
     }
     /** Thin wrapper that surfaces loop errors to the console without crashing the listener. */
     runLoop(missionId, data) {
-        (0, backend_mission_loop_1.runMissionLoop)(missionId, data.goal, this.processingMissions).catch((e) => console.error(`[Orchestrator] Loop error for ${missionId}:`, e.message));
+        (0, backend_mission_loop_1.runMissionLoop)(missionId, data.goal, this.processingMissions).catch((e) => sentientLogger_1.sentientLogger.error(`[Orchestrator] Loop error for ${missionId}:`, e.message));
     }
     /** processMission: Kept for backward compatibility. */
     async processMission(missionId, data) {

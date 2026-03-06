@@ -42,7 +42,7 @@ export const LayoutSwitcherInline: React.FC<Props> = ({ current, onSelect, accen
     // Desktop: inline pill strip
     return (
         <View style={s.strip}>
-            {LAYOUTS.map(l => {
+            {(Array.isArray(LAYOUTS) ? LAYOUTS : []).map(l => {
                 const isActive = l.mode === current;
                 return (
                     <TouchableOpacity

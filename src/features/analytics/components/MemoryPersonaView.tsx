@@ -21,7 +21,7 @@ export const MemoryPersonaView: React.FC<{ theme: any }> = ({ theme }) => {
             <View style={styles.header}><Text style={[styles.title, { color: theme.text }]}>SENTINEL IDENTITY</Text>
             <Text style={styles.subtitle}>HIGH-YIELD NEURAL WEIGHTS</Text></View>
             <ScrollView contentContainerStyle={styles.scrollContent}>
-                {items.map((item, i) => (
+                {(Array.isArray(items) ? items : []).map((item, i) => (
                     <Animatable.View key={item.id} animation="fadeInUp" delay={i * 50} style={[styles.item, { backgroundColor: 'rgba(255,255,255,0.03)', borderColor: theme.accent + '33' }]}>
                         <View style={styles.itemHeader}><Text style={[styles.weight, { color: theme.accent }]}>WEIGHT: +{item.success_weight}</Text>
                         <Text style={styles.timestamp}>{new Date(item.created_at?.seconds * 1000).toLocaleDateString()}</Text></View>

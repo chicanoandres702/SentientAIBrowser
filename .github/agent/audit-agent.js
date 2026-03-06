@@ -1,3 +1,4 @@
+// Feature: Audit Agent | Trace: .github/agent/audit-agent.js
 // Audit Agent
 class AuditAgent {
   static logAction(action, result) {

@@ -1,3 +1,4 @@
+// Feature: Refactor Agent | Trace: .github/agent/refactor-agent.js
 // Refactor Agent
 class RefactorAgent {
   static suggestRefactor(moduleName) {

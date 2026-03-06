@@ -1,3 +1,11 @@
+/**
+ * Sentient File Header
+ * Why: CDP/DevTools integration for Sentient AI Browser
+ * Filepath: functions/src/proxy-cdp.service.ts
+ * Description: Console log buffering and cookie helpers for Playwright DevTools features
+ * Trace: Used by proxy server, orchestrator, and backend modules
+ * Wiring: Exported functions, consumed by backend and orchestrator
+ */
 // Feature: CDP Bridge | Why: Console-log buffering + cookie helpers for DevTools features
 /*
  * [Parent Feature/Milestone] CDP / DevTools Integration

@@ -1,3 +1,4 @@
+// Feature: Workflow History Viewer Test | Trace: src/features/workflow/WorkflowHistoryViewer.test.tsx
 /*
 AIDDE TRACE HEADER
 Test: WorkflowHistoryViewer

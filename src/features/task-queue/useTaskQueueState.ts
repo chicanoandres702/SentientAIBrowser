@@ -23,13 +23,15 @@ export const useTaskQueueState = () => {
       if (!user) return;
       taskUnsubRef.current = listenToTasks(user.uid, (cloudTasks) => {
         setTasks((prev) => {
-          const prevById = new Map(prev.map((t) => [t.id, t]));
-          const merged = cloudTasks.map((ct) => {
+          const prevArr = Array.isArray(prev) ? prev : [];
+          const cloudArr = Array.isArray(cloudTasks) ? cloudTasks : [];
+          const prevById = new Map(prevArr.map((t) => [t.id, t]));
+          const merged = cloudArr.map((ct) => {
             const prevTask = prevById.get(ct.id);
             return prevTask && isTaskEquivalent(prevTask, ct) ? prevTask : ct;
           });
-          const sameOrderAndRefs = prev.length === merged.length && prev.every((t, i) => t === merged[i]);
-          return sameOrderAndRefs ? prev : merged;
+          const sameOrderAndRefs = prevArr.length === merged.length && prevArr.every((t, i) => t === merged[i]);
+          return sameOrderAndRefs ? prevArr : merged;
         });
       });
     });

@@ -1,3 +1,4 @@
+// Feature: Routine Picker Component | Trace: src/features/routines/components/routine-picker.component.tsx
 /*
  * [Parent Feature/Milestone] Routines
  * [Child Task/Issue] Saved workflow picker UI
