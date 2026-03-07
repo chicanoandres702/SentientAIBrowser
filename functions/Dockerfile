@@ -14,6 +14,8 @@ WORKDIR /app
 COPY --from=build /app/lib ./lib
 COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/package.json ./
+# Copy frontend build output
+COPY --from=build /app/dist ./dist
 
 # Ensure Chromium is installed for the exact Playwright version
 RUN npx playwright install chromium
