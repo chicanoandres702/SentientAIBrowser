@@ -1,10 +1,4 @@
-=======================================================
-# [Parent Feature/Milestone] CI/CD Pipeline
-# [Child Task/Issue] Deploy — Sentient AI Browser
-# [Subtask] Unified deploy: web + functions + hosting + Cloud Run
-# [Upstream] GitHub push (main) -> [Downstream] Firebase + GCP Cloud Run
-# [Law Check] Config file — exempt from 100-line law
-# ============================================================
+
 name: 🚀 Deploy — Sentient AI Browser
 
 on:
