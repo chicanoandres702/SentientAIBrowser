@@ -28,8 +28,6 @@ jobs:
           node-version: '20.x'
       - name: Download Android Default Icons
         run: |
-      - name: Download Android default launcher icons
-        run: |
            mkdir -p android/app/src/main/res/mipmap-hdpi \
            android/app/src/main/res/mipmap-mdpi \
            android/app/src/main/res/mipmap-xhdpi \
