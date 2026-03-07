@@ -26,31 +26,18 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: '20.x'
-      - name: Download Android Default Icons
-        run: |
-          mkdir -p app/src/main/res/mipmap-mdpi/
-          mkdir -p app/src/main/res/mipmap-hdpi/
-          mkdir -p app/src/main/res/mipmap-xhdpi/
-          mkdir -p app/src/main/res/mipmap-xxhdpi/
-          mkdir -p app/src/main/res/mipmap-xxxhdpi/
-          cp .github/icons/mipmap-mdpi/ic_launcher.png app/src/main/res/mipmap-mdpi/ic_launcher.png
-          cp .github/icons/mipmap-hdpi/ic_launcher.png app/src/main/res/mipmap-hdpi/ic_launcher.png
-          cp .github/icons/mipmap-xhdpi/ic_launcher.png app/src/main/res/mipmap-xhdpi/ic_launcher.png
-          cp .github/icons/mipmap-xxhdpi/ic_launcher.png app/src/main/res/mipmap-xxhdpi/ic_launcher.png
-          cp .github/icons/mipmap-xxxhdpi/ic_launcher.png app/src/main/res/mipmap-xxxhdpi/ic_launcher.png
-
-      - name: Copy adaptive icon XML files
-        run: |
-          mkdir -p app/src/main/res/mipmap-anydpi-v26/
-          cp .github/icons/mipmap-anydpi-v26/ic_launcher.xml app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml
-          cp .github/icons/mipmap-anydpi-v26/ic_launcher_foreground.xml app/src/main/res/mipmap-anydpi-v26/ic_launcher_foreground.xml
-          cp .github/icons/mipmap-anydpi-v26/ic_launcher_background.xml app/src/main/res/mipmap-anydpi-v26/ic_launcher_background.xml
-
-      - name: Copy icon drawables (optional)
-        run: |
-          mkdir -p app/src/main/res/drawable/
-          cp .github/icons/drawable/ic_launcher_foreground.png app/src/main/res/drawable/ic_launcher_foreground.png
-          cp .github/icons/drawable/ic_launcher_background.png app/src/main/res/drawable/ic_launcher_background.png
+  - name: Download Android Default Icons
+  run: |
+    mkdir -p app/src/main/res/mipmap-mdpi/
+    mkdir -p app/src/main/res/mipmap-hdpi/
+    mkdir -p app/src/main/res/mipmap-xhdpi/
+    mkdir -p app/src/main/res/mipmap-xxhdpi/
+    mkdir -p app/src/main/res/mipmap-xxxhdpi/
+    wget -O app/src/main/res/mipmap-mdpi/ic_launcher.png https://raw.githubusercontent.com/google/material-design-icons/master/android/app/src/main/res/mipmap-mdpi/ic_launcher.png
+    wget -O app/src/main/res/mipmap-hdpi/ic_launcher.png https://raw.githubusercontent.com/google/material-design-icons/master/android/app/src/main/res/mipmap-hdpi/ic_launcher.png
+    wget -O app/src/main/res/mipmap-xhdpi/ic_launcher.png https://raw.githubusercontent.com/google/material-design-icons/master/android/app/src/main/res/mipmap-xhdpi/ic_launcher.png
+    wget -O app/src/main/res/mipmap-xxhdpi/ic_launcher.png https://raw.githubusercontent.com/google/material-design-icons/master/android/app/src/main/res/mipmap-xxhdpi/ic_launcher.png
+    wget -O app/src/main/res/mipmap-xxxhdpi/ic_launcher.png https://raw.githubusercontent.com/google/material-design-icons/master/android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png
       - name: Print Node.js version
         run: |
           node --version
