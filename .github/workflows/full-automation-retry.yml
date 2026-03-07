@@ -26,6 +26,28 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: '20.x'
+      - name: Download Android Default Icons
+        run: |
+      - name: Download Android default launcher icons
+        run: |
+           mkdir -p android/app/src/main/res/mipmap-hdpi \
+           android/app/src/main/res/mipmap-mdpi \
+           android/app/src/main/res/mipmap-xhdpi \
+           android/app/src/main/res/mipmap-xxhdpi \
+           android/app/src/main/res/mipmap-xxxhdpi
+
+           wget -O android/app/src/main/res/mipmap-mdpi/ic_launcher.png https://github.com/google/material-design-icons/raw/master/launcher_icons/android/res/mipmap-mdpi/ic_launcher.png
+           wget -O android/app/src/main/res/mipmap-hdpi/ic_launcher.png https://github.com/google/material-design-icons/raw/master/launcher_icons/android/res/mipmap-hdpi/ic_launcher.png
+           wget -O android/app/src/main/res/mipmap-xhdpi/ic_launcher.png https://github.com/google/material-design-icons/raw/master/launcher_icons/android/res/mipmap-xhdpi/ic_launcher.png
+           wget -O android/app/src/main/res/mipmap-xxhdpi/ic_launcher.png https://github.com/google/material-design-icons/raw/master/launcher_icons/android/res/mipmap-xxhdpi/ic_launcher.png
+           wget -O android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png https://github.com/google/material-design-icons/raw/master/launcher_icons/android/res/mipmap-xxxhdpi/ic_launcher.png
+
+           # Optionally, download round icons if needed (same source):
+           wget -O android/app/src/main/res/mipmap-mdpi/ic_launcher_round.png https://github.com/google/material-design-icons/raw/master/launcher_icons/android/res/mipmap-mdpi/ic_launcher_round.png
+           wget -O android/app/src/main/res/mipmap-hdpi/ic_launcher_round.png https://github.com/google/material-design-icons/raw/master/launcher_icons/android/res/mipmap-hdpi/ic_launcher_round.png
+           wget -O android/app/src/main/res/mipmap-xhdpi/ic_launcher_round.png https://github.com/google/material-design-icons/raw/master/launcher_icons/android/res/mipmap-xhdpi/ic_launcher_round.png
+           wget -O android/app/src/main/res/mipmap-xxhdpi/ic_launcher_round.png https://github.com/google/material-design-icons/raw/master/launcher_icons/android/res/mipmap-xxhdpi/ic_launcher_round.png
+           wget -O android/app/src/main/res/mipmap-xxxhdpi/ic_launcher_round.png https://github.com/google/material-design-icons/raw/master/launcher_icons/android/res/mipmap-xxxhdpi/ic_launcher_round.png
       - name: Print Node.js version
         run: |
           node --version
