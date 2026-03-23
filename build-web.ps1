@@ -15,8 +15,9 @@ Set-Location $ProjectDir
 Write-Host "Clearing previous build..." -ForegroundColor Yellow
 if (Test-Path "$ProjectDir\dist") { Remove-Item -Recurse -Force "$ProjectDir\dist" }
 
-Write-Host "Building for web (Expo export)..." -ForegroundColor Green
-npx expo export --platform web
+Write-Host "Building for web (Expo export -> dist)..." -ForegroundColor Green
+# Ensure expo exports to the expected `dist` folder used by Firebase hosting
+npx expo export --platform web --output-dir dist
 
 Write-Host ""
 Write-Host "Build complete -> dist/" -ForegroundColor Green
