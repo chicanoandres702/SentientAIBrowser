@@ -47,34 +47,36 @@ export function useWorkflowMobileLogic(workflows: { id: string; label: string; r
   useEffect(() => {
     const ws = new WebSocket(wsUrl);
     ws.onmessage = (event) => {
-      const data = JSON.parse(event.data);
-      // Example: data.result contains AI confidence context
-      if (data && data.result) {
-        // Simulate AI confidence check
-        const confidence = data.result.includes('ambiguous') ? 0.4 : 0.9;
-        if (confidence < 0.5) {
-          setModal({
-            question: 'AI is unsure how to proceed. What should happen next?',
-            options: ['Retry', 'Skip', 'Request Clarification'],
-            onSelect: (opt) => {
-              if (opt === 'Retry') setStepStatus(prev => ({ ...prev, [data.workflowId]: 'pending' }));
-              if (opt === 'Skip') setStepStatus(prev => ({ ...prev, [data.workflowId]: 'completed' }));
-              if (opt === 'Request Clarification') {
-                setModal({
-                  question: 'Please clarify your intent:',
-                  options: ['Submit', 'Cancel'],
-                  showInput: true,
-                  inputLabel: 'Clarification:',
-                  onSelect: (submitOpt, val) => {
-                    setModal(null);
-                  },
-                });
-                return;
-              }
-              setModal(null);
-            },
-          });
+      try {
+        const data = JSON.parse(event.data);
+        if (data && data.result) {
+          const confidence = data.result.includes('ambiguous') ? 0.4 : 0.9;
+          if (confidence < 0.5) {
+            setModal({
+              question: 'AI is unsure how to proceed. What should happen next?',
+              options: ['Retry', 'Skip', 'Request Clarification'],
+              onSelect: (opt) => {
+                if (opt === 'Retry' && data.workflowId) setStepStatus(prev => ({ ...prev, [data.workflowId]: 'pending' }));
+                if (opt === 'Skip' && data.workflowId) setStepStatus(prev => ({ ...prev, [data.workflowId]: 'completed' }));
+                if (opt === 'Request Clarification') {
+                  setModal({
+                    question: 'Please clarify your intent:',
+                    options: ['Submit', 'Cancel'],
+                    showInput: true,
+                    inputLabel: 'Clarification:',
+                    onSelect: (_submitOpt, _val) => {
+                      setModal(null);
+                    },
+                  });
+                  return;
+                }
+                setModal(null);
+              },
+            });
+          }
         }
+      } catch (e) {
+        console.error('WS message processing failed:', e);
       }
     };
     return () => ws.close();

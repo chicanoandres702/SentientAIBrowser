@@ -51,7 +51,7 @@ export const WorkflowTabs: React.FC<{ workflows?: WorkflowTab[] }> = ({ workflow
         groupedWorkflows={groupedWorkflows}
         activeTab={activeTab}
         setActiveTab={setActiveTab}
-        /* ...existing code for loading, wsConnected... */
+      /* ...existing code for loading, wsConnected... */
       />
       {/* ...existing code for loading spinner... */}
       <WorkflowTabsResults results={results} activeTab={activeTab} workflows={workflows} />
@@ -59,3 +59,5 @@ export const WorkflowTabs: React.FC<{ workflows?: WorkflowTab[] }> = ({ workflow
     </div>
   );
 };
+
+export default WorkflowTabs;

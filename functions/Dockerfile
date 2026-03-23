@@ -1,9 +1,12 @@
 # Stage 1: Build
 FROM node:20-slim AS build
 WORKDIR /app
-COPY package*.json ./
+# Copy only the functions package files when the build context is the repo root
+# so the image uses the functions package.json (which contains the build script).
+COPY functions/package*.json ./
 RUN npm ci --ignore-scripts
-COPY . .
+# Copy only the functions directory contents into the image
+COPY functions/ ./
 RUN npm run build
 
 # Stage 2: Runtime — official Playwright image has Chromium + system deps pre-installed

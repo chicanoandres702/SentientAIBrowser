@@ -24,9 +24,9 @@ export const WorkflowTaskListSection: React.FC<Props> = ({
   return tasksToRender.length > 0 ? (
     <>
       <Text style={wp.sectionLabel}>TASKS</Text>
-        {(Array.isArray(taskList) ? taskList : []).map((task) => (
-        <View key={t.id} onLayout={e => { yOffsets.current && (yOffsets.current[t.id] = e.nativeEvent.layout.y); }}>
-          <WorkflowTaskRow item={t} accentColor={accent} removeTask={removeTask} />
+      {(Array.isArray(taskList) ? taskList : []).map((task) => (
+        <View key={task.id} onLayout={e => { yOffsets.current && (yOffsets.current[task.id] = e.nativeEvent.layout.y); }}>
+          <WorkflowTaskRow item={task} accentColor={accent} removeTask={removeTask} />
         </View>
       ))}
     </>

@@ -26,7 +26,7 @@ export const SentinelTaskQueue: React.FC<Props> = ({ tasks, onCancelTask, onRetr
                 <View style={[styles.statusDot, { backgroundColor: accent, shadowColor: accent }]} />
             </View>
             <ScrollView contentContainerStyle={styles.listContent}>
-                {tasks.length === 0 ? (
+                {!Array.isArray(tasks) || tasks.length === 0 ? (
                     <Text style={styles.emptyText}>No active workflows in queue.</Text>
                 ) : (
                     tasks.map((task) => (
