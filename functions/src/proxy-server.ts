@@ -1,0 +1,99 @@
+// Feature: System Utilities | Trace: README.md
+// Why: Pure Playwright control server — no HTML proxy layer.
+// The frontend receives browser state (screenshots, URL, title) via Firestore real-time
+// sync. This server's only job is accepting Playwright control commands and running missions.
+import * as http from 'http';
+import * as net from 'net';
+import express from 'express';
+import cors from 'cors';
+import { WebSocketServer } from 'ws';
+import { PORT, REMOTE_DEBUGGING_PORT } from './proxy-config';
+import { setupBrowserRoutes } from './proxy-routes-browser';
+import { handleWsUpgrade } from './proxy-tab-sync.broker';
+import { handleClientWsMessage } from './proxy-ws-actions';
+import { sentientLogger } from './core/sentientLogger';
+import orchestrator from './backend-ai-orchestrator';
+
+const app = express();
+app.use(cors({
+  origin: '*',
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'Origin', 'X-Requested-With', 'X-Gemini-Api-Key'],
+}));
+app.options('*', (_req, res) => res.sendStatus(204));
+app.use(express.json());
+
+setupBrowserRoutes(app);
+
+// Why: use http.createServer so we can intercept WebSocket upgrade events.
+// Express's app.listen() doesn't expose the raw server needed for WS proxying.
+const server = http.createServer(app);
+
+// Why: noServer mode — http.Server owns the socket; wss only handles the WS handshake.
+// Tab-sync WebSocket clients connect to /proxy/ws/:tabId.
+const wss = new WebSocketServer({ noServer: true });
+
+/**
+ * CDP WebSocket Proxy — /cdp-proxy/<path>
+ * Why: Cloud Run only exposes port 8080 (HTTPS). Chrome's CDP runs on 9222 inside the
+ * container. This handler raw-tunnels WebSocket upgrade frames from the public HTTPS
+ * endpoint to localhost:9222 — making the Playwright session inspectable from any browser.
+ *
+ * Usage (desktop):  chrome://inspect → Configure → add <cloudrun-host>:443
+ * Usage (mobile):   open the devtoolsUrl returned by GET /cdp/info in any browser
+ */
+server.on('upgrade', (req: http.IncomingMessage, socket: net.Socket, head: Buffer) => {
+    // Why: tab-sync WebSocket — server-authority URL/screenshot push to React client
+    if (req.url?.startsWith('/proxy/ws/')) {
+        handleWsUpgrade(wss, req, socket, head, handleClientWsMessage);
+        return;
+    }
+    if (!req.url?.startsWith('/cdp-proxy')) {
+        socket.destroy();
+        return;
+    }
+
+    // Strip our proxy prefix so CDP gets the path it expects (e.g. /devtools/page/<id>)
+    const cdpPath = req.url.replace('/cdp-proxy', '') || '/';
+
+    const target = net.createConnection(REMOTE_DEBUGGING_PORT, '127.0.0.1');
+
+    target.on('connect', () => {
+        // Rebuild the HTTP upgrade request for the CDP server
+        const headers = [
+            `GET ${cdpPath} HTTP/1.1`,
+            `Host: 127.0.0.1:${REMOTE_DEBUGGING_PORT}`,
+            `Upgrade: websocket`,
+            `Connection: Upgrade`,
+            ...Object.entries(req.headers)
+                .filter(([k]) => !['host', 'upgrade', 'connection'].includes(k.toLowerCase()))
+                .map(([k, v]) => `${k}: ${Array.isArray(v) ? v.join(', ') : v}`),
+            '',
+            '',
+        ].join('\r\n');
+
+        target.write(headers);
+        if (head?.length) target.write(head);
+    });
+
+    socket.pipe(target);
+    target.pipe(socket);
+
+    socket.on('error', () => target.destroy());
+    socket.on('end', () => target.destroy());
+    target.on('error', (e) => {
+        sentientLogger.error('[CDP Proxy] tunnel error:', e.message);
+        socket.destroy();
+    });
+    target.on('end', () => socket.destroy());
+});
+
+server.listen(PORT, () => {
+  sentientLogger.trace(`[Sentient Proxy] Active at http://localhost:${PORT}`);
+  sentientLogger.trace(`[CDP] DevTools available at GET /cdp/info after first navigation`);
+  try {
+    orchestrator.start();
+  } catch (e: any) {
+    sentientLogger.error(`[Sentient Proxy] Orchestrator skipped (${e.message}). Proxy routes still available.`);
+  }
+});

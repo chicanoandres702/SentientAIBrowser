@@ -1,0 +1,103 @@
+# Ignore large Gradle binary
+# --- React Native Android ---
+node_modules/react-native/android/
+node_modules/react-native/ReactAndroid/build/
+node_modules/react-native/ReactAndroid/external-artifacts/
+node_modules/react-native/ReactAndroid/hermes-engine/
+node_modules/react-native/ReactAndroid/api/
+node_modules/react-native/ReactAndroid/src/
+# --- Node / Dependencies ---
+node_modules/
+.pnp
+.pnp.js
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# --- Production & Build Outputs ---
+.expo/
+dist/
+build/
+bin/
+obj/
+out/
+.next/
+.serverless/
+.vercel/
+
+# --- Firebase ---
+.firebase/
+firestore-debug.log
+firebase-debug.log
+ui-debug.log
+*.firebase
+
+# --- Environment & Secrets ---
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+*.p12
+*.key
+*.pem
+*.cert
+*.rsa
+secrets.json
+hfirebase-config.json
+
+# --- Testing & Coverage ---
+coverage/
+.nyc_output/
+cypress/videos/
+cypress/screenshots/
+playwright-report/
+
+# --- Temp & Logs ---
+*.log
+tmp/
+temp/
+.temp/
+*.tsbuildinfo
+
+# --- Media & Design Outputs ---
+screenshots/
+recordings/
+*.png
+*.jpg
+*.jpeg
+*.webp
+*.mp4
+*.gif
+*.svg
+*.ico
+
+# --- IDEs & Editors ---
+.idea/
+.vscode/*
+!.vscode/settings.json
+*.swp
+*.swo
+*.sublime-workspace
+.vim/
+
+# --- OS Files ---
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+Desktop.ini
+
+# --- AI Workspaces & Caches ---
+# (Ignore AI memory context & brains while keeping the rule files)
+.cursor/
+.windsurf/
+.claude/
+.gemini/antigravity/brain/
+.gemini/antigravity/logs/
+.gemini/antigravity/mcp_config.json
+.gemini/oauth_creds.json
+.agent/cache/

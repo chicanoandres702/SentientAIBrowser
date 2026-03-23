@@ -1,0 +1,18 @@
+name: Feature Request
+description: Suggest an idea for Sentient AI Browser
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: feature-description
+    attributes:
+      label: Describe the feature
+      description: What would you like to see added?
+    validations:
+      required: true
+  - type: textarea
+    id: why
+    attributes:
+      label: Why is this feature needed?
+      description: How will this help users?
+    validations:
+      required: true

@@ -1,0 +1,44 @@
+name: Automated Pull Request
+on:
+  push:
+    branches:
+      - 'task/*'
+      - 'feature/*'
+      - 'milestone/*'
+      - 'feature/**'
+      - 'milestone/**'
+
+jobs:
+  create-pr:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Create Pull Request
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          BRANCH_NAME="${GITHUB_REF_NAME}"
+          
+          # Count slashes in branch name
+          SLASH_COUNT=$(echo "$BRANCH_NAME" | tr -dc '/' | wc -c)
+          
+          if [[ $SLASH_COUNT -ge 2 ]]; then
+            # Path branch: feature/auth/login -> target feature/auth
+            TARGET_BRANCH=$(echo "$BRANCH_NAME" | sed 's|/[^/]*$||')
+            TITLE="task: implementation for ${BRANCH_NAME}"
+          else
+            # Root feature branch: feature/auth -> target main
+            TARGET_BRANCH="main"
+            TITLE="feature: implementation for ${BRANCH_NAME}"
+          fi
+          
+          BODY="Automated PR for hierarchical branch: ${BRANCH_NAME}. Built via AI Constitution Path Law.\n\n### 🤖 Context for AI / Next Agent\n- **Objective**: Detailed requirement for this task (mapped to Issue ID).\n- **Implicit Logic**: Any nuances not apparent in the code.\n- **Relevant KIs/ADRs**: Search for artifacts matching this feature.\n- **Traceability**: Link to the feature's ai-manifest.md or trace.md."
+          
+          gh pr create --title "$TITLE" --body "$BODY" --base "$TARGET_BRANCH" --head "$BRANCH_NAME" || echo "PR already exists"

@@ -1,0 +1,129 @@
+"use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+// Feature: System Utilities | Trace: README.md
+// Why: Pure Playwright control server — no HTML proxy layer.
+// The frontend receives browser state (screenshots, URL, title) via Firestore real-time
+// sync. This server's only job is accepting Playwright control commands and running missions.
+const http = __importStar(require("http"));
+const net = __importStar(require("net"));
+const express_1 = __importDefault(require("express"));
+const cors_1 = __importDefault(require("cors"));
+const ws_1 = require("ws");
+const proxy_config_1 = require("./proxy-config");
+const proxy_routes_browser_1 = require("./proxy-routes-browser");
+const proxy_tab_sync_broker_1 = require("./proxy-tab-sync.broker");
+const proxy_ws_actions_1 = require("./proxy-ws-actions");
+const sentientLogger_1 = require("./core/sentientLogger");
+const backend_ai_orchestrator_1 = __importDefault(require("./backend-ai-orchestrator"));
+const app = (0, express_1.default)();
+app.use((0, cors_1.default)({
+    origin: '*',
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'Origin', 'X-Requested-With', 'X-Gemini-Api-Key'],
+}));
+app.options('*', (_req, res) => res.sendStatus(204));
+app.use(express_1.default.json());
+(0, proxy_routes_browser_1.setupBrowserRoutes)(app);
+// Why: use http.createServer so we can intercept WebSocket upgrade events.
+// Express's app.listen() doesn't expose the raw server needed for WS proxying.
+const server = http.createServer(app);
+// Why: noServer mode — http.Server owns the socket; wss only handles the WS handshake.
+// Tab-sync WebSocket clients connect to /proxy/ws/:tabId.
+const wss = new ws_1.WebSocketServer({ noServer: true });
+/**
+ * CDP WebSocket Proxy — /cdp-proxy/<path>
+ * Why: Cloud Run only exposes port 8080 (HTTPS). Chrome's CDP runs on 9222 inside the
+ * container. This handler raw-tunnels WebSocket upgrade frames from the public HTTPS
+ * endpoint to localhost:9222 — making the Playwright session inspectable from any browser.
+ *
+ * Usage (desktop):  chrome://inspect → Configure → add <cloudrun-host>:443
+ * Usage (mobile):   open the devtoolsUrl returned by GET /cdp/info in any browser
+ */
+server.on('upgrade', (req, socket, head) => {
+    var _a, _b;
+    // Why: tab-sync WebSocket — server-authority URL/screenshot push to React client
+    if ((_a = req.url) === null || _a === void 0 ? void 0 : _a.startsWith('/proxy/ws/')) {
+        (0, proxy_tab_sync_broker_1.handleWsUpgrade)(wss, req, socket, head, proxy_ws_actions_1.handleClientWsMessage);
+        return;
+    }
+    if (!((_b = req.url) === null || _b === void 0 ? void 0 : _b.startsWith('/cdp-proxy'))) {
+        socket.destroy();
+        return;
+    }
+    // Strip our proxy prefix so CDP gets the path it expects (e.g. /devtools/page/<id>)
+    const cdpPath = req.url.replace('/cdp-proxy', '') || '/';
+    const target = net.createConnection(proxy_config_1.REMOTE_DEBUGGING_PORT, '127.0.0.1');
+    target.on('connect', () => {
+        // Rebuild the HTTP upgrade request for the CDP server
+        const headers = [
+            `GET ${cdpPath} HTTP/1.1`,
+            `Host: 127.0.0.1:${proxy_config_1.REMOTE_DEBUGGING_PORT}`,
+            `Upgrade: websocket`,
+            `Connection: Upgrade`,
+            ...Object.entries(req.headers)
+                .filter(([k]) => !['host', 'upgrade', 'connection'].includes(k.toLowerCase()))
+                .map(([k, v]) => `${k}: ${Array.isArray(v) ? v.join(', ') : v}`),
+            '',
+            '',
+        ].join('\r\n');
+        target.write(headers);
+        if (head === null || head === void 0 ? void 0 : head.length)
+            target.write(head);
+    });
+    socket.pipe(target);
+    target.pipe(socket);
+    socket.on('error', () => target.destroy());
+    socket.on('end', () => target.destroy());
+    target.on('error', (e) => {
+        sentientLogger_1.sentientLogger.error('[CDP Proxy] tunnel error:', e.message);
+        socket.destroy();
+    });
+    target.on('end', () => socket.destroy());
+});
+server.listen(proxy_config_1.PORT, () => {
+    sentientLogger_1.sentientLogger.trace(`[Sentient Proxy] Active at http://localhost:${proxy_config_1.PORT}`);
+    sentientLogger_1.sentientLogger.trace(`[CDP] DevTools available at GET /cdp/info after first navigation`);
+    try {
+        backend_ai_orchestrator_1.default.start();
+    }
+    catch (e) {
+        sentientLogger_1.sentientLogger.error(`[Sentient Proxy] Orchestrator skipped (${e.message}). Proxy routes still available.`);
+    }
+});
+//# sourceMappingURL=proxy-server.js.map

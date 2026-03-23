@@ -1,0 +1,66 @@
+name: Deploy to Google Cloud Run
+
+on:
+  
+  push:
+    branches:
+      - feature-proxy
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v1
+        with:
+          service_account_key: ${{ secrets.GCP_SA_KEY }}
+          project_id: sentient-ai-browser
+          export_default_credentials: true
+
+      - name: Configure Docker for GCR
+        run: |
+          gcloud auth configure-docker
+
+      - name: Build Docker image
+        run: |
+            docker build -f functions/Dockerfile -t gcr.io/sentient-ai-browser/sentient-ai-browser:latest ./functions
+
+      - name: Push Docker image to GCR
+        run: |
+          docker push gcr.io/sentient-ai-browser/sentient-ai-browser:latest
+
+      - name: Deploy to Cloud Run
+        run: |
+          gcloud run deploy sentient-ai-browser \
+            --image gcr.io/sentient-ai-browser/sentient-ai-browser:latest \
+            --platform managed \
+            --region us-central1
+
+  deploy-to-firebase-hosting:
+    needs: build-and-deploy
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm ci --legacy-peer-deps
+
+      - name: Build web app
+        run: npm run build:web
+
+      - name: Deploy to Firebase Hosting
+        uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          repoToken: "${{ secrets.GITHUB_TOKEN }}"
+          firebaseServiceAccount: "${{ secrets.FIREBASE_SERVICE_ACCOUNT_SENTIENT_AI_BROWSER }}"
+          channelId: live
+          projectId: sentient-ai-browser

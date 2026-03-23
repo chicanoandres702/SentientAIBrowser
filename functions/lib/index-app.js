@@ -1,0 +1,35 @@
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.sentientProxy = void 0;
+/**
+ * Sentient File Header
+ * Why: Functions entrypoint for Sentient AI Browser
+ * Filepath: functions/src/index-app.ts
+ * Description: Firebase Functions entrypoint, sets up sentientProxy HTTP handler
+ * Trace: Used by backend, orchestrator, and CI/CD gates
+ * Wiring: Entrypoint, consumed by Firebase Functions and orchestrator
+ */
+// Feature: Functions Entry | Trace: README.md
+const https_1 = require("firebase-functions/v2/https");
+const express_1 = __importDefault(require("express"));
+const cors_1 = __importDefault(require("cors"));
+const proxy_routes_browser_1 = require("./proxy-routes-browser");
+const app = (0, express_1.default)();
+app.use((0, cors_1.default)({
+    origin: true,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'Origin', 'X-Requested-With', 'X-Gemini-Api-Key'],
+}));
+app.options('*', (_req, res) => res.sendStatus(204));
+app.use(express_1.default.json({ limit: '2mb' }));
+// Reuse existing proxy logic
+(0, proxy_routes_browser_1.setupBrowserRoutes)(app);
+exports.sentientProxy = (0, https_1.onRequest)({
+    memory: "2GiB",
+    timeoutSeconds: 300,
+    cpu: 1,
+}, app);
+//# sourceMappingURL=index-app.js.map

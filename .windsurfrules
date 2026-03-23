@@ -1,0 +1,378 @@
+# AI_CONSTITUTION.md
+# Version: 5.1.0 - Comprehensive Knowledge Base Edition
+
+## SECTION 0: AUTOMATIC ENFORCEMENT
+THESE RULES MUST BE READ AND APPLIED TO EVERY REQUEST, FILE CREATION, AND MODIFICATION.
+
+## Section 1: Core Architectural Directives
+1. The 100-Line Law: Files MUST NOT exceed 100 lines. Smaller files keep AI Token Density high and focus sharp.
+2. The Why Mandate: Comments must explain the design intent, not the syntax.
+3. Modular First: Prioritize small, reusable components. Use Interfaces to define clear boundaries.
+4. Clean Code: No magic numbers. Use named constants. Prioritize readability over cleverness.
+5. Contextual Naming: Files must use descriptive prefixes (e.g., 'setup.service.ts') to prevent AI context loss.
+6. Feature Architecture: All business logic must reside in 'src/features/<feature>/'.
+
+## Section 2: Advanced Logic Archetypes
+### The Diagnostic Medic (Mission: Medic)
+- Before any fix, perform Recursive Debugging. Identify the design flaw, not just the syntax error.
+- Root Cause Analysis (RCA) is required for every bug report.
+- Diagnostic Listener: Monitor the Problems tab. Categorize errors before proposing code.
+
+### Anti-Drift Protocol
+- AI Instruction Drift occurs every 10-15 messages.
+- Perform a Pilot Refresh to re-ground the LLM in these rules periodically.
+
+### Neural Tab Orchestration
+- Keep Neighbor Files open to give the AI cross-file context (e.g., Logic + Interface).
+- Focus Mode: Close tabs unused for 15+ minutes to reduce Context Poisoning.
+
+## Section 3: Multi-Model Intelligence (The LLM Encyclopedia)
+- Google Gemini: Master of massive context (1M+ tokens). Use for deep debugging and full-repo analysis.
+- Claude (Anthropic): Master of structural integrity. Use for complex logic and XML-based instructions.
+- GPT (OpenAI): Master of rapid prototyping. Use for UI/UX logic and creative data manipulation.
+
+## Section 4: The Token Economy & Performance
+- AI intelligence is inversely proportional to context noise.
+- Delete unused code, close unused tabs, and keep files modular to ensure the AI stays Expert Level.
+- Predictive Logic: Always anticipate the next 3 steps in the development lifecycle.
+
+## Section 5: Language-Specific Standards
+- TypeScript/JS: Use Functional Programming. Avoid 'any'. Prefer 'unknown' for unsafe types.
+- Python: Follow PEP8. Use Type Hints for every function. Use 'pydantic' for data validation.
+- C#: Use 'internal sealed' for logic classes. Adhere to SOLID principles strictly.
+
+## Section 6: Recommended Workflows
+The following slash commands activate pre-configured workflows. Use them to execute multi-step processes automatically:
+- `/enforce_100_lines`: Enforce the 100-Line Law and Modular First architecture.
+- `/git_commit`: Efficient workflow for staging, committing, and pushing code cleanly.
+- `/git_feature_branch`: Automatically establish a new feature branch mapped to an active Issue or Milestone.
+- `/git_hooks_setup`: Automatically set up Git Hooks to enforce the AI Constitution.
+- `/git_hotfix`: Emergency patch workflow for production-breaking bugs.
+- `/git_pr`: Efficient workflow for reviewing local changes and creating a detailed Pull Request.
+- `/git_sync`: Fetch, rebase, and sync the local branch with remote main.
+- `/github_issue_planning`: Plan, document, and structure a GitHub Issue.
+- `/github_milestone_strategy`: Structure GitHub Milestones for predictable delivery.
+- `/lint_format`: Automatically run linting and fix format issues.
+- `/medic_debug`: Perform a Root Cause Analysis (RCA) and recursive debugging.
+- `/pilot_refresh`: Re-ground the AI in the Core Directives to prevent instruction drift.
+- `/repo_init`: Automatically initialize a new repository, stage architecture, and push.
+- `/run_android`: Start the Android emulator and launch the Expo bundler for Android testing.
+- `/run_tests`: Run unit tests and ensure code stability.
+- `/run_web`: Start the web bundler and proxy server for web-based testing.
+- `/scaffold_aiignore`: Generate `.aiignore` to block context poisoning and preserve Token Density.
+- `/scaffold_docker`: Scaffold a production-ready Container architecture.
+- `/scaffold_docs_architecture`: Generate standard ADR structure and "Why Mandate" template.
+- `/scaffold_env`: Generate a standard environment and secrets template.
+- `/scaffold_feature`: Scaffold a new feature strictly adhering to Feature Architecture.
+- `/scaffold_github_actions`: Set up GitHub Actions for CI/CD releases.
+- `/scaffold_readme`: Generate a standardized README.md with installation details.
+- `/setup_linter_config`: Generate strict configuration files for clean code.
+
+
+## Section 7: Available AI Workflows / Personas
+The following commands activate specialized AI workflows and personas for specific tasks. **RULING: When utilizing these workflows or when the user invokes a slash command, you MUST read the corresponding `.md` file in the `.agents/workflows/` directory and strictly follow its instructions.**
+- `/accessibility-compliance-accessibility-audit`: Activate the accessibility-compliance-accessibility-audit skill/persona.
+- `/agent-orchestration-improve-agent`: Activate the agent-orchestration-improve-agent skill/persona.
+- `/agent-orchestration-multi-agent-optimize`: Activate the agent-orchestration-multi-agent-optimize skill/persona.
+- `/ai-engineer`: Activate the ai-engineer skill/persona.
+- `/airflow-dag-patterns`: Activate the airflow-dag-patterns skill/persona.
+- `/angular-migration`: Activate the angular-migration skill/persona.
+- `/anti-reversing-techniques`: Activate the anti-reversing-techniques skill/persona.
+- `/api-design-principles`: Activate the api-design-principles skill/persona.
+- `/api-documenter`: Activate the api-documenter skill/persona.
+- `/api-testing-observability-api-mock`: Activate the api-testing-observability-api-mock skill/persona.
+- `/application-performance-performance-optimization`: Activate the application-performance-performance-optimization skill/persona.
+- `/architect-review`: Activate the architect-review skill/persona.
+- `/architecture-decision-records`: Activate the architecture-decision-records skill/persona.
+- `/architecture-patterns`: Activate the architecture-patterns skill/persona.
+- `/arm-cortex-expert`: Activate the arm-cortex-expert skill/persona.
+- `/async-python-patterns`: Activate the async-python-patterns skill/persona.
+- `/attack-tree-construction`: Activate the attack-tree-construction skill/persona.
+- `/auth-implementation-patterns`: Activate the auth-implementation-patterns skill/persona.
+- `/backend-architect`: Activate the backend-architect skill/persona.
+- `/backend-development-feature-development`: Activate the backend-development-feature-development skill/persona.
+- `/backend-security-coder`: Activate the backend-security-coder skill/persona.
+- `/backtesting-frameworks`: Activate the backtesting-frameworks skill/persona.
+- `/bash-defensive-patterns`: Activate the bash-defensive-patterns skill/persona.
+- `/bash-pro`: Activate the bash-pro skill/persona.
+- `/bats-testing-patterns`: Activate the bats-testing-patterns skill/persona.
+- `/bazel-build-optimization`: Activate the bazel-build-optimization skill/persona.
+- `/billing-automation`: Activate the billing-automation skill/persona.
+- `/binary-analysis-patterns`: Activate the binary-analysis-patterns skill/persona.
+- `/blockchain-developer`: Activate the blockchain-developer skill/persona.
+- `/business-analyst`: Activate the business-analyst skill/persona.
+- `/c-pro`: Activate the c-pro skill/persona.
+- `/c4-architecture-c4-architecture`: Activate the c4-architecture-c4-architecture skill/persona.
+- `/c4-code`: Activate the c4-code skill/persona.
+- `/c4-component`: Activate the c4-component skill/persona.
+- `/c4-container`: Activate the c4-container skill/persona.
+- `/c4-context`: Activate the c4-context skill/persona.
+- `/changelog-automation`: Activate the changelog-automation skill/persona.
+- `/cicd-automation-workflow-automate`: Activate the cicd-automation-workflow-automate skill/persona.
+- `/cloud-architect`: Activate the cloud-architect skill/persona.
+- `/code-documentation-code-explain`: Activate the code-documentation-code-explain skill/persona.
+- `/code-documentation-doc-generate`: Activate the code-documentation-doc-generate skill/persona.
+- `/code-refactoring-context-restore`: Activate the code-refactoring-context-restore skill/persona.
+- `/code-refactoring-refactor-clean`: Activate the code-refactoring-refactor-clean skill/persona.
+- `/code-refactoring-tech-debt`: Activate the code-refactoring-tech-debt skill/persona.
+- `/code-review-ai-ai-review`: Activate the code-review-ai-ai-review skill/persona.
+- `/code-review-excellence`: Activate the code-review-excellence skill/persona.
+- `/code-reviewer`: Activate the code-reviewer skill/persona.
+- `/codebase-cleanup-deps-audit`: Activate the codebase-cleanup-deps-audit skill/persona.
+- `/codebase-cleanup-refactor-clean`: Activate the codebase-cleanup-refactor-clean skill/persona.
+- `/codebase-cleanup-tech-debt`: Activate the codebase-cleanup-tech-debt skill/persona.
+- `/competitive-landscape`: Activate the competitive-landscape skill/persona.
+- `/comprehensive-review-full-review`: Activate the comprehensive-review-full-review skill/persona.
+- `/comprehensive-review-pr-enhance`: Activate the comprehensive-review-pr-enhance skill/persona.
+- `/conductor-implement`: Activate the conductor-implement skill/persona.
+- `/conductor-manage`: Activate the conductor-manage skill/persona.
+- `/conductor-new-track`: Activate the conductor-new-track skill/persona.
+- `/conductor-revert`: Activate the conductor-revert skill/persona.
+- `/conductor-setup`: Activate the conductor-setup skill/persona.
+- `/conductor-status`: Activate the conductor-status skill/persona.
+- `/conductor-validator`: Activate the conductor-validator skill/persona.
+- `/content-marketer`: Activate the content-marketer skill/persona.
+- `/context-driven-development`: Activate the context-driven-development skill/persona.
+- `/context-management-context-restore`: Activate the context-management-context-restore skill/persona.
+- `/context-management-context-save`: Activate the context-management-context-save skill/persona.
+- `/context-manager`: Activate the context-manager skill/persona.
+- `/cost-optimization`: Activate the cost-optimization skill/persona.
+- `/cpp-pro`: Activate the cpp-pro skill/persona.
+- `/cqrs-implementation`: Activate the cqrs-implementation skill/persona.
+- `/csharp-pro`: Activate the csharp-pro skill/persona.
+- `/customer-support`: Activate the customer-support skill/persona.
+- `/data-engineer`: Activate the data-engineer skill/persona.
+- `/data-engineering-data-driven-feature`: Activate the data-engineering-data-driven-feature skill/persona.
+- `/data-engineering-data-pipeline`: Activate the data-engineering-data-pipeline skill/persona.
+- `/data-quality-frameworks`: Activate the data-quality-frameworks skill/persona.
+- `/data-scientist`: Activate the data-scientist skill/persona.
+- `/data-storytelling`: Activate the data-storytelling skill/persona.
+- `/database-admin`: Activate the database-admin skill/persona.
+- `/database-architect`: Activate the database-architect skill/persona.
+- `/database-cloud-optimization-cost-optimize`: Activate the database-cloud-optimization-cost-optimize skill/persona.
+- `/database-migration`: Activate the database-migration skill/persona.
+- `/database-migrations-migration-observability`: Activate the database-migrations-migration-observability skill/persona.
+- `/database-migrations-sql-migrations`: Activate the database-migrations-sql-migrations skill/persona.
+- `/database-optimizer`: Activate the database-optimizer skill/persona.
+- `/dbt-transformation-patterns`: Activate the dbt-transformation-patterns skill/persona.
+- `/debugger`: Activate the debugger skill/persona.
+- `/debugging-strategies`: Activate the debugging-strategies skill/persona.
+- `/debugging-toolkit-smart-debug`: Activate the debugging-toolkit-smart-debug skill/persona.
+- `/defi-protocol-templates`: Activate the defi-protocol-templates skill/persona.
+- `/dependency-management-deps-audit`: Activate the dependency-management-deps-audit skill/persona.
+- `/dependency-upgrade`: Activate the dependency-upgrade skill/persona.
+- `/deployment-engineer`: Activate the deployment-engineer skill/persona.
+- `/deployment-pipeline-design`: Activate the deployment-pipeline-design skill/persona.
+- `/deployment-validation-config-validate`: Activate the deployment-validation-config-validate skill/persona.
+- `/devops-troubleshooter`: Activate the devops-troubleshooter skill/persona.
+- `/distributed-debugging-debug-trace`: Activate the distributed-debugging-debug-trace skill/persona.
+- `/distributed-tracing`: Activate the distributed-tracing skill/persona.
+- `/django-pro`: Activate the django-pro skill/persona.
+- `/docs-architect`: Activate the docs-architect skill/persona.
+- `/documentation-generation-doc-generate`: Activate the documentation-generation-doc-generate skill/persona.
+- `/dotnet-architect`: Activate the dotnet-architect skill/persona.
+- `/dotnet-backend-patterns`: Activate the dotnet-backend-patterns skill/persona.
+- `/dx-optimizer`: Activate the dx-optimizer skill/persona.
+- `/e2e-testing-patterns`: Activate the e2e-testing-patterns skill/persona.
+- `/elixir-pro`: Activate the elixir-pro skill/persona.
+- `/embedding-strategies`: Activate the embedding-strategies skill/persona.
+- `/employment-contract-templates`: Activate the employment-contract-templates skill/persona.
+- `/error-debugging-error-analysis`: Activate the error-debugging-error-analysis skill/persona.
+- `/error-debugging-error-trace`: Activate the error-debugging-error-trace skill/persona.
+- `/error-debugging-multi-agent-review`: Activate the error-debugging-multi-agent-review skill/persona.
+- `/error-detective`: Activate the error-detective skill/persona.
+- `/error-diagnostics-error-analysis`: Activate the error-diagnostics-error-analysis skill/persona.
+- `/error-diagnostics-error-trace`: Activate the error-diagnostics-error-trace skill/persona.
+- `/error-diagnostics-smart-debug`: Activate the error-diagnostics-smart-debug skill/persona.
+- `/error-handling-patterns`: Activate the error-handling-patterns skill/persona.
+- `/event-sourcing-architect`: Activate the event-sourcing-architect skill/persona.
+- `/event-store-design`: Activate the event-store-design skill/persona.
+- `/fastapi-pro`: Activate the fastapi-pro skill/persona.
+- `/fastapi-templates`: Activate the fastapi-templates skill/persona.
+- `/firmware-analyst`: Activate the firmware-analyst skill/persona.
+- `/flutter-expert`: Activate the flutter-expert skill/persona.
+- `/framework-migration-code-migrate`: Activate the framework-migration-code-migrate skill/persona.
+- `/framework-migration-deps-upgrade`: Activate the framework-migration-deps-upgrade skill/persona.
+- `/framework-migration-legacy-modernize`: Activate the framework-migration-legacy-modernize skill/persona.
+- `/frontend-developer`: Activate the frontend-developer skill/persona.
+- `/frontend-mobile-development-component-scaffold`: Activate the frontend-mobile-development-component-scaffold skill/persona.
+- `/frontend-mobile-security-xss-scan`: Activate the frontend-mobile-security-xss-scan skill/persona.
+- `/frontend-security-coder`: Activate the frontend-security-coder skill/persona.
+- `/full-stack-orchestration-full-stack-feature`: Activate the full-stack-orchestration-full-stack-feature skill/persona.
+- `/gdpr-data-handling`: Activate the gdpr-data-handling skill/persona.
+- `/git-advanced-workflows`: Activate the git-advanced-workflows skill/persona.
+- `/git-pr-workflows-git-workflow`: Activate the git-pr-workflows-git-workflow skill/persona.
+- `/git-pr-workflows-onboard`: Activate the git-pr-workflows-onboard skill/persona.
+- `/git-pr-workflows-pr-enhance`: Activate the git-pr-workflows-pr-enhance skill/persona.
+- `/github-actions-templates`: Activate the github-actions-templates skill/persona.
+- `/gitlab-ci-patterns`: Activate the gitlab-ci-patterns skill/persona.
+- `/gitops-workflow`: Activate the gitops-workflow skill/persona.
+- `/go-concurrency-patterns`: Activate the go-concurrency-patterns skill/persona.
+- `/godot-gdscript-patterns`: Activate the godot-gdscript-patterns skill/persona.
+- `/golang-pro`: Activate the golang-pro skill/persona.
+- `/grafana-dashboards`: Activate the grafana-dashboards skill/persona.
+- `/graphql-architect`: Activate the graphql-architect skill/persona.
+- `/haskell-pro`: Activate the haskell-pro skill/persona.
+- `/helm-chart-scaffolding`: Activate the helm-chart-scaffolding skill/persona.
+- `/hr-pro`: Activate the hr-pro skill/persona.
+- `/hybrid-cloud-architect`: Activate the hybrid-cloud-architect skill/persona.
+- `/hybrid-cloud-networking`: Activate the hybrid-cloud-networking skill/persona.
+- `/hybrid-search-implementation`: Activate the hybrid-search-implementation skill/persona.
+- `/incident-responder`: Activate the incident-responder skill/persona.
+- `/incident-response-incident-response`: Activate the incident-response-incident-response skill/persona.
+- `/incident-response-smart-fix`: Activate the incident-response-smart-fix skill/persona.
+- `/incident-runbook-templates`: Activate the incident-runbook-templates skill/persona.
+- `/ios-developer`: Activate the ios-developer skill/persona.
+- `/istio-traffic-management`: Activate the istio-traffic-management skill/persona.
+- `/java-pro`: Activate the java-pro skill/persona.
+- `/javascript-pro`: Activate the javascript-pro skill/persona.
+- `/javascript-testing-patterns`: Activate the javascript-testing-patterns skill/persona.
+- `/javascript-typescript-typescript-scaffold`: Activate the javascript-typescript-typescript-scaffold skill/persona.
+- `/julia-pro`: Activate the julia-pro skill/persona.
+- `/k8s-manifest-generator`: Activate the k8s-manifest-generator skill/persona.
+- `/k8s-security-policies`: Activate the k8s-security-policies skill/persona.
+- `/kpi-dashboard-design`: Activate the kpi-dashboard-design skill/persona.
+- `/kubernetes-architect`: Activate the kubernetes-architect skill/persona.
+- `/langchain-architecture`: Activate the langchain-architecture skill/persona.
+- `/legacy-modernizer`: Activate the legacy-modernizer skill/persona.
+- `/legal-advisor`: Activate the legal-advisor skill/persona.
+- `/linkerd-patterns`: Activate the linkerd-patterns skill/persona.
+- `/llm-application-dev-ai-assistant`: Activate the llm-application-dev-ai-assistant skill/persona.
+- `/llm-application-dev-langchain-agent`: Activate the llm-application-dev-langchain-agent skill/persona.
+- `/llm-application-dev-prompt-optimize`: Activate the llm-application-dev-prompt-optimize skill/persona.
+- `/llm-evaluation`: Activate the llm-evaluation skill/persona.
+- `/machine-learning-ops-ml-pipeline`: Activate the machine-learning-ops-ml-pipeline skill/persona.
+- `/malware-analyst`: Activate the malware-analyst skill/persona.
+- `/market-sizing-analysis`: Activate the market-sizing-analysis skill/persona.
+- `/memory-forensics`: Activate the memory-forensics skill/persona.
+- `/memory-safety-patterns`: Activate the memory-safety-patterns skill/persona.
+- `/mermaid-expert`: Activate the mermaid-expert skill/persona.
+- `/microservices-patterns`: Activate the microservices-patterns skill/persona.
+- `/minecraft-bukkit-pro`: Activate the minecraft-bukkit-pro skill/persona.
+- `/ml-engineer`: Activate the ml-engineer skill/persona.
+- `/ml-pipeline-workflow`: Activate the ml-pipeline-workflow skill/persona.
+- `/mlops-engineer`: Activate the mlops-engineer skill/persona.
+- `/mobile-developer`: Activate the mobile-developer skill/persona.
+- `/mobile-security-coder`: Activate the mobile-security-coder skill/persona.
+- `/modern-javascript-patterns`: Activate the modern-javascript-patterns skill/persona.
+- `/monorepo-architect`: Activate the monorepo-architect skill/persona.
+- `/monorepo-management`: Activate the monorepo-management skill/persona.
+- `/mtls-configuration`: Activate the mtls-configuration skill/persona.
+- `/multi-cloud-architecture`: Activate the multi-cloud-architecture skill/persona.
+- `/multi-platform-apps-multi-platform`: Activate the multi-platform-apps-multi-platform skill/persona.
+- `/network-engineer`: Activate the network-engineer skill/persona.
+- `/nextjs-app-router-patterns`: Activate the nextjs-app-router-patterns skill/persona.
+- `/nft-standards`: Activate the nft-standards skill/persona.
+- `/nodejs-backend-patterns`: Activate the nodejs-backend-patterns skill/persona.
+- `/nx-workspace-patterns`: Activate the nx-workspace-patterns skill/persona.
+- `/observability-engineer`: Activate the observability-engineer skill/persona.
+- `/observability-monitoring-monitor-setup`: Activate the observability-monitoring-monitor-setup skill/persona.
+- `/observability-monitoring-slo-implement`: Activate the observability-monitoring-slo-implement skill/persona.
+- `/on-call-handoff-patterns`: Activate the on-call-handoff-patterns skill/persona.
+- `/openapi-spec-generation`: Activate the openapi-spec-generation skill/persona.
+- `/payment-integration`: Activate the payment-integration skill/persona.
+- `/paypal-integration`: Activate the paypal-integration skill/persona.
+- `/pci-compliance`: Activate the pci-compliance skill/persona.
+- `/performance-engineer`: Activate the performance-engineer skill/persona.
+- `/performance-testing-review-ai-review`: Activate the performance-testing-review-ai-review skill/persona.
+- `/performance-testing-review-multi-agent-review`: Activate the performance-testing-review-multi-agent-review skill/persona.
+- `/php-pro`: Activate the php-pro skill/persona.
+- `/posix-shell-pro`: Activate the posix-shell-pro skill/persona.
+- `/postgresql`: Activate the postgresql skill/persona.
+- `/postmortem-writing`: Activate the postmortem-writing skill/persona.
+- `/projection-patterns`: Activate the projection-patterns skill/persona.
+- `/prometheus-configuration`: Activate the prometheus-configuration skill/persona.
+- `/prompt-engineer`: Activate the prompt-engineer skill/persona.
+- `/prompt-engineering-patterns`: Activate the prompt-engineering-patterns skill/persona.
+- `/protocol-reverse-engineering`: Activate the protocol-reverse-engineering skill/persona.
+- `/python-development-python-scaffold`: Activate the python-development-python-scaffold skill/persona.
+- `/python-packaging`: Activate the python-packaging skill/persona.
+- `/python-performance-optimization`: Activate the python-performance-optimization skill/persona.
+- `/python-pro`: Activate the python-pro skill/persona.
+- `/python-testing-patterns`: Activate the python-testing-patterns skill/persona.
+- `/quant-analyst`: Activate the quant-analyst skill/persona.
+- `/rag-implementation`: Activate the rag-implementation skill/persona.
+- `/react-modernization`: Activate the react-modernization skill/persona.
+- `/react-native-architecture`: Activate the react-native-architecture skill/persona.
+- `/react-state-management`: Activate the react-state-management skill/persona.
+- `/reference-builder`: Activate the reference-builder skill/persona.
+- `/reverse-engineer`: Activate the reverse-engineer skill/persona.
+- `/risk-manager`: Activate the risk-manager skill/persona.
+- `/risk-metrics-calculation`: Activate the risk-metrics-calculation skill/persona.
+- `/ruby-pro`: Activate the ruby-pro skill/persona.
+- `/rust-async-patterns`: Activate the rust-async-patterns skill/persona.
+- `/rust-pro`: Activate the rust-pro skill/persona.
+- `/saga-orchestration`: Activate the saga-orchestration skill/persona.
+- `/sales-automator`: Activate the sales-automator skill/persona.
+- `/sast-configuration`: Activate the sast-configuration skill/persona.
+- `/scala-pro`: Activate the scala-pro skill/persona.
+- `/screen-reader-testing`: Activate the screen-reader-testing skill/persona.
+- `/search-specialist`: Activate the search-specialist skill/persona.
+- `/secrets-management`: Activate the secrets-management skill/persona.
+- `/security-auditor`: Activate the security-auditor skill/persona.
+- `/security-compliance-compliance-check`: Activate the security-compliance-compliance-check skill/persona.
+- `/security-requirement-extraction`: Activate the security-requirement-extraction skill/persona.
+- `/security-scanning-security-dependencies`: Activate the security-scanning-security-dependencies skill/persona.
+- `/security-scanning-security-hardening`: Activate the security-scanning-security-hardening skill/persona.
+- `/security-scanning-security-sast`: Activate the security-scanning-security-sast skill/persona.
+- `/seo-authority-builder`: Activate the seo-authority-builder skill/persona.
+- `/seo-cannibalization-detector`: Activate the seo-cannibalization-detector skill/persona.
+- `/seo-content-auditor`: Activate the seo-content-auditor skill/persona.
+- `/seo-content-planner`: Activate the seo-content-planner skill/persona.
+- `/seo-content-refresher`: Activate the seo-content-refresher skill/persona.
+- `/seo-content-writer`: Activate the seo-content-writer skill/persona.
+- `/seo-keyword-strategist`: Activate the seo-keyword-strategist skill/persona.
+- `/seo-meta-optimizer`: Activate the seo-meta-optimizer skill/persona.
+- `/seo-snippet-hunter`: Activate the seo-snippet-hunter skill/persona.
+- `/seo-structure-architect`: Activate the seo-structure-architect skill/persona.
+- `/service-mesh-expert`: Activate the service-mesh-expert skill/persona.
+- `/service-mesh-observability`: Activate the service-mesh-observability skill/persona.
+- `/shellcheck-configuration`: Activate the shellcheck-configuration skill/persona.
+- `/similarity-search-patterns`: Activate the similarity-search-patterns skill/persona.
+- `/slo-implementation`: Activate the slo-implementation skill/persona.
+- `/solidity-security`: Activate the solidity-security skill/persona.
+- `/spark-optimization`: Activate the spark-optimization skill/persona.
+- `/sql-optimization-patterns`: Activate the sql-optimization-patterns skill/persona.
+- `/sql-pro`: Activate the sql-pro skill/persona.
+- `/startup-analyst`: Activate the startup-analyst skill/persona.
+- `/startup-business-analyst-business-case`: Activate the startup-business-analyst-business-case skill/persona.
+- `/startup-business-analyst-financial-projections`: Activate the startup-business-analyst-financial-projections skill/persona.
+- `/startup-business-analyst-market-opportunity`: Activate the startup-business-analyst-market-opportunity skill/persona.
+- `/startup-financial-modeling`: Activate the startup-financial-modeling skill/persona.
+- `/startup-metrics-framework`: Activate the startup-metrics-framework skill/persona.
+- `/stride-analysis-patterns`: Activate the stride-analysis-patterns skill/persona.
+- `/stripe-integration`: Activate the stripe-integration skill/persona.
+- `/systems-programming-rust-project`: Activate the systems-programming-rust-project skill/persona.
+- `/tailwind-design-system`: Activate the tailwind-design-system skill/persona.
+- `/tdd-orchestrator`: Activate the tdd-orchestrator skill/persona.
+- `/tdd-workflows-tdd-cycle`: Activate the tdd-workflows-tdd-cycle skill/persona.
+- `/tdd-workflows-tdd-green`: Activate the tdd-workflows-tdd-green skill/persona.
+- `/tdd-workflows-tdd-red`: Activate the tdd-workflows-tdd-red skill/persona.
+- `/tdd-workflows-tdd-refactor`: Activate the tdd-workflows-tdd-refactor skill/persona.
+- `/team-collaboration-issue`: Activate the team-collaboration-issue skill/persona.
+- `/team-collaboration-standup-notes`: Activate the team-collaboration-standup-notes skill/persona.
+- `/team-composition-analysis`: Activate the team-composition-analysis skill/persona.
+- `/temporal-python-pro`: Activate the temporal-python-pro skill/persona.
+- `/temporal-python-testing`: Activate the temporal-python-testing skill/persona.
+- `/terraform-module-library`: Activate the terraform-module-library skill/persona.
+- `/terraform-specialist`: Activate the terraform-specialist skill/persona.
+- `/test-automator`: Activate the test-automator skill/persona.
+- `/threat-mitigation-mapping`: Activate the threat-mitigation-mapping skill/persona.
+- `/threat-modeling-expert`: Activate the threat-modeling-expert skill/persona.
+- `/track-management`: Activate the track-management skill/persona.
+- `/turborepo-caching`: Activate the turborepo-caching skill/persona.
+- `/tutorial-engineer`: Activate the tutorial-engineer skill/persona.
+- `/typescript-advanced-types`: Activate the typescript-advanced-types skill/persona.
+- `/typescript-pro`: Activate the typescript-pro skill/persona.
+- `/ui-ux-designer`: Activate the ui-ux-designer skill/persona.
+- `/ui-visual-validator`: Activate the ui-visual-validator skill/persona.
+- `/unit-testing-test-generate`: Activate the unit-testing-test-generate skill/persona.
+- `/unity-developer`: Activate the unity-developer skill/persona.
+- `/unity-ecs-patterns`: Activate the unity-ecs-patterns skill/persona.
+- `/uv-package-manager`: Activate the uv-package-manager skill/persona.
+- `/vector-database-engineer`: Activate the vector-database-engineer skill/persona.
+- `/vector-index-tuning`: Activate the vector-index-tuning skill/persona.
+- `/wcag-audit-patterns`: Activate the wcag-audit-patterns skill/persona.
+- `/web3-testing`: Activate the web3-testing skill/persona.
+- `/workflow-orchestration-patterns`: Activate the workflow-orchestration-patterns skill/persona.
+- `/workflow-patterns`: Activate the workflow-patterns skill/persona.
