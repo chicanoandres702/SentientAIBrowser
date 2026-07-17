@@ -19,6 +19,7 @@
     "firebase": "powershell -ExecutionPolicy Bypass -File ./build-web.ps1 && firebase deploy --only hosting --project sentient-ai-browser",
     "firebase:all": "powershell -ExecutionPolicy Bypass -File ./build-web.ps1 && npm run build --prefix functions && firebase deploy --project sentient-ai-browser",
     "vercel-build": "npm run build:web",
+    "serve": "node server.js",
     "test": "jest"
   },
   "dependencies": {
