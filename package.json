@@ -8,10 +8,10 @@
     "build:apk": "cd android && gradlew assembleRelease",
     "ios": "expo start --ios --port 8081",
     "web": "expo start --web",
-    "proxy": "bash ./start-proxy.sh",
+    "kilo": "node kilo/index.js",
+    "kilo:run": "node kilo/index.js",
     "run-web": "expo start --web",
     "run-android": "npm run android",
-    "run-proxy": "bash ./start-proxy.sh",
     "build:web": "expo export --platform web --output-dir dist",
     "export:web": "expo export --platform web --output-dir dist",
     "serve:local": "powershell -ExecutionPolicy Bypass -File ./serve-local.ps1",
@@ -19,7 +19,8 @@
     "firebase": "powershell -ExecutionPolicy Bypass -File ./build-web.ps1 && firebase deploy --only hosting --project sentient-ai-browser",
     "firebase:all": "powershell -ExecutionPolicy Bypass -File ./build-web.ps1 && npm run build --prefix functions && firebase deploy --project sentient-ai-browser",
     "vercel-build": "npm run build:web",
-    "test": "jest"
+    "test": "jest",
+    "test:kilo": "jest kilo/__tests__"
   },
   "dependencies": {
     "@expo/metro-runtime": "~55.0.6",

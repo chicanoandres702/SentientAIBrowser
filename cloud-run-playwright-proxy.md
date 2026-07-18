@@ -1,63 +1,68 @@
-# Cloud Run Playwright Proxy Connection Details
+# Kilo — Agent with Inner Playwright MCP, Live Video & Planner
 
-## Service URLs
+Kilo replaces the old `sentient-proxy`. Instead of a hand-rolled HTTP/WebSocket
+proxy that tunnels Chrome DevTools Protocol, Kilo is an agent that drives the
+Kilo/OpenCode server directly.
 
-- **mcpserver:**
-  - URL: `https://mcpserver-184717935920.us-central1.run.app`
-- **sentient-proxy:**
-  - URL: `https://sentient-proxy-184717935920.us-central1.run.app`
+## What Kilo does
 
-## WebSocket Endpoint Example
+1. **Plans first.** Kilo asks the server's `plan` agent (or a local fallback
+   parser) to turn a task prompt into an ordered step list. The plan is shown
+   to the user before any browsing happens.
+2. **Inner Playwright MCP connection.** Kilo registers `@playwright/mcp` as an
+   MCP server with the Kilo server (`POST /mcp`). The model then auto-browses
+   via `mcp__playwright__browser_*` tools — navigate, click, type, snapshot,
+   screenshot — resolving the task step by step.
+3. **Live browser video.** A separate Playwright context records the browser
+   natively (`recordVideo`) and Kilo serves the live frames as MJPEG over HTTP.
+   Open the printed URL in any browser to watch Kilo work in real time.
+4. **Streams progress.** Kilo listens to the server SSE event stream
+   (`GET /event`) and updates the plan/todos as steps complete.
 
-```
-wss://mcpserver-184717935920.us-central1.run.app/proxy/ws/<tabId>
-```
-Replace `<tabId>` with your session or tab identifier.
+## Server
 
-## REST API Endpoint Example
+- **Kilo/OpenCode HTTP server:** `http://54.219.166.226:4096` (override with
+  `KILO_SERVER_URL`). OpenAPI spec at `/doc`.
+- Providers available: `google`, `kilo`, `openai`.
+- Built-in agents include `kilo` (default) and `plan`.
 
-```
-https://mcpserver-184717935920.us-central1.run.app/
-```
+## Run Kilo
 
-## Example Node.js Client Code
-
-```js
-const WebSocket = require('ws');
-const wsUrl = 'wss://mcpserver-184717935920.us-central1.run.app/proxy/ws/myTabId';
-const ws = new WebSocket(wsUrl);
-
-ws.on('open', () => {
-  ws.send(JSON.stringify({
-    action: 'runWorkflow',
-    workflowId: '123',
-    params: { url: 'https://example.com' }
-  }));
-});
-
-ws.on('message', (data) => {
-  const msg = JSON.parse(data);
-  console.log('Received:', msg);
-});
-
-ws.on('error', (err) => {
-  console.error('WebSocket error:', err);
-});
-
-ws.on('close', () => {
-  console.log('WebSocket connection closed');
-});
+```bash
+npm run kilo -- "Book a table for two at a restaurant in Paris tomorrow at 8pm"
 ```
 
-## Authentication
-- Both services are currently set to `--allow-unauthenticated` (public access).
-- For private endpoints, use Google IAM, API keys, or OAuth2 tokens.
+Or directly:
 
-## Deployment Info
-- Region: `us-central1`
-- Project: `sentient-ai-browser`
-- Last deployed by: `andrew.moreno.5691@gmail.com`
-- Last deployed at: `2026-03-05T01:50:07.526012Z`
+```bash
+node kilo/index.js "Your task here"
+```
 
----
-For further integration, use the above URLs and code samples to connect any interface to your Playwright proxy on Cloud Run.
+Environment overrides:
+
+| Var | Default | Purpose |
+| --- | --- | --- |
+| `KILO_SERVER_URL` | `http://54.219.166.226:4096` | Kilo/OpenCode server base URL |
+| `KILO_SERVER_PASSWORD` | – | HTTP basic auth password (username `KILO_SERVER_USERNAME`, default `opencode`) |
+| `KILO_VIDEO_PORT` | `8088` | Port for the live MJPEG video stream |
+| `KILO_VIDEO_DIR` | `./kilo-videos` | Where Playwright writes recordings |
+
+## Architecture
+
+```
+kilo/index.js            -> CLI entry point
+kilo/core/kilo.js        -> orchestrator: plan -> register MCP -> video -> browse loop
+kilo/core/kilo-client.js -> typed HTTP + SSE client for the Kilo server
+kilo/core/kilo-planner.js-> planner (server `plan` agent + local fallback)
+kilo/core/kilo-browser-mcp.js -> registers inner Playwright MCP
+kilo/core/kilo-browser-video.js-> Playwright-native video + MJPEG HTTP server
+```
+
+## Tests
+
+```bash
+npm run test:kilo
+```
+
+Covers the planner parser, the live video MJPEG stream (real Chromium), and a
+skippable integration test against the live server.
