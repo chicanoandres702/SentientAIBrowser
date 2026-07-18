@@ -37,10 +37,11 @@ class KiloPlanner {
     // reply). If it returns no usable steps we fall back to treating the whole
     // task as a single step rather than blocking on a slower planning agent.
     const agent = opts.agent || "plan";
+    const model = opts.model || { id: process.env.KILO_MODEL || "gemini-2.5-flash", providerID: process.env.KILO_PROVIDER || "google" };
     const session = await this.client.createSession({
       agent,
       title: `plan: ${taskPrompt.slice(0, 40)}`,
-      model: opts.model,
+      model,
     });
     const sessionId = session.id || session.info?.id;
     try {

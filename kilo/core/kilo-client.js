@@ -6,6 +6,14 @@
 "use strict";
 
 const BASE_URL = process.env.KILO_SERVER_URL || "http://54.219.166.226:4096";
+// Default agent/model. The Kilo OpenCode server exposes a native `kilo` agent
+// and a `kilo` provider (model `kilo-auto/balanced`). Falls back gracefully if
+// the server replaces these with its own defaults.
+const DEFAULT_AGENT = process.env.KILO_AGENT || "kilo";
+// Default to a free, text-capable model so Kilo works out of the box without
+// paid provider credits. Override with KILO_MODEL / KILO_PROVIDER.
+const DEFAULT_MODEL = process.env.KILO_MODEL || "gemini-2.5-flash";
+const DEFAULT_PROVIDER = process.env.KILO_PROVIDER || "google";
 const API_KEY = process.env.KILO_SERVER_PASSWORD;
 
 function authHeaders() {
@@ -77,12 +85,23 @@ class KiloClient {
     return request("POST", "/mcp", { name, config });
   }
 
+  // Normalize any model input ({id} | {modelID}) into the shape a given
+  // endpoint expects. The OpenCode server is inconsistent across routes:
+  //   - POST /session          requires `model.id` + `providerID`
+  //   - POST /session/:id/msg  requires `model.modelID` + `providerID`
+  // `kind` selects the right field name so we never send an unknown key
+  // (the server rejects extra properties).
+  _model(input, kind) {
+    const m = input || {};
+    const id = m.id || m.modelID || DEFAULT_MODEL;
+    const providerID = m.providerID || DEFAULT_PROVIDER;
+    if (kind === "message") return { modelID: id, providerID };
+    return { id, providerID };
+  }
+
   createSession(opts = {}) {
-    // Default to the kilo provider + a capable model for browsing tasks.
-    const m = opts.model || { id: "anthropic/claude-sonnet-5", providerID: "kilo" };
-    // Normalize: accept either {id, providerID} or {modelID, providerID}.
-    const model = { id: m.id || m.modelID, providerID: m.providerID };
-    const agent = opts.agent || "kilo";
+    const model = this._model(opts.model, "session");
+    const agent = opts.agent || DEFAULT_AGENT;
     return request("POST", "/session", {
       title: opts.title || "kilo task",
       agent,
@@ -108,11 +127,10 @@ class KiloClient {
 
   // Synchronous: waits for the assistant to finish and returns { info, parts }.
   sendMessage(id, parts, opts = {}) {
-    const m = opts.model || { providerID: "kilo", modelID: "anthropic/claude-sonnet-5" };
     const body = {
       parts,
-      model: { modelID: m.modelID || m.id, providerID: m.providerID },
-      agent: opts.agent || "kilo",
+      model: this._model(opts.model, "message"),
+      agent: opts.agent || DEFAULT_AGENT,
       tools: opts.tools || undefined,
     };
     return request("POST", `/session/${id}/message`, body);
@@ -120,11 +138,10 @@ class KiloClient {
 
   // Async: fire-and-forget; completion arrives over the SSE stream.
   promptAsync(id, parts, opts = {}) {
-    const m = opts.model || { providerID: "kilo", modelID: "anthropic/claude-sonnet-5" };
     const body = {
       parts,
-      model: { modelID: m.modelID || m.id, providerID: m.providerID },
-      agent: opts.agent || "kilo",
+      model: this._model(opts.model, "message"),
+      agent: opts.agent || DEFAULT_AGENT,
       tools: opts.tools || undefined,
     };
     return request("POST", `/session/${id}/prompt_async`, body);

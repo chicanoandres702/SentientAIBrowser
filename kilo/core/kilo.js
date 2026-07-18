@@ -13,13 +13,18 @@ const { KiloPlanner } = require("./kilo-planner");
 const { KiloBrowserMcp } = require("./kilo-browser-mcp");
 const { KiloBrowserVideo } = require("./kilo-browser-video");
 
+const DEFAULT_MODEL = process.env.KILO_MODEL || "gemini-2.5-flash";
+const DEFAULT_PROVIDER = process.env.KILO_PROVIDER || "google";
+const DEFAULT_AGENT = process.env.KILO_AGENT || "kilo";
+
 class Kilo {
   constructor(opts = {}) {
     this.client = opts.client || new KiloClient();
     this.planner = new KiloPlanner(this.client);
     this.browserMcp = new KiloBrowserMcp(this.client);
     this.video = new KiloBrowserVideo(opts.video || {});
-    this.model = opts.model || { id: "anthropic/claude-sonnet-5", providerID: "kilo" };
+    this.model = opts.model || { id: DEFAULT_MODEL, providerID: DEFAULT_PROVIDER };
+    this.agent = opts.agent || DEFAULT_AGENT;
     this.onStep = opts.onStep || (() => {});
     this.onEvent = opts.onEvent || (() => {});
     this.taskSessionId = null;
@@ -27,12 +32,31 @@ class Kilo {
     this.stopped = false;
   }
 
+  // Lightweight preflight: confirm the server is reachable before we spin up
+  // the browser/video. Returns false (without throwing) if the server is down.
+  async healthCheck() {
+    try {
+      const h = await this.client.health();
+      return !!(h && h.healthy === true);
+    } catch {
+      return false;
+    }
+  }
+
   async run(taskPrompt) {
+    // 0. Preflight — fail fast with a clear message if the server is down.
+    if (!(await this.healthCheck())) {
+      throw new Error(
+        `Kilo server unreachable at ${this.client.baseUrl} (set KILO_SERVER_URL). ` +
+          `Start it with: opencode serve --hostname 0.0.0.0 --port 4096`
+      );
+    }
+
     // 1. Plan first — kilo always makes a plan. If the server planner is
     // unreachable, fall back to a local single-step plan so kilo still runs.
     let planResult;
     try {
-      planResult = await this.planner.plan(taskPrompt, { model: this.model });
+      planResult = await this.planner.plan(taskPrompt, { model: this.model, agent: this.agent });
     } catch (err) {
       this.onEvent({ type: "plan-fallback", error: err.message });
       planResult = { steps: [{ content: taskPrompt, status: "pending", priority: "medium" }] };
@@ -53,7 +77,7 @@ class Kilo {
     // 4. Task session that will actually browse.
     const session = await this.client.createSession({
       title: `kilo: ${taskPrompt.slice(0, 40)}`,
-      agent: "kilo",
+      agent: this.agent,
       model: this.model,
     });
     this.taskSessionId = session.id || session.info?.id;
@@ -89,7 +113,7 @@ class Kilo {
         const r = await this.client.sendMessage(
           this.taskSessionId,
           [{ type: "text", text: prompt }],
-          { model: this.model, agent: "kilo", tools }
+          { model: this.model, agent: this.agent, tools }
         );
         step.status = "completed";
         results.push({ step: step.content, result: summarize(r) });

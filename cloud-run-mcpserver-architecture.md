@@ -1,8 +1,9 @@
 # Kilo — Architecture (replaces the old Cloud Run sentient-proxy)
 
 > The old `sentient-proxy` (CDP tunnel + ffmpeg WebSocket video) has been
-> replaced by **Kilo**. See `cloud-run-playwright-proxy.md` for the user-facing
-> guide. This file records the architectural shift.
+> replaced by **Kilo**, a lightweight client for a Kilo/OpenCode HTTP server.
+> This file records the architectural shift. There is no proxy server, no
+> ffmpeg, and no Cloud Run dependency.
 
 ---
 
@@ -11,7 +12,9 @@
 - **No more proxy server.** There is no `proxy-server.js` to run. `start-proxy.sh`
   and `run-proxy.ps1` were removed.
 - **Kilo drives the Kilo/OpenCode HTTP server directly** (`POST /session`,
-  `POST /session/:id/message`, `GET /event` SSE, `POST /mcp`).
+  `POST /session/:id/message`, `GET /event` SSE, `POST /mcp`). The server is
+  `opencode serve` — an OpenCode headless HTTP server (see
+  https://opencode.ai/docs/server/). OpenAPI spec at `/doc`.
 - **Inner Playwright MCP** is registered with the server via `POST /mcp`
   (`@playwright/mcp`), so the model auto-browses with `mcp__playwright__*` tools.
 - **Live video** uses Playwright **native** `recordVideo` + an MJPEG HTTP server
@@ -36,160 +39,32 @@
 ## Implementation
 
 ```
-kilo/core/kilo.js            -> orchestrator
-kilo/core/kilo-client.js     -> HTTP + SSE client
-kilo/core/kilo-planner.js    -> planner (server `plan` agent + fallback)
+kilo/core/kilo.js            -> orchestrator (health -> plan -> MCP -> video -> browse)
+kilo/core/kilo-client.js     -> HTTP + SSE client (model.id field, basic auth)
+kilo/core/kilo-planner.js    -> planner (server `plan` agent + local fallback)
 kilo/core/kilo-browser-mcp.js-> inner Playwright MCP registration
 kilo/core/kilo-browser-video.js-> Playwright-native video + MJPEG server
+kilo/health.js               -> no-dependency preflight / healthcheck
+kilo/serve.sh                -> launches `opencode serve` on a plain server
+kilo/Dockerfile              -> plain-server container (no Cloud Run specifics)
 ```
 
-- **Purpose:** Real-time browser automation, tab sync, workflow control.
-- **Protocol:** WebSocket (JSON messages)
-- **Sample Message:**
-  ```json
-  {
-    "action": "runWorkflow",
-    "workflowId": "123",
-    "params": { "url": "https://example.com" }
-  }
-  ```
-- **Response:**
-  ```json
-  {
-    "workflowId": "123",
-    "status": "completed",
-    "result": "Success!"
-  }
-  ```
+## Server (not Cloud Run)
 
-### 2. CDP Proxy: `/cdp-proxy/<path>`
-- **Purpose:** Chrome DevTools Protocol tunneling for remote browser inspection.
-- **Protocol:** WebSocket (raw frames)
-- **Usage:**
-  - Desktop: `chrome://inspect` → add `<cloudrun-host>:443`
-  - Mobile: Open the DevTools URL returned by `GET /cdp/info`
+Kilo is designed to run on a **plain Linux server / VM**:
 
-### 3. REST API: `/`
-- **Purpose:** Exposes Express routes for browser control, workflow management, and health checks.
-- **Protocol:** HTTP (JSON)
-- **Sample Endpoints:**
-  - `GET /health` → `{ status: "ok" }`
-  - `POST /workflow/run` → `{ workflowId, params }`
-  - `GET /cdp/info` → `{ devtoolsUrl }`
+- Start the server: `opencode serve --hostname 0.0.0.0 --port 4096`
+  (helper: `bash kilo/serve.sh`).
+- Protect it with `OPENCODE_SERVER_PASSWORD` (HTTP basic auth).
+- Kilo connects over the network via `KILO_SERVER_URL`.
+- A container build is provided in `kilo/Dockerfile` for Docker/Podman hosts.
+- No GCP, no ffmpeg, no WebSocket CDP tunnel, no external streaming service.
 
-- **Current:** `--allow-unauthenticated` (public access)
-- **Options:**
+## Notes
 
----
-
-
-## FFmpeg Video Streaming (Comprehensive)
-MCPServer enables real-time video streaming of browser sessions using Playwright and FFmpeg. This feature supports live preview, recording, and remote monitoring for automation workflows.
-
-### How It Works
-- **Playwright** launches a browser session with video recording enabled.
-- **FFmpeg** processes the recorded video file and streams it as MPEG-TS over WebSocket.
-- **WebSocket endpoint** (`/proxy/ws/<tabId>`) delivers binary video frames to the client.
-- **REST API** can be used to initiate, control, or stop the stream.
-
-### Server-Side Implementation (TypeScript)
-Key logic from `shared/screenshotStream.service.ts`:
-```typescript
-import { Page } from 'playwright';
-import WebSocket from 'ws';
-
-export class ScreenshotStreamService {
-  private ws: WebSocket;
-  constructor(wsUrl: string) {
-    this.ws = new WebSocket(wsUrl);
-  }
-  async streamVideo(page: Page, durationMs = 10000) {
-    const { spawn } = require('child_process');
-    let videoPath = '';
-    if (page.video) {
-      const video = page.video();
-      if (video && typeof video.path === 'function') {
-        videoPath = await video.path();
-      }
-    }
-    if (!videoPath) throw new Error('Video path not available.');
-    const ffmpeg = spawn('ffmpeg', [
-      '-re', '-i', videoPath,
-      '-f', 'mpegts', '-codec:v', 'mpeg1video', '-b:v', '800k', '-r', '30', '-'
-    ], { stdio: ['ignore', 'pipe', 'ignore'] });
-    ffmpeg.stdout.on('data', (chunk: Buffer) => {
-      if (this.ws.readyState === WebSocket.OPEN) {
-        this.ws.send(chunk);
-      }
-    });
-  }
-}
-```
-
-### Client-Side Example (Node.js)
-Connect and receive video frames:
-```js
-const WebSocket = require('ws');
-const ws = new WebSocket('wss://sentient-proxy-184717935920.us-central1.run.app/proxy/ws/myTabId');
-ws.on('open', () => {
-  ws.send(JSON.stringify({
-    action: 'startVideoStream',
-    tabId: 'myTabId',
-    options: { format: 'mpegts', resolution: '1280x720' }
-  }));
-});
-ws.on('message', (data) => {
-  if (Buffer.isBuffer(data)) {
-    // Save, decode, or forward MPEG-TS video frames
-  } else {
-    // Handle JSON status messages
-    console.log('Status:', data.toString());
-  }
-});
-```
-
-### WebSocket Message Format
-- **Start streaming:**
-  ```json
-  {
-    "action": "startVideoStream",
-    "tabId": "myTabId",
-    "options": {
-      "format": "mpegts",
-      "resolution": "1280x720"
-    }
-  }
-  ```
-- **Status/Errors:**
-  ```json
-  { "status": "starting video stream", "info": "Preparing video recording..." }
-  { "status": "ffmpeg started", "info": "Streaming video..." }
-  { "status": "video stream ended", "code": 0 }
-  { "status": "error", "info": "Video path not available." }
-  ```
-
-### Integration Steps
-1. Launch Playwright browser with video recording enabled (`recordVideo` context option).
-2. Connect to the WebSocket endpoint with your tab/session ID.
-3. Send a `startVideoStream` action message.
-4. Receive binary MPEG-TS frames and process them (save, decode, or forward to a player).
-5. Monitor status/error messages for stream lifecycle events.
-6. Optionally, use REST API to stop or manage the stream.
-
-### Advanced Usage
-- For browser playback, use a `<video>` element with a MediaSource extension or a player supporting MPEG-TS.
-- For saving, write binary frames to a `.ts` file and play with VLC or ffplay.
-- For custom workflows, see `shared/screenshotStream.service.ts` for more streaming options.
-
-### Notes
-- FFmpeg must be installed and available in the container (see Dockerfile).
-- Video streaming requires sufficient bandwidth and client-side decoding.
-- Error/status messages are sent as JSON; video frames as binary.
-
-- Use the WebSocket endpoint for real-time automation and tab sync.
-- Use REST endpoints for workflow management and health checks.
-- Use CDP proxy for remote browser inspection and debugging.
-
----
-
-For further details, see the Dockerfile, `proxy-server.js`, and your Cloud Run dashboard.
+- All heavy lifting (model calls, MCP tool execution) happens **on the
+  OpenCode server**; Kilo itself is a thin, dependency-light client.
+- Live video is local Playwright recording served as MJPEG — no transcoding
+  dependencies beyond Chromium.
+- If the server, planner, or MCP is unavailable, Kilo degrades gracefully
+  (local-plan fallback, MCP fallback) instead of crashing.
