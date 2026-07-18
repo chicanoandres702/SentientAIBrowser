@@ -1,24 +1,18 @@
 # kilo/Dockerfile
 # Plain Linux server image for Kilo (no Cloud Run, no GCP specifics).
 # Kilo is a client that drives an OpenCode HTTP server. This image installs the
-# OpenCode server + Playwright Chromium and runs `opencode serve` so the whole
-# stack runs on any Docker host.
+# OpenCode server so it runs on any Docker host. The client side needs no
+# browser or ffmpeg — it talks to this server over plain HTTP/SSE.
 FROM node:20-slim
 
-# System deps for Chromium (Playwright MCP + live-video recording).
+# System deps for the OpenCode server (Chromium is only pulled by the optional
+# server-side Playwright MCP, installed lazily on first use).
 RUN apt-get update && apt-get install -y --no-install-recommends \
       ca-certificates curl gnupg \
-      libnss3 libnspr4 libatk1.0-0 libatk-bridge2.0-0 libcups2 \
-      libdrm2 libxkbcommon0 libxcomposite1 libxdamage1 libxfixes3 \
-      libxrandr2 libgbm1 libpango-1.0-0 libcairo2 libasound2 libatspi2.0-0 \
     && rm -rf /var/lib/apt/lists/*
 
 # Install the OpenCode CLI (provides `opencode serve`).
 RUN npm install -g opencode
-
-# Playwright Chromium for the inner MCP browser + live video.
-RUN npx -y playwright@latest install --with-deps chromium || \
-    npx -y playwright@latest install chromium
 
 WORKDIR /app
 COPY package*.json ./

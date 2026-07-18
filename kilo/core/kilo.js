@@ -63,15 +63,22 @@ class Kilo {
     }
     this.plan = planResult.steps;
 
-    // 2. Inner Playwright MCP connection. If the server is slow/unreachable,
-    // kilo still runs with the live video page (the model may use other tools).
-    try {
-      await this.browserMcp.register();
-    } catch (err) {
-      this.onEvent({ type: "mcp-fallback", error: err.message });
+    // 2. Optional inner Playwright MCP connection (server-side). It is opt-in
+    // via KILO_MCP=1 because launching it on the server can be slow/rate-limited.
+    // Kilo still runs fine without it — the model can answer or use other tools.
+    this.mcpEnabled = false;
+    if (process.env.KILO_MCP === "1") {
+      try {
+        await this.browserMcp.register();
+        this.mcpEnabled = true;
+      } catch (err) {
+        this.onEvent({ type: "mcp-fallback", error: err.message });
+      }
     }
 
-    // 3. Live video of the browser.
+    // 3. Start the lightweight live viewer (plan + progress over SSE).
+    this.video.setTask(taskPrompt);
+    this.video.setPlan(this.plan);
     await this.video.start();
 
     // 4. Task session that will actually browse.
@@ -82,49 +89,49 @@ class Kilo {
     });
     this.taskSessionId = session.id || session.info?.id;
 
-    // Tool enablement: let the model use the inner playwright MCP.
-    const toolPrefix = this.browserMcp.toolPrefix();
-    const tools = { [`${toolPrefix}browser_navigate`]: true, [`${toolPrefix}browser_click`]: true, [`${toolPrefix}browser_type`]: true, [`${toolPrefix}browser_snapshot`]: true, [`${toolPrefix}browser_take_screenshot`]: true };
-
-    const eventStream = this.client.openEventStream({
-      "message.part.updated": (props) => {
-        const part = props?.part;
-        if (part?.type === "tool" && part?.state?.output) {
-          this.onEvent({ type: "tool-result", tool: part.tool, output: part.state.output });
-        }
-      },
-      _error: (err) => this.onEvent({ type: "stream-error", error: err.message }),
-    });
+    // Tool enablement: only expose the inner Playwright MCP tools when it was
+    // actually registered, otherwise send no `tools` map (avoids server errors
+    // about unknown tools).
+    let tools;
+    if (this.mcpEnabled) {
+      const toolPrefix = this.browserMcp.toolPrefix();
+      tools = { [`${toolPrefix}browser_navigate`]: true, [`${toolPrefix}browser_click`]: true, [`${toolPrefix}browser_type`]: true, [`${toolPrefix}browser_snapshot`]: true, [`${toolPrefix}browser_take_screenshot`]: true };
+    }
 
     const results = [];
     for (let i = 0; i < this.plan.length && !this.stopped; i++) {
       const step = this.plan[i];
       step.status = "in_progress";
+      this.video.setStep(i, step);
       this.onStep({ index: i, step, total: this.plan.length });
 
-      // Keep the live video page pointed at the same place the model drives.
+      const browserLine = this.mcpEnabled
+        ? `You have an inner Playwright browser connected via tools (browser_navigate, browser_click, browser_type, browser_snapshot, browser_take_screenshot). Execute this step by driving the browser. `
+        : `Complete this step using the tools and knowledge available to you. `;
       const prompt =
-        `You have an inner Playwright browser connected via tools (browser_navigate, browser_click, browser_type, browser_snapshot, browser_take_screenshot). ` +
-        `Execute this step of the plan by driving the browser. Step ${i + 1}/${this.plan.length}: ${step.content}\n\n` +
+        browserLine +
+        `Step ${i + 1}/${this.plan.length}: ${step.content}\n\n` +
         `Overall task: ${taskPrompt}\n` +
-        `When the step's browser action is complete, reply with a one-line summary of what you did.`;
+        `When the step is done, reply with a one-line summary of what you did.`;
 
       try {
-        const r = await this.client.sendMessage(
+        const r = await this.client.prompt(
           this.taskSessionId,
           [{ type: "text", text: prompt }],
-          { model: this.model, agent: this.agent, tools }
+          { model: this.model, agent: this.agent, tools, timeoutMs: 90000 }
         );
         step.status = "completed";
-        results.push({ step: step.content, result: summarize(r) });
-        this.onEvent({ type: "step-done", index: i, result: summarize(r) });
+        this.video.setStep(i, step);
+        this.video.appendOutput(r.text);
+        results.push({ step: step.content, result: summarize(r.text) });
+        this.onEvent({ type: "step-done", index: i, result: summarize(r.text) });
       } catch (err) {
         step.status = "pending";
+        this.video.setStep(i, step);
         this.onEvent({ type: "step-error", index: i, error: err.message });
       }
     }
 
-    eventStream.close();
     return {
       plan: this.plan,
       results,
@@ -146,14 +153,9 @@ class Kilo {
   }
 }
 
-function summarize(messageResult) {
-  if (!messageResult || !messageResult.parts) return "";
-  return messageResult.parts
-    .filter((p) => p.type === "text")
-    .map((p) => p.text || "")
-    .join("\n")
-    .trim()
-    .slice(0, 500);
+function summarize(text) {
+  if (!text) return "";
+  return String(text).trim().slice(0, 500);
 }
 
 module.exports = { Kilo };

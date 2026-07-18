@@ -1,123 +1,114 @@
 // kilo/core/kilo-browser-video.js
-// Feature: Kilo Live Browser Video | Trace: kilo/core/kilo-browser-video.js
-// Why: The user wants to SEE the browser while kilo works. We use Playwright's
-// NATIVE video recording (context option recordVideo) — no ffmpeg required.
-// A long-lived page is opened and kept in sync with kilo's browsing by exposing
-// goto()/act() helpers. Frames are served as MJPEG over a tiny HTTP server so
-// any browser can watch at http://localhost:<port>/stream.mjpg.
+// Feature: Kilo Live Viewer | Trace: kilo/core/kilo-browser-video.js
+// Why: The user wants to SEE kilo work in real time. The model drives a browser
+// on the *server* (via the Playwright MCP), so the client does not need its own
+// browser. Instead we serve a tiny HTTP page that mirrors kilo's live plan, step
+// progress, and the model's streamed text over a lightweight SSE channel. No
+// Playwright, no ffmpeg, no external streaming service — just Node's stdlib.
 "use strict";
 
 const http = require("http");
-const fs = require("fs");
-const path = require("path");
-const { chromium } = require("playwright");
-
-const VIDEO_DIR = process.env.KILO_VIDEO_DIR || path.join(process.cwd(), "kilo-videos");
 
 class KiloBrowserVideo {
   constructor(opts = {}) {
-    this.videoDir = opts.videoDir || VIDEO_DIR;
     this.port = opts.port || parseInt(process.env.KILO_VIDEO_PORT || "8088", 10);
-    this.browser = null;
-    this.context = null;
-    this.page = null;
     this.server = null;
     this.clients = new Set();
-    this.lastFrame = null;
-    this.frameTimer = null;
-    this.fps = opts.fps || 8;
+    this.state = {
+      task: "",
+      plan: [],
+      stepIndex: -1,
+      stepText: "",
+      log: [],
+    };
   }
 
   async start() {
-    fs.mkdirSync(this.videoDir, { recursive: true });
-    this.browser = await chromium.launch({ headless: true, args: ["--no-sandbox"] });
-    this.context = await this.browser.newContext({
-      recordVideo: { dir: this.videoDir, size: { width: 1280, height: 720 } },
-      // The viewer is local automation; ignore TLS errors from intercepting
-      // proxies so kilo can browse any host.
-      ignoreHTTPSErrors: true,
-    });
-    this.page = await this.context.newPage();
-    await this.page.goto("about:blank");
-    this._startFrameLoop();
-    this._startServer();
+    await this._startServer();
     return this;
   }
 
-  // Keep kilo's visible page in sync with the recording page.
-  async navigate(url) {
-    if (!this.page) return;
-    await this.page.goto(url, { waitUntil: "domcontentloaded", timeout: 30000 });
+  // --- live state updates (called by kilo.js) -------------------------------
+  setTask(task) {
+    this.state.task = task;
+    this._broadcast();
   }
 
-  async act(fn) {
-    if (!this.page) return;
-    await fn(this.page);
+  setPlan(plan) {
+    this.state.plan = plan.map((s) => ({ content: s.content, status: s.status || "pending" }));
+    this._broadcast();
   }
 
-  getPage() {
-    return this.page;
+  setStep(index, step) {
+    this.state.stepIndex = index;
+    this.state.stepText = step?.content || "";
+    this.state.plan[index] = { ...(this.state.plan[index] || {}), content: step?.content, status: step?.status || "in_progress" };
+    this._broadcast();
   }
 
-  currentVideoPath() {
-    if (!this.page || !this.page.video) return null;
-    const v = this.page.video();
-    if (!v || typeof v.path !== "function") return null;
-    try {
-      return v.path();
-    } catch {
-      return null;
-    }
+  appendOutput(text) {
+    if (!text) return;
+    const lines = String(text).split("\n").filter(Boolean);
+    for (const l of lines) this.state.log.push(l);
+    if (this.state.log.length > 200) this.state.log = this.state.log.slice(-200);
+    this._broadcast();
   }
 
-  _startFrameLoop() {
-    // Capture frames at the chosen FPS. We screenshot the live page (Playwright
-    // native) rather than decoding the video file — simplest, dependency-free.
-    this.frameTimer = setInterval(async () => {
-      if (!this.page) return;
-      try {
-        const buf = await this.page.screenshot({ type: "jpeg", quality: 60 });
-        this.lastFrame = buf;
-        for (const res of this.clients) {
-          try {
-            res.write(`--kilo-frame\r\nContent-Type: image/jpeg\r\nContent-Length: ${buf.length}\r\n\r\n`);
-            res.write(buf);
-            res.write("\r\n");
-          } catch {
-            /* drop dead client */
-          }
-        }
-      } catch {
-        /* page may be navigating */
-      }
-    }, Math.max(100, Math.round(1000 / this.fps)));
-  }
-
+  // --- http + sse -----------------------------------------------------------
   _startServer() {
     this.server = http.createServer((req, res) => {
-      if (req.url === "/stream.mjpg") {
-        res.writeHead(200, {
-          "Content-Type": "multipart/x-mixed-replace; boundary=kilo-frame",
-          "Cache-Control": "no-cache",
-          "Connection": "keep-alive",
-        });
-        this.clients.add(res);
-        res.on("close", () => this.clients.delete(res));
-        return;
+      if (req.url === "/stream") return this._serveSse(req, res);
+      if (req.url === "/state") {
+        res.writeHead(200, { "Content-Type": "application/json" });
+        return res.end(JSON.stringify(this.state));
       }
       if (req.url === "/health") {
         res.writeHead(200, { "Content-Type": "application/json" });
-        res.end(JSON.stringify({ ok: true, clients: this.clients.size, video: this.currentVideoPath() }));
-        return;
+        return res.end(JSON.stringify({ ok: true, clients: this.clients.size }));
       }
       res.writeHead(200, { "Content-Type": "text/html" });
-      res.end(
-        `<!doctype html><html><head><title>Kilo Live Browser</title></head><body style="margin:0;background:#000">` +
-          `<img src="/stream.mjpg" style="width:100%;height:100vh;object-fit:contain" />` +
-          `</body></html>`
-      );
+      res.end(HTML);
     });
-    this.server.listen(this.port);
+    // Bind, but if the configured port is busy (e.g. a leftover viewer from a
+    // previous run) walk upward to the next free port so Kilo never crashes.
+    return new Promise((resolve, reject) => {
+      const tryPort = (port) => {
+        this.server.once("error", (err) => {
+          if (err.code === "EADDRINUSE" && port < this.port + 100) {
+            tryPort(port + 1);
+          } else {
+            reject(err);
+          }
+        });
+        this.server.listen(port, () => {
+          this.port = port;
+          resolve(this);
+        });
+      };
+      tryPort(this.port);
+    });
+  }
+
+  _serveSse(req, res) {
+    res.writeHead(200, {
+      "Content-Type": "text/event-stream",
+      "Cache-Control": "no-cache",
+      Connection: "keep-alive",
+    });
+    const send = () => res.write(`data: ${JSON.stringify(this.state)}\n\n`);
+    send();
+    this.clients.add(send);
+    req.on("close", () => this.clients.delete(send));
+  }
+
+  _broadcast() {
+    for (const send of this.clients) {
+      try {
+        send();
+      } catch {
+        /* drop dead client */
+      }
+    }
   }
 
   url() {
@@ -125,19 +116,60 @@ class KiloBrowserVideo {
   }
 
   async stop() {
-    if (this.frameTimer) clearInterval(this.frameTimer);
-    for (const c of this.clients) {
-      try {
-        c.end();
-      } catch {
-        /* ignore */
-      }
-    }
     this.clients.clear();
     if (this.server) await new Promise((r) => this.server.close(r));
-    if (this.context) await this.context.close().catch(() => {});
-    if (this.browser) await this.browser.close().catch(() => {});
   }
 }
 
-module.exports = { KiloBrowserVideo, VIDEO_DIR };
+const HTML = `<!doctype html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kilo — Live</title>
+<style>
+  :root { color-scheme: dark; }
+  body { margin:0; font:14px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace; background:#0b0e14; color:#d6deeb; }
+  header { padding:14px 18px; background:#11151f; border-bottom:1px solid #1d2430; }
+  header h1 { margin:0; font-size:16px; letter-spacing:.5px; }
+  main { display:grid; grid-template-columns: 320px 1fr; gap:1px; background:#1d2430; height:calc(100vh - 52px); }
+  .col { background:#0b0e14; padding:16px; overflow:auto; }
+  h2 { font-size:12px; text-transform:uppercase; letter-spacing:1px; color:#7f8ea3; margin:0 0 10px; }
+  .task { color:#82aaff; margin-bottom:14px; }
+  .step { padding:8px 10px; border-left:3px solid #1d2430; margin-bottom:6px; color:#7f8ea3; }
+  .step.active { border-color:#82aaff; color:#d6deeb; background:#11151f; }
+  .step.done { border-color:#7fd17f; color:#9fb3c8; }
+  .step.error { border-color:#ec6a88; color:#ec6a88; }
+  #log { white-space:pre-wrap; color:#c3e88d; }
+  .now { color:#82aaff; margin-bottom:10px; min-height:1.5em; }
+</style></head>
+<body>
+<header><h1>● Kilo <span style="color:#7f8ea3;font-weight:400">live agent</span></h1></header>
+<main>
+  <div class="col">
+    <h2>Plan</h2>
+    <div class="task" id="task"></div>
+    <div id="plan"></div>
+  </div>
+  <div class="col">
+    <h2>Current step</h2>
+    <div class="now" id="now"></div>
+    <h2>Agent output</h2>
+    <div id="log"></div>
+  </div>
+</main>
+<script>
+  const es = new EventSource("/stream");
+  const $ = (id) => document.getElementById(id);
+  es.onmessage = (e) => {
+    const s = JSON.parse(e.data);
+    $("task").textContent = s.task || "";
+    $("now").textContent = s.stepText || "";
+    $("plan").innerHTML = (s.plan || []).map((p, i) => {
+      const cls = i === s.stepIndex ? "step active" : (p.status === "completed" ? "step done" : p.status === "pending" ? "step" : "step");
+      return '<div class="'+cls+'">'+ (i+1) +". "+ (p.content||"") +'</div>';
+    }).join("");
+    $("log").textContent = (s.log || []).join("\\n");
+    $("log").scrollTop = $("log").scrollHeight;
+  };
+</script>
+</body></html>`;
+
+module.exports = { KiloBrowserVideo };

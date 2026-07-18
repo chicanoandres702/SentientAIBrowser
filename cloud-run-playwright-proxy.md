@@ -1,41 +1,42 @@
-# Kilo — Agent with Inner Playwright MCP, Live Video & Planner
+# Kilo — Agent with Planner, Live Viewer & Optional Browser MCP
 
-Kilo is a lightweight client that drives a **Kilo/OpenCode HTTP server**. It
-replaces the old Cloud Run `sentient-proxy` (CDP tunnel + ffmpeg WebSocket
-video). There is no proxy server, no ffmpeg, and no Cloud Run dependency —
-Kilo just talks to the OpenCode server's HTTP + SSE API and uses Playwright
-native recording for live video.
+Kilo is a **lightweight client** that drives an **OpenCode HTTP server** (`opencode
+serve`). It replaces the old Cloud Run `sentient-proxy` (CDP tunnel + ffmpeg
+WebSocket video). There is no proxy server, no ffmpeg, no Cloud Run, and no
+external services — Kilo talks to the OpenCode server's HTTP + SSE API and shows
+live progress through a tiny built-in web viewer. It is designed to run on any
+plain Linux VM or container.
 
 ## What Kilo does
 
-1. **Plans first.** Kilo asks the server's `plan` agent (or a local fallback
-   parser) to turn a task prompt into an ordered step list. The plan is shown
-   to the user before any browsing happens.
-2. **Inner Playwright MCP connection.** Kilo registers `@playwright/mcp` as an
-   MCP server with the Kilo server (`POST /mcp`). The model then auto-browses
-   via `mcp__playwright__browser_*` tools — navigate, click, type, snapshot,
-   screenshot — resolving the task step by step.
-3. **Live browser video.** A separate Playwright context records the browser
-   natively (`recordVideo`) and Kilo serves the live frames as MJPEG over HTTP.
-   Open the printed URL in any browser to watch Kilo work in real time. No
-   ffmpeg, no external streaming service.
-4. **Streams progress.** Kilo listens to the server SSE event stream
-   (`GET /event`) and reports step progress.
+1. **Plans first (locally, by default).** Kilo decomposes the task into a short
+   ordered step list on the client — no extra model round-trip, so it works even
+   when the server is rate-limited. Set `KILO_PLANNER=server` to ask the server's
+   `plan` agent instead (with a graceful local fallback).
+2. **Optional inner Playwright MCP.** With `KILO_MCP=1`, Kilo registers
+   `@playwright/mcp` with the server (`POST /mcp`) so the model can auto-browse
+   via `mcp__playwright__browser_*` tools. Off by default — Kilo still runs
+   without it.
+3. **Lightweight live viewer.** Kilo serves a small HTML page that mirrors the
+   plan, current step, and the model's streamed output over SSE. Open the
+   printed URL to watch progress in real time. No browser, no ffmpeg, no external
+   streaming service.
+4. **Streams progress.** Kilo uses the server's async prompt + SSE event stream
+   (`GET /event`) and resolves each turn on `session.turn.close`.
 
-## Server
+## Server (plain VM, no Cloud Run)
 
-- **Kilo/OpenCode HTTP server:** `http://54.219.166.226:4096` (override with
+- **OpenCode HTTP server:** `http://54.219.166.226:4096` (override with
   `KILO_SERVER_URL`). OpenAPI spec at `/doc`.
-- The OpenAPI spec the server publishes matches
-  `https://opencode.ai/docs/server/` — `opencode serve` exposes health,
-  sessions, messages, MCP, and an SSE event stream.
-- Built-in agents include `kilo` (default) and `plan`.
-- Default model: `kilo-auto/balanced` (provider `kilo`).
+- The server's API matches `https://opencode.ai/docs/server/` — `opencode serve`
+  exposes health, sessions, messages, MCP, and an SSE event stream.
+- Built-in agents include `kilo` (default). Default model/provider is the free
+  `google/gemini-2.5-flash` so Kilo runs without paid credits.
 
-### Running the server on a plain VM (no Cloud Run)
+### Launch the server on a plain server
 
 ```bash
-# Install OpenCode, then start the headless HTTP server bound to all interfaces
+# kilo/serve.sh installs `opencode` if missing, then starts the HTTP server.
 KILO_SERVER_PASSWORD=your-password bash kilo/serve.sh
 # or directly:
 opencode serve --hostname 0.0.0.0 --port 4096
@@ -68,25 +69,26 @@ Environment overrides:
 
 | Var | Default | Purpose |
 | --- | --- | --- |
-| `KILO_SERVER_URL` | `http://54.219.166.226:4096` | Kilo/OpenCode server base URL |
+| `KILO_SERVER_URL` | `http://54.219.166.226:4096` | OpenCode server base URL |
 | `KILO_SERVER_PASSWORD` | – | HTTP basic auth password (username `KILO_SERVER_USERNAME`, default `opencode`) |
 | `KILO_AGENT` | `kilo` | Agent used for the browse loop |
-| `KILO_MODEL` | `kilo-auto/balanced` | Model id for the browse loop |
-| `KILO_PROVIDER` | `kilo` | Provider for the browse loop |
-| `KILO_VIDEO_PORT` | `8088` | Port for the live MJPEG video stream |
-| `KILO_VIDEO_DIR` | `./kilo-videos` | Where Playwright writes recordings |
+| `KILO_MODEL` | `gemini-2.5-flash` | Model id for the browse loop |
+| `KILO_PROVIDER` | `google` | Provider for the browse loop |
+| `KILO_PLANNER` | `local` | `local` (default, fast) or `server` (ask the plan agent) |
+| `KILO_MCP` | – | set to `1` to register the inner Playwright MCP |
+| `KILO_VIDEO_PORT` | `8088` | Port for the live viewer (auto-increments if busy) |
 
 ## Architecture
 
 ```
-kilo/index.js            -> CLI entry point (health check -> plan -> browse)
-kilo/health.js           -> no-dep preflight / container healthcheck
-kilo/serve.sh            -> launches `opencode serve` on a plain server
-kilo/core/kilo.js        -> orchestrator: health -> plan -> register MCP -> video -> browse loop
-kilo/core/kilo-client.js -> typed HTTP + SSE client for the Kilo server
-kilo/core/kilo-planner.js-> planner (server `plan` agent + local fallback)
-kilo/core/kilo-browser-mcp.js -> registers inner Playwright MCP
-kilo/core/kilo-browser-video.js-> Playwright-native video + MJPEG HTTP server
+kilo/index.js               -> CLI entry point (health -> plan -> browse)
+kilo/health.js              -> no-dep preflight / container healthcheck
+kilo/serve.sh               -> launches `opencode serve` on a plain server
+kilo/core/kilo.js           -> orchestrator: health -> plan -> (MCP) -> viewer -> browse loop
+kilo/core/kilo-client.js    -> typed HTTP + SSE client (prompt() waits on turn.close)
+kilo/core/kilo-planner.js   -> local planner (fast) + optional server planner
+kilo/core/kilo-browser-mcp.js -> registers inner Playwright MCP (optional, server-side)
+kilo/core/kilo-browser-video.js -> lightweight SSE live viewer (no Playwright/ffmpeg)
 ```
 
 ## API the server exposes (used by Kilo)
@@ -95,10 +97,10 @@ kilo/core/kilo-browser-video.js-> Playwright-native video + MJPEG HTTP server
 | --- | --- | --- |
 | GET | `/global/health` | health/version |
 | GET | `/config/providers` | provider + model IDs |
-| GET | `/agent` | list agents (incl. `plan`, `kilo`) |
-| POST | `/session` | create a planning/browsing session |
-| POST | `/session/:id/message` | send a prompt, wait for response |
-| GET | `/session/:id/todo` | read the plan/todo list |
+| GET | `/agent` | list agents (incl. `kilo`) |
+| POST | `/session` | create a session |
+| POST | `/session/:id/prompt_async` | send a prompt, respond 204 |
+| GET | `/session/:id/message` | read messages |
 | POST | `/mcp` | register the inner Playwright MCP |
 | GET | `/mcp` | MCP connection status |
 | GET | `/event` | SSE stream of progress |
@@ -109,6 +111,5 @@ kilo/core/kilo-browser-video.js-> Playwright-native video + MJPEG HTTP server
 npm run kilo:test
 ```
 
-Covers the planner parser (pure unit), the live video MJPEG stream (real
-Chromium, no external network), and a skippable integration test against the
-live server.
+Covers the planner parser (pure unit) and a skippable integration test against
+the live server (skips automatically when the server is offline).

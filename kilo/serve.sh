@@ -10,6 +10,18 @@ HOST="${KILO_SERVER_HOST:-0.0.0.0}"
 # CORS origins that may drive the server from a browser (space-separated).
 IFS=' ' read -r -a CORS <<< "${KILO_CORS:-}"
 
+# Make sure the OpenCode CLI exists. Install it on the fly if missing so the
+# script works on a bare server without any pre-provisioning.
+if ! command -v opencode >/dev/null 2>&1; then
+  echo "opencode not found, installing..."
+  if command -v npm >/dev/null 2>&1; then
+    npm install -g opencode
+  else
+    echo "ERROR: npm is required to install opencode. Install Node.js first." >&2
+    exit 1
+  fi
+fi
+
 ARGS=(serve --hostname "$HOST" --port "$PORT")
 for origin in "${CORS[@]}"; do
   [ -n "$origin" ] && ARGS+=(--cors "$origin")

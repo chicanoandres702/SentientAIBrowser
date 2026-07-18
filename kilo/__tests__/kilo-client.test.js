@@ -1,5 +1,5 @@
 // kilo/__tests__/kilo-client.test.js
-// Integration test against the live Kilo server. Skips if the server is
+// Integration test against the live OpenCode server. Skips if the server is
 // unreachable so CI without network still passes.
 const { KiloClient } = require("../core/kilo-client");
 
@@ -28,15 +28,14 @@ describe("KiloClient (live server)", () => {
     expect(Array.isArray(p.providers)).toBe(true);
     const agents = await client.agents();
     expect(Array.isArray(agents)).toBe(true);
-    expect(agents.find((a) => a.name === "plan")).toBeTruthy();
+    expect(agents.find((a) => a.name === "kilo")).toBeTruthy();
   });
 
-  test("planner creates a session and returns steps", async () => {
+  test("prompt() resolves with assistant text (free model)", async () => {
     if (!online) return console.warn("skipped: server offline");
-    const { KiloPlanner } = require("../core/kilo-planner");
-    const planner = new KiloPlanner(client);
-    const plan = await planner.plan("Search the web for the current weather in Paris");
-    expect(Array.isArray(plan.steps)).toBe(true);
-    expect(plan.steps.length).toBeGreaterThan(0);
+    const s = await client.createSession({ title: "test", agent: "kilo", model: { id: "gemini-2.5-flash", providerID: "google" } });
+    const r = await client.prompt(s.id, [{ type: "text", text: "Reply with exactly the word: pong" }], { agent: "kilo", model: { id: "gemini-2.5-flash", providerID: "google" }, timeoutMs: 60000 });
+    expect(typeof r.text).toBe("string");
+    await client.deleteSession(s.id);
   });
 });

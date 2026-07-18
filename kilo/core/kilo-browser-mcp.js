@@ -33,21 +33,27 @@ class KiloBrowserMcp {
 
   async register(opts = {}) {
     const config = buildMcpConfig(opts);
-    await this.client.registerMcp(PLAYWRIGHT_MCP_NAME, config);
-    // Poll until the server reports connected (or failed).
-    for (let i = 0; i < 20; i++) {
-      const status = await this.client.mcpStatus();
-      const s = status[PLAYWRIGHT_MCP_NAME];
-      if (s && (s.status === "connected" || s.status === "failed")) {
-        if (s.status === "failed") {
-          throw new Error(`Playwright MCP failed to connect: ${s.error}`);
+    await this.client.registerMcp(PLAYWRIGHT_MCP_NAME, config, 20000);
+    // Poll until the server reports connected (or failed). Non-fatal: if it
+    // never reports, kilo still runs and the caller degrades gracefully.
+    try {
+      for (let i = 0; i < 15; i++) {
+        const status = await this.client.mcpStatus();
+        const s = status[PLAYWRIGHT_MCP_NAME];
+        if (s && (s.status === "connected" || s.status === "failed")) {
+          if (s.status === "failed") throw new Error(`Playwright MCP failed to connect: ${s.error}`);
+          this.toolsNamespace = PLAYWRIGHT_MCP_NAME;
+          return s;
         }
-        this.toolsNamespace = PLAYWRIGHT_MCP_NAME;
-        return s;
+        await sleep(1000);
       }
-      await sleep(1000);
+      // No status in time — assume it is still starting; kilo continues.
+      this.toolsNamespace = PLAYWRIGHT_MCP_NAME;
+      return null;
+    } catch (err) {
+      this.toolsNamespace = PLAYWRIGHT_MCP_NAME;
+      throw err;
     }
-    throw new Error("Playwright MCP did not report a status in time");
   }
 
   // Tool name prefix used when enabling tools per message.

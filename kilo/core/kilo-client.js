@@ -81,8 +81,8 @@ class KiloClient {
     return request("GET", "/mcp");
   }
 
-  async registerMcp(name, config) {
-    return request("POST", "/mcp", { name, config });
+  async registerMcp(name, config, timeoutMs = 20000) {
+    return request("POST", "/mcp", { name, config }, timeoutMs);
   }
 
   // Normalize any model input ({id} | {modelID}) into the shape a given
@@ -145,6 +145,64 @@ class KiloClient {
       tools: opts.tools || undefined,
     };
     return request("POST", `/session/${id}/prompt_async`, body);
+  }
+
+  // Run a full turn and resolve with the assistant's text once the turn closes.
+  // The synchronous `POST /session/:id/message` does NOT block on the server we
+  // target, so we fire `prompt_async` and collect parts from the SSE stream
+  // until `session.turn.close`. Resolves { text, parts, error }.
+  prompt(id, parts, opts = {}) {
+    const agent = opts.agent || DEFAULT_AGENT;
+    const model = this._model(opts.model, "message");
+    const tools = opts.tools || undefined;
+    let resolveTurn;
+    let rejectTurn;
+    const done = new Promise((res, rej) => {
+      resolveTurn = res;
+      rejectTurn = rej;
+    });
+    let text = "";
+    let lastParts = [];
+    let errored = null;
+    const stream = this.openEventStream({
+      "message.part.updated": (props) => {
+        const part = props?.part;
+        if (!part) return;
+        lastParts.push(part);
+        if (part.type === "text" && typeof part.text === "string") text += part.text;
+      },
+      "session.error": (props) => {
+        errored = props?.error || props?.message || "session error";
+      },
+      "session.turn.close": (props) => {
+        if (props?.sessionID && props.sessionID !== id) return;
+        finish();
+      },
+      _error: (err) => rejectTurn(err),
+    });
+
+    const timeoutMs = opts.timeoutMs || 180000;
+    const timer = setTimeout(() => finish(new Error("prompt timed out")), timeoutMs);
+
+    function finish(err) {
+      clearTimeout(timer);
+      try {
+        stream.close();
+      } catch {
+        /* ignore */
+      }
+      if (err) return rejectTurn(err);
+      if (errored) return rejectTurn(new Error(String(errored)));
+      resolveTurn({ text: text.trim(), parts: lastParts });
+    }
+
+    // Fire the turn. If the request itself fails, reject immediately.
+    this.promptAsync(id, parts, { agent, model, tools }).catch((err) => {
+      clearTimeout(timer);
+      rejectTurn(err);
+    });
+
+    return done;
   }
 
   diff(id, messageID) {
